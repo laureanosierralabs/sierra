@@ -1,0 +1,4 @@
+{
+  "_doc": "Movimientos financieros. Cada uno se guarda en SU moneda — nunca se convierte automáticamente. Los totales se muestran separados por moneda. Ver finanzas/README.md.",
+  "movimientos": []
+}

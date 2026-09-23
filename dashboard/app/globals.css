@@ -1,0 +1,230 @@
+@import "tailwindcss";
+
+/* ─────────────────────────────────────────────
+   Tema claro (default). Neutros con sesgo mínimo
+   al azul para que no lean como gris de sistema.
+   ───────────────────────────────────────────── */
+:root {
+  --ground: #ffffff;
+  --surface: #fbfbfc;
+  --surface-2: #f3f3f6;
+  --border: #e4e4ea;
+  --border-strong: #c9c9d4;
+
+  --text: #0a0a0b;
+  --text-2: #5c5c68;
+  --text-3: #8b8b97;
+
+  /* Semántica de estado — oscurecida para contrastar sobre blanco */
+  --critical: #cc2229;
+  --critical-dim: #fdeced;
+  --warn: #a35c00;
+  --warn-dim: #fdf3e3;
+  --ok: #18794e;
+  --ok-dim: #e8f5ee;
+  --idle: #4b4bc4;
+  --idle-dim: #ecebfb;
+}
+
+/* Tema oscuro — se aplica si el sistema lo pide */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ground: #0a0a0b;
+    --surface: #131316;
+    --surface-2: #191920;
+    --border: #24242c;
+    --border-strong: #32323c;
+
+    --text: #fafafa;
+    --text-2: #9a9aa6;
+    --text-3: #62626e;
+
+    --critical: #e5484d;
+    --critical-dim: #3d1719;
+    --warn: #f5a623;
+    --warn-dim: #3a2a10;
+    --ok: #30a46c;
+    --ok-dim: #10291d;
+    --idle: #6e6ee0;
+    --idle-dim: #1d1d3d;
+  }
+}
+
+/* El toggle manual gana sobre la preferencia del sistema, en ambos sentidos */
+:root[data-theme="light"] {
+  --ground: #ffffff;
+  --surface: #fbfbfc;
+  --surface-2: #f3f3f6;
+  --border: #e4e4ea;
+  --border-strong: #c9c9d4;
+  --text: #0a0a0b;
+  --text-2: #5c5c68;
+  --text-3: #8b8b97;
+  --critical: #cc2229;
+  --critical-dim: #fdeced;
+  --warn: #a35c00;
+  --warn-dim: #fdf3e3;
+  --ok: #18794e;
+  --ok-dim: #e8f5ee;
+  --idle: #4b4bc4;
+  --idle-dim: #ecebfb;
+}
+
+:root[data-theme="dark"] {
+  --ground: #0a0a0b;
+  --surface: #131316;
+  --surface-2: #191920;
+  --border: #24242c;
+  --border-strong: #32323c;
+  --text: #fafafa;
+  --text-2: #9a9aa6;
+  --text-3: #62626e;
+  --critical: #e5484d;
+  --critical-dim: #3d1719;
+  --warn: #f5a623;
+  --warn-dim: #3a2a10;
+  --ok: #30a46c;
+  --ok-dim: #10291d;
+  --idle: #6e6ee0;
+  --idle-dim: #1d1d3d;
+}
+
+@theme inline {
+  --color-ground: var(--ground);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--border);
+  --color-line-strong: var(--border-strong);
+  --color-text: var(--text);
+  --color-text-2: var(--text-2);
+  --color-text-3: var(--text-3);
+  --color-critical: var(--critical);
+  --color-critical-dim: var(--critical-dim);
+  --color-warn: var(--warn);
+  --color-warn-dim: var(--warn-dim);
+  --color-ok: var(--ok);
+  --color-ok-dim: var(--ok-dim);
+  --color-idle: var(--idle);
+  --color-idle-dim: var(--idle-dim);
+  --font-display: var(--font-jakarta), system-ui, sans-serif;
+  --font-sans: var(--font-dm-sans), system-ui, sans-serif;
+}
+
+body {
+  background: var(--ground);
+  color: var(--text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-display);
+  text-wrap: balance;
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+/* Números que se comparan en columna deben alinearse */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+.eyebrow {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+:focus-visible {
+  outline: 2px solid var(--text-2);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--ground); }
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 5px;
+  border: 2px solid var(--ground);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ─────────────────────────────────────────────
+   FullCalendar — mapeado a nuestros tokens para
+   que herede dark/light sin estilos paralelos.
+   ───────────────────────────────────────────── */
+.calendario {
+  --fc-border-color: var(--border);
+  --fc-page-bg-color: var(--surface);
+  --fc-neutral-bg-color: var(--surface-2);
+  --fc-today-bg-color: var(--surface-2);
+  --fc-now-indicator-color: var(--critical);
+  --fc-event-bg-color: var(--surface-2);
+  --fc-event-border-color: var(--border);
+  --fc-event-text-color: var(--text);
+  --fc-small-font-size: 0.75rem;
+}
+
+.calendario .fc {
+  font-family: var(--font-sans);
+}
+
+.calendario .fc-theme-standard td,
+.calendario .fc-theme-standard th {
+  border-color: var(--border);
+}
+
+.calendario .fc-col-header-cell {
+  background: var(--surface);
+  padding: 0.5rem 0;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.calendario .fc-timegrid-slot-label,
+.calendario .fc-list-day-text {
+  font-size: 0.6875rem;
+  color: var(--text-3);
+}
+
+.calendario .fc-daygrid-day-number {
+  padding: 0.25rem 0.375rem;
+  font-size: 0.75rem;
+  color: var(--text-2);
+}
+
+.calendario .fc-day-today .fc-daygrid-day-number {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.calendario .fc-event {
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  cursor: pointer;
+  transition: border-color 0.12s ease;
+}
+
+.calendario .fc-event:hover {
+  border-color: var(--border-strong);
+}
+
+/* El scroller interno no debe pelear con el scroll de la página */
+.calendario .fc-scroller {
+  overflow-y: auto !important;
+}
