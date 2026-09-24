@@ -1,8 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "installCommand": "corepack enable && cd dashboard && pnpm install --frozen-lockfile",
   "buildCommand": "cd dashboard && pnpm build",
-  "devCommand": "cd dashboard && pnpm dev",
-  "installCommand": "cd dashboard && pnpm install",
-  "outputDirectory": "dashboard/.next",
-  "framework": "nextjs"
+  "outputDirectory": "dashboard/.next"
 }
