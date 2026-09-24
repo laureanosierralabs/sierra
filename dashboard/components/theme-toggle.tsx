@@ -47,14 +47,14 @@ export function ThemeToggle() {
       type="button"
       onClick={alternar}
       aria-label={tema === "dark" ? "Cambiar a tema claro" : "Cambiar a tema oscuro"}
-      className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-text-2 transition-colors hover:bg-surface-2 hover:text-text"
+      title={tema === "dark" ? "Tema claro" : "Tema oscuro"}
+      className="shrink-0 rounded-lg p-1.5 text-text-3 transition-colors hover:bg-surface-2 hover:text-text"
     >
       {tema === "dark" ? (
         <Sun className="size-4" />
       ) : (
         <Moon className="size-4" />
       )}
-      {tema === "dark" ? "Tema claro" : "Tema oscuro"}
     </button>
   );
 }

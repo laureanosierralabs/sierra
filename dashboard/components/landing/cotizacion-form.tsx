@@ -100,10 +100,10 @@ export function CotizacionForm({
           />
         </Campo>
 
-        <Campo label="URL de la propuesta">
+        <Campo label="Link externo a la propuesta">
           <Input
             name="proposal_url"
-            placeholder="https://…"
+            placeholder="https://drive.google.com/… (opcional)"
             defaultValue={cotizacion?.proposal_url ?? ""}
           />
         </Campo>
@@ -112,6 +112,12 @@ export function CotizacionForm({
       <Campo label="Notas">
         <Textarea name="notes" rows={3} defaultValue={cotizacion?.notes ?? ""} />
       </Campo>
+
+      <p className="text-xs text-text-3">
+        {editar
+          ? "El PDF se sube desde la columna Documento de la tabla."
+          : "Después de crearla vas a poder subir el PDF desde la tabla."}
+      </p>
     </DialogoForm>
   );
 }

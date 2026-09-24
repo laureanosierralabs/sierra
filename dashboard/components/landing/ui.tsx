@@ -1,3 +1,4 @@
+import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   LABEL_ESTADO_CLIENTE,
@@ -18,7 +19,8 @@ const TONO_PROYECTO: Record<EstadoProyecto, Tono> = {
   "en-progreso": { dot: "bg-ok", text: "text-ok" },
   "en-revision": { dot: "bg-warn", text: "text-warn" },
   "esperando-cliente": { dot: "bg-critical", text: "text-critical" },
-  entregado: { dot: "bg-text-3", text: "text-text-3" },
+  "stand-by": { dot: "bg-text-3", text: "text-text-3" },
+  entregado: { dot: "bg-ok", text: "text-ok" },
 };
 
 const TONO_TAREA: Record<EstadoTarea, Tono> = {
@@ -159,6 +161,27 @@ export function PageHeader({
       </div>
       {accion}
     </header>
+  );
+}
+
+/** Título de sección dentro de una página, con su ícono. */
+export function SeccionTitulo({
+  icono: Icono,
+  children,
+  accion,
+}: {
+  icono: LucideIcon;
+  children: React.ReactNode;
+  accion?: React.ReactNode;
+}) {
+  return (
+    <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+      <h2 className="flex items-center gap-2 font-display text-sm font-bold">
+        <Icono className="size-4 text-text-3" />
+        {children}
+      </h2>
+      {accion}
+    </div>
   );
 }
 

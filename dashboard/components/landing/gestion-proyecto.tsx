@@ -1,12 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { LayoutGrid, Table2 } from "lucide-react";
+import Link from "next/link";
+import { LayoutGrid, ListChecks, Table2 } from "lucide-react";
 import { Kanban } from "@/components/landing/kanban";
 import { EstadoSelect } from "@/components/landing/estado-select";
 import { TareaForm } from "@/components/landing/tarea-form";
 import { BorrarTarea } from "@/components/landing/borrar";
-import { Prioridad, Vencimiento, VacioTabla } from "@/components/landing/ui";
+import {
+  Prioridad,
+  SeccionTitulo,
+  Vencimiento,
+  VacioTabla,
+} from "@/components/landing/ui";
 import type { Miembro, Proyecto, Tarea } from "@/lib/landing/tipos";
 
 const COLUMNAS = ["Tarea", "Estado", "Responsable", "Prioridad", "Deadline", ""];
@@ -23,7 +29,6 @@ export function GestionProyecto({
   proyectos: Pick<Proyecto, "id" | "name">[];
 }) {
   const [vista, setVista] = useState<"cuadro" | "tabla">("cuadro");
-  const [editando, setEditando] = useState<Tarea | null>(null);
 
   const nombreMiembro = new Map(miembros.map((m) => [m.id, m.nombre]));
 
@@ -32,9 +37,9 @@ export function GestionProyecto({
 
   return (
     <section>
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <h2 className="font-display text-sm font-bold">Gestión del proyecto</h2>
-
+      <SeccionTitulo
+        icono={ListChecks}
+        accion={
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-0.5 rounded-lg border border-line p-0.5">
             <button
@@ -61,15 +66,13 @@ export function GestionProyecto({
             proyectoFijo={proyecto.id}
           />
         </div>
-      </div>
+        }
+      >
+        Gestión del proyecto
+      </SeccionTitulo>
 
       {vista === "cuadro" ? (
-        <Kanban
-          tareas={tareas}
-          miembros={miembros}
-          projectId={proyecto.id}
-          onAbrir={setEditando}
-        />
+        <Kanban tareas={tareas} miembros={miembros} projectId={proyecto.id} />
       ) : (
         <div className="overflow-hidden rounded-xl border border-line bg-surface">
           <table className="w-full text-sm">
@@ -96,7 +99,14 @@ export function GestionProyecto({
                   key={t.id}
                   className="border-b border-line transition-colors last:border-0 hover:bg-surface-2"
                 >
-                  <td className="px-4 py-2.5 font-medium">{t.title}</td>
+                  <td className="px-4 py-2.5 font-medium">
+                    <Link
+                      href={`/landing-pages/tasks/${t.id}`}
+                      className="hover:underline"
+                    >
+                      {t.title}
+                    </Link>
+                  </td>
                   <td className="px-4 py-2.5">
                     <EstadoSelect id={t.id} valor={t.status} tipo="tarea" />
                   </td>
@@ -128,15 +138,6 @@ export function GestionProyecto({
         </div>
       )}
 
-      {editando && (
-        <TareaForm
-          miembros={miembros}
-          proyectos={proyectos}
-          tarea={editando}
-          abiertoExterno
-          onCerrar={() => setEditando(null)}
-        />
-      )}
     </section>
   );
 }

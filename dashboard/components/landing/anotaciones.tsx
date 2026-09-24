@@ -1,7 +1,9 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
+import { StickyNote } from "lucide-react";
 import { guardarAnotaciones } from "@/app/landing-pages/acciones";
+import { SeccionTitulo } from "@/components/landing/ui";
 
 /** Textarea que persiste al salir del foco. Alcanza para V1. */
 export function Anotaciones({
@@ -32,18 +34,22 @@ export function Anotaciones({
 
   return (
     <section>
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="font-display text-sm font-bold">Anotaciones importantes</h2>
-        <span className="text-xs text-text-3">
-          {pendiente
-            ? "Guardando…"
-            : estado === "guardado"
-              ? "Guardado"
-              : estado === "error"
-                ? "No se pudo guardar"
-                : ""}
-        </span>
-      </div>
+      <SeccionTitulo
+        icono={StickyNote}
+        accion={
+          <span className="text-xs text-text-3">
+            {pendiente
+              ? "Guardando…"
+              : estado === "guardado"
+                ? "Guardado"
+                : estado === "error"
+                  ? "No se pudo guardar"
+                  : ""}
+          </span>
+        }
+      >
+        Anotaciones importantes
+      </SeccionTitulo>
 
       <textarea
         defaultValue={valor ?? ""}

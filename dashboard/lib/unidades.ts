@@ -21,7 +21,13 @@ export interface DefinicionUnidad {
   href: string;
   externa?: boolean;
   /** Secciones internas; solo las unidades con panel propio las tienen. */
-  secciones?: { href: string; label: string; icono: string }[];
+  secciones?: {
+    href: string;
+    label: string;
+    icono: string;
+    /** Solo el owner la ve. */
+    owner?: boolean;
+  }[];
 }
 
 export const DEFINICIONES: Record<Unidad, DefinicionUnidad> = {
@@ -29,13 +35,24 @@ export const DEFINICIONES: Record<Unidad, DefinicionUnidad> = {
     slug: "landing-pages",
     nombre: "Landing Pages",
     href: "/landing-pages",
+    // `owner: true` = sección reservada. Un Team Dev no la ve ni puede entrar.
     secciones: [
       { href: "/landing-pages", label: "Inicio", icono: "LayoutGrid" },
       { href: "/landing-pages/projects", label: "Proyectos", icono: "FolderKanban" },
       { href: "/landing-pages/tasks", label: "Tareas", icono: "ListChecks" },
       { href: "/landing-pages/clients", label: "Clientes", icono: "Users" },
-      { href: "/landing-pages/quotes", label: "Cotizaciones", icono: "FileText" },
-      { href: "/landing-pages/team", label: "Equipo", icono: "UserCog" },
+      {
+        href: "/landing-pages/quotes",
+        label: "Cotizaciones",
+        icono: "FileText",
+        owner: true,
+      },
+      {
+        href: "/landing-pages/team",
+        label: "Equipo",
+        icono: "UserCog",
+        owner: true,
+      },
     ],
   },
   "marca-personal": {
@@ -86,8 +103,17 @@ export function puedeVerRuta(
   pathname: string,
 ): boolean {
   if (esOwner) return true;
+
   const unidad = unidadDeRuta(pathname);
-  return unidad !== null && unidades.includes(unidad);
+  if (unidad === null || !unidades.includes(unidad)) return false;
+
+  // Ocultar el link no alcanza: la ruta también tiene que rebotar.
+  const reservada = (DEFINICIONES[unidad].secciones ?? []).find(
+    (s) =>
+      s.owner && (pathname === s.href || pathname.startsWith(`${s.href}/`)),
+  );
+
+  return !reservada;
 }
 
 /** Adónde mandar a alguien que no puede ver lo que pidió. */

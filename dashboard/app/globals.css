@@ -5,25 +5,27 @@
    al azul para que no lean como gris de sistema.
    ───────────────────────────────────────────── */
 :root {
-  --ground: #ffffff;
-  --surface: #fbfbfc;
-  --surface-2: #f3f3f6;
-  --border: #e4e4ea;
-  --border-strong: #c9c9d4;
+  /* El fondo es apenas gris y las superficies blancas: así las tarjetas
+     flotan sobre la página en vez de fundirse con ella. */
+  --ground: #f7f8fa;
+  --surface: #ffffff;
+  --surface-2: #f0f2f5;
+  --border: #e1e4ea;
+  --border-strong: #bcc2cc;
 
-  --text: #0a0a0b;
-  --text-2: #5c5c68;
-  --text-3: #8b8b97;
+  --text: #0d1117;
+  --text-2: #55606e;
+  --text-3: #8b94a3;
 
   /* Semántica de estado — oscurecida para contrastar sobre blanco */
-  --critical: #cc2229;
-  --critical-dim: #fdeced;
+  --critical: #c62828;
+  --critical-dim: #fdecec;
   --warn: #a35c00;
-  --warn-dim: #fdf3e3;
-  --ok: #18794e;
-  --ok-dim: #e8f5ee;
-  --idle: #4b4bc4;
-  --idle-dim: #ecebfb;
+  --warn-dim: #fdf4e3;
+  --ok: #1b7a4b;
+  --ok-dim: #e7f5ed;
+  --idle: #4949c9;
+  --idle-dim: #ececfc;
 }
 
 /* Tema oscuro — se aplica si el sistema lo pide */
@@ -145,6 +147,21 @@ h1, h2, h3 {
   border-radius: 4px;
 }
 
+/* Todo lo clickeable se comporta como tal. Tailwind 4 ya no lo hace solo. */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+summary,
+label[for],
+select:not(:disabled) {
+  cursor: pointer;
+}
+
+button:disabled,
+select:disabled,
+[aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: var(--ground); }
 ::-webkit-scrollbar-thumb {
@@ -158,6 +175,15 @@ h1, h2, h3 {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+@keyframes entrar-derecha {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+.panel-lateral {
+  animation: entrar-derecha 0.18s ease-out;
 }
 
 /* ─────────────────────────────────────────────

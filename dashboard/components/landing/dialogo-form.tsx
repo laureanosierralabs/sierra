@@ -105,7 +105,7 @@ export function DialogoForm({
         className={
           disparador
             ? "text-text-3 transition-colors hover:text-text"
-            : "inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-2 text-sm font-medium text-text transition-colors hover:bg-surface-2"
+            : "inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface-2 px-3.5 py-2 text-sm font-medium text-text transition-colors hover:border-line-strong hover:bg-surface"
         }
       >
         {disparador ?? (

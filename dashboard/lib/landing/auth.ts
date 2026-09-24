@@ -65,6 +65,34 @@ export async function listarMiembros(): Promise<Miembro[]> {
     .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
 }
 
+export interface Invitacion {
+  id: string;
+  email: string;
+  rol: Rol;
+  unidades: Unidad[];
+  creada: string;
+}
+
+/** Invitaciones enviadas que todavía no se aceptaron. */
+export async function listarInvitaciones(): Promise<Invitacion[]> {
+  const client = await clerkClient();
+  const { data } = await client.invitations.getInvitationList({
+    status: "pending",
+    limit: 50,
+  });
+
+  return data.map((i) => {
+    const acceso = leerAcceso(i.publicMetadata);
+    return {
+      id: i.id,
+      email: i.emailAddress,
+      rol: acceso.rol,
+      unidades: acceso.unidades,
+      creada: new Date(i.createdAt).toISOString().slice(0, 10),
+    };
+  });
+}
+
 export interface MiembroDetalle extends Miembro {
   email: string | null;
   rol: Rol;

@@ -6,8 +6,8 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import type { EventClickArg, EventInput } from "@fullcalendar/core";
 import esLocale from "@fullcalendar/core/locales/es";
+import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { TareaForm } from "@/components/landing/tarea-form";
 import type { Miembro, Proyecto, Tarea } from "@/lib/landing/tipos";
 
 type Vista = "timeGridWeek" | "dayGridMonth";
@@ -25,9 +25,9 @@ export function Calendario({
   miembros: Miembro[];
 }) {
   const ref = useRef<FullCalendar>(null);
+  const router = useRouter();
   const [vista, setVista] = useState<Vista>("timeGridWeek");
   const [titulo, setTitulo] = useState("");
-  const [editando, setEditando] = useState<Tarea | null>(null);
 
   const nombreProyecto = new Map(proyectos.map((p) => [p.id, p.name]));
   const nombreMiembro = new Map(miembros.map((m) => [m.id, m.nombre]));
@@ -76,9 +76,15 @@ export function Calendario({
   }
 
   function onEventClick(arg: EventClickArg) {
-    if (arg.event.extendedProps.tipo !== "tarea") return;
-    const tarea = tareas.find((t) => t.id === arg.event.id);
-    if (tarea) setEditando(tarea);
+    const { tipo } = arg.event.extendedProps;
+    if (tipo === "tarea") {
+      router.push(`/landing-pages/tasks/${arg.event.id}`);
+      return;
+    }
+    // Los eventos de proyecto llevan el id prefijado para no chocar con tareas.
+    router.push(
+      `/landing-pages/projects/${String(arg.event.id).replace(/^proyecto-/, "")}`,
+    );
   }
 
   return (
@@ -170,15 +176,6 @@ export function Calendario({
         />
       </div>
 
-      {editando && (
-        <TareaForm
-          miembros={miembros}
-          proyectos={proyectos}
-          tarea={editando}
-          abiertoExterno
-          onCerrar={() => setEditando(null)}
-        />
-      )}
     </div>
   );
 }

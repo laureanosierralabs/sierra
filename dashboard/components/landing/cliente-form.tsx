@@ -12,6 +12,8 @@ import { guardarCliente } from "@/app/landing-pages/acciones";
 import {
   ESTADOS_CLIENTE,
   LABEL_ESTADO_CLIENTE,
+  LABEL_ORIGEN,
+  ORIGENES,
   type Cliente,
 } from "@/lib/landing/tipos";
 
@@ -66,6 +68,53 @@ export function ClienteForm({ cliente }: { cliente?: Cliente }) {
           </Select>
         </Campo>
       </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <Campo label="Origen">
+          <Select name="source" defaultValue={cliente?.source ?? ""}>
+            <option value="">Sin definir</option>
+            {ORIGENES.map((o) => (
+              <option key={o} value={o}>
+                {LABEL_ORIGEN[o]}
+              </option>
+            ))}
+          </Select>
+        </Campo>
+
+        <Campo label="Detalle del origen">
+          <Input
+            name="source_detail"
+            placeholder="Instagram, Meta Ads, quién lo refirió…"
+            defaultValue={cliente?.source_detail ?? ""}
+          />
+        </Campo>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <Campo label="Nicho">
+          <Input
+            name="niche"
+            placeholder="Pastelería, coaching…"
+            defaultValue={cliente?.niche ?? ""}
+          />
+        </Campo>
+
+        <Campo label="Sitio web">
+          <Input
+            name="website"
+            placeholder="https://…"
+            defaultValue={cliente?.website ?? ""}
+          />
+        </Campo>
+      </div>
+
+      <Campo label="Drive de archivos">
+        <Input
+          name="drive_url"
+          placeholder="https://drive.google.com/…"
+          defaultValue={cliente?.drive_url ?? ""}
+        />
+      </Campo>
 
       <Campo label="Notas">
         <Textarea name="notes" rows={3} defaultValue={cliente?.notes ?? ""} />

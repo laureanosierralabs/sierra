@@ -9,10 +9,13 @@ import {
   Textarea,
 } from "@/components/landing/dialogo-form";
 import { guardarProyecto } from "@/app/landing-pages/acciones";
+import type { Proceso } from "@/lib/landing/tipos";
 import {
   ESTADOS_PROYECTO,
+  ETAPAS,
   PRIORIDADES,
   LABEL_ESTADO_PROYECTO,
+  LABEL_ETAPA,
   LABEL_PRIORIDAD,
   type Cliente,
   type Miembro,
@@ -29,6 +32,7 @@ export interface DesdeCotizacion {
 export function ProyectoForm({
   miembros,
   clientes,
+  procesos = [],
   proyecto,
   desdeCotizacion,
   etiqueta,
@@ -36,6 +40,7 @@ export function ProyectoForm({
 }: {
   miembros: Miembro[];
   clientes: Pick<Cliente, "id" | "name">[];
+  procesos?: Pick<Proceso, "id" | "slug" | "name">[];
   proyecto?: Proyecto;
   desdeCotizacion?: DesdeCotizacion;
   etiqueta?: string;
@@ -135,6 +140,48 @@ export function ProyectoForm({
           />
         </Campo>
       </div>
+
+      {/* Solo al crear: cambiarlo después no recrearía las tareas ya hechas. */}
+      {!editar && procesos.length > 0 && (
+        <Campo label="Proceso de trabajo">
+          <Select name="kind" defaultValue={procesos[0].slug}>
+            {procesos.map((p) => (
+              <option key={p.id} value={p.slug}>
+                {p.name}
+              </option>
+            ))}
+          </Select>
+        </Campo>
+      )}
+      {editar && proyecto && (
+        <input type="hidden" name="kind" value={proyecto.kind} />
+      )}
+
+      <Campo label="Etapa">
+        <Select name="stage" defaultValue={proyecto?.stage ?? ""}>
+          <option value="">Sin etapa</option>
+          {ETAPAS.map((e) => (
+            <option key={e} value={e}>
+              {LABEL_ETAPA[e]}
+            </option>
+          ))}
+        </Select>
+      </Campo>
+
+      {/* Subir la imagen se hace desde el detalle; acá solo por URL externa. */}
+      {!editar && (
+        <>
+          <Campo label="Portada (URL)">
+            <Input name="cover_url" placeholder="https://… (opcional)" />
+          </Campo>
+          <p className="text-xs text-text-3">
+            Para subir una imagen, entrá al proyecto después de crearlo.
+          </p>
+        </>
+      )}
+      {editar && proyecto?.cover_url && (
+        <input type="hidden" name="cover_url" value={proyecto.cover_url} />
+      )}
 
       <Campo label="Notas">
         <Textarea name="notes" rows={3} defaultValue={proyecto?.notes ?? ""} />

@@ -1,30 +1,40 @@
-import { listarProyectos, listarTareas } from "@/lib/landing/datos";
+import Link from "next/link";
+import {
+  listarProcesos,
+  listarProyectos,
+  listarTareas,
+  listarTareasDeProceso,
+} from "@/lib/landing/datos";
 import { listarMiembros } from "@/lib/landing/auth";
 import { PageHeader, Prioridad, Vencimiento, VacioTabla } from "@/components/landing/ui";
 import { EstadoSelect } from "@/components/landing/estado-select";
 import { TareaForm } from "@/components/landing/tarea-form";
 import { BorrarTarea } from "@/components/landing/borrar";
+import { VistaTareas } from "@/components/landing/vista-tareas";
+import { Procesos } from "@/components/landing/procesos";
 
 export const dynamic = "force-dynamic";
 
 export default async function TareasPage() {
-  const [tareas, proyectos, miembros] = await Promise.all([
+  const [tareas, proyectos, miembros, procesos] = await Promise.all([
     listarTareas(),
     listarProyectos(),
     listarMiembros(),
+    listarProcesos(),
   ]);
+
+  const tareasPorProceso = Object.fromEntries(
+    await Promise.all(
+      procesos.map(
+        async (p) => [p.id, await listarTareasDeProceso(p.id)] as const,
+      ),
+    ),
+  );
 
   const nombrePor = new Map(miembros.map((m) => [m.id, m.nombre]));
   const proyectoPor = new Map(proyectos.map((p) => [p.id, p.name]));
 
-  return (
-    <>
-      <PageHeader
-        titulo="Tareas"
-        descripcion={`${tareas.length} ${tareas.length === 1 ? "tarea" : "tareas"}`}
-        accion={<TareaForm miembros={miembros} proyectos={proyectos} />}
-      />
-
+  const tabla = (
       <div className="overflow-hidden rounded-xl border border-line bg-surface">
         <table className="w-full text-sm">
           <thead>
@@ -50,7 +60,14 @@ export default async function TareasPage() {
                 key={t.id}
                 className="border-b border-line transition-colors last:border-0 hover:bg-surface-2"
               >
-                <td className="px-4 py-3 font-medium">{t.title}</td>
+                <td className="px-4 py-3 font-medium">
+                  <Link
+                    href={`/landing-pages/tasks/${t.id}`}
+                    className="hover:underline"
+                  >
+                    {t.title}
+                  </Link>
+                </td>
                 <td className="px-4 py-3 text-text-2">
                   {t.project_id ? (proyectoPor.get(t.project_id) ?? "—") : "—"}
                 </td>
@@ -81,6 +98,22 @@ export default async function TareasPage() {
           </tbody>
         </table>
       </div>
+  );
+
+  return (
+    <>
+      <PageHeader
+        titulo="Tareas"
+        descripcion={`${tareas.length} ${tareas.length === 1 ? "tarea" : "tareas"}`}
+        accion={<TareaForm miembros={miembros} proyectos={proyectos} />}
+      />
+
+      <VistaTareas
+        tareas={tabla}
+        procesos={
+          <Procesos procesos={procesos} tareasPorProceso={tareasPorProceso} />
+        }
+      />
     </>
   );
 }

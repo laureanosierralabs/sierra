@@ -2,7 +2,12 @@
 
 import { ArrowUpRight } from "lucide-react";
 import { ProyectoForm } from "@/components/landing/proyecto-form";
-import type { Cliente, Cotizacion, Miembro } from "@/lib/landing/tipos";
+import type {
+  Cliente,
+  Cotizacion,
+  Miembro,
+  Proceso,
+} from "@/lib/landing/tipos";
 
 /**
  * Abre el formulario de proyecto precargado desde una cotización aprobada.
@@ -12,15 +17,18 @@ export function CrearProyectoDesdeCotizacion({
   cotizacion,
   miembros,
   clientes,
+  procesos,
 }: {
   cotizacion: Cotizacion;
   miembros: Miembro[];
   clientes: Pick<Cliente, "id" | "name">[];
+  procesos: Pick<Proceso, "id" | "slug" | "name">[];
 }) {
   return (
     <ProyectoForm
       miembros={miembros}
       clientes={clientes}
+      procesos={procesos}
       desdeCotizacion={{
         quoteId: cotizacion.id,
         clientId: cotizacion.client_id,

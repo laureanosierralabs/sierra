@@ -1,12 +1,32 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ExternalLink } from "lucide-react";
+import {
+  ArrowLeft,
+  AtSign,
+  Briefcase,
+  CircleDashed,
+  Download,
+  ExternalLink,
+  FolderOpen,
+  Globe,
+  Mail,
+  Phone,
+  Sprout,
+  type LucideIcon,
+} from "lucide-react";
 import {
   listarCotizaciones,
+  listarNotasCliente,
   listarProyectos,
+  listarRecursosCliente,
   obtenerCliente,
 } from "@/lib/landing/datos";
-import { formatearMonto } from "@/lib/landing/tipos";
+import {
+  formatearMonto,
+  LABEL_ORIGEN,
+  urlInstagram,
+  urlWhatsapp,
+} from "@/lib/landing/tipos";
 import {
   EstadoClientePill,
   EstadoCotizacionPill,
@@ -15,15 +35,47 @@ import {
   Vencimiento,
 } from "@/components/landing/ui";
 import { ClienteForm } from "@/components/landing/cliente-form";
+import { Recursos } from "@/components/landing/recursos";
+import { NotasCliente } from "@/components/landing/notas-cliente";
 
 export const dynamic = "force-dynamic";
 
-function Dato({ label, valor }: { label: string; valor: string | null }) {
+function Propiedad({
+  icono: Icono,
+  label,
+  children,
+}: {
+  icono: LucideIcon;
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
-    <div>
-      <p className="eyebrow">{label}</p>
-      <p className="mt-0.5 text-sm">{valor || "—"}</p>
+    <div className="flex items-center gap-3 py-1.5">
+      <span className="flex w-32 shrink-0 items-center gap-2 text-xs text-text-3">
+        <Icono className="size-3.5" />
+        {label}
+      </span>
+      <div className="min-w-0 flex-1">{children}</div>
     </div>
+  );
+}
+
+function Texto({ valor }: { valor: string | null }) {
+  return <p className="truncate text-sm">{valor || "—"}</p>;
+}
+
+function Enlace({ href, texto }: { href: string | null; texto?: string }) {
+  if (!href) return <p className="text-sm">—</p>;
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex min-w-0 items-center gap-1.5 text-sm hover:underline"
+    >
+      <span className="truncate">{texto ?? href.replace(/^https?:\/\//, "")}</span>
+      <ExternalLink className="size-3 shrink-0 text-text-3" />
+    </a>
   );
 }
 
@@ -55,10 +107,12 @@ export default async function ClienteDetalle({
 }) {
   const { id } = await params;
 
-  const [cliente, cotizaciones, proyectos] = await Promise.all([
+  const [cliente, cotizaciones, proyectos, accesos, notas] = await Promise.all([
     obtenerCliente(id),
     listarCotizaciones(),
     listarProyectos(),
+    listarRecursosCliente(id),
+    listarNotasCliente(id),
   ]);
 
   if (!cliente) notFound();
@@ -79,28 +133,109 @@ export default async function ClienteDetalle({
       <PageHeader
         titulo={cliente.name}
         descripcion={cliente.company ?? undefined}
-        accion={<ClienteForm cliente={cliente} />}
+        accion={
+          <span className="flex items-center gap-3">
+            <a
+              href={`/landing-pages/clients/${cliente.id}/export`}
+              download
+              title="Descargar ficha en Markdown"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm font-medium text-text-2 transition-colors hover:border-line-strong hover:text-text"
+            >
+              <Download className="size-3.5" />
+              Exportar
+            </a>
+            <ClienteForm cliente={cliente} />
+          </span>
+        }
       />
 
       <div className="flex flex-col gap-5">
-        <section className="rounded-xl border border-line bg-surface p-4">
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-            <div>
-              <p className="eyebrow">Estado</p>
-              <div className="mt-1">
-                <EstadoClientePill estado={cliente.status} />
-              </div>
-            </div>
-            <Dato label="WhatsApp" valor={cliente.phone} />
-            <Dato label="Instagram" valor={cliente.instagram} />
-            <Dato label="Email" valor={cliente.email} />
+        <section className="rounded-xl border border-line bg-surface px-4 py-3">
+          <div className="grid gap-x-10 md:grid-cols-2">
+            <Propiedad icono={CircleDashed} label="Estado">
+              <EstadoClientePill estado={cliente.status} />
+            </Propiedad>
+
+            <Propiedad icono={Sprout} label="Origen">
+              {cliente.source ? (
+                <span className="flex min-w-0 items-center gap-2">
+                  <span className="shrink-0 rounded border border-idle/30 bg-idle-dim px-1.5 py-0.5 text-[0.6875rem] font-medium text-idle">
+                    {LABEL_ORIGEN[cliente.source]}
+                  </span>
+                  {cliente.source_detail && (
+                    <span className="truncate text-sm text-text-2">
+                      {cliente.source_detail}
+                    </span>
+                  )}
+                </span>
+              ) : (
+                <Texto valor={null} />
+              )}
+            </Propiedad>
+
+            <Propiedad icono={Phone} label="WhatsApp">
+              {urlWhatsapp(cliente.phone) ? (
+                <Enlace
+                  href={urlWhatsapp(cliente.phone)}
+                  texto={cliente.phone ?? ""}
+                />
+              ) : (
+                <Texto valor={cliente.phone} />
+              )}
+            </Propiedad>
+
+            <Propiedad icono={AtSign} label="Instagram">
+              {urlInstagram(cliente.instagram) ? (
+                <Enlace
+                  href={urlInstagram(cliente.instagram)}
+                  texto={cliente.instagram ?? ""}
+                />
+              ) : (
+                <Texto valor={cliente.instagram} />
+              )}
+            </Propiedad>
+
+            <Propiedad icono={Mail} label="Email">
+              {cliente.email ? (
+                <a
+                  href={`mailto:${cliente.email}`}
+                  className="truncate text-sm hover:underline"
+                >
+                  {cliente.email}
+                </a>
+              ) : (
+                <Texto valor={null} />
+              )}
+            </Propiedad>
+
+            <Propiedad icono={Briefcase} label="Nicho">
+              <Texto valor={cliente.niche} />
+            </Propiedad>
+
+            <Propiedad icono={Globe} label="Sitio web">
+              <Enlace href={cliente.website} />
+            </Propiedad>
+
+            <Propiedad icono={FolderOpen} label="Drive">
+              <Enlace href={cliente.drive_url} texto="Drive de archivos" />
+            </Propiedad>
           </div>
+
           {cliente.notes && (
-            <p className="mt-4 border-t border-line pt-4 text-sm text-text-2">
+            <p className="mt-3 border-t border-line pt-3 text-sm text-text-2">
               {cliente.notes}
             </p>
           )}
         </section>
+
+        <Recursos
+          duenoId={cliente.id}
+          tabla="client"
+          titulo="Accesos del cliente"
+          recursos={accesos}
+        />
+
+        <NotasCliente clientId={cliente.id} notas={notas} />
 
         <Seccion titulo="Cotizaciones">
           {susCotizaciones.length === 0 ? (

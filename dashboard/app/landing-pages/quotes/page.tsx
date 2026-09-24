@@ -1,8 +1,11 @@
+import Link from "next/link";
 import { ExternalLink } from "lucide-react";
 import {
   listarClientes,
   listarCotizaciones,
+  listarProcesos,
   listarProyectos,
+  obtenerAjuste,
 } from "@/lib/landing/datos";
 import { listarMiembros } from "@/lib/landing/auth";
 import { formatearMonto } from "@/lib/landing/tipos";
@@ -11,28 +14,38 @@ import { EstadoSelect } from "@/components/landing/estado-select";
 import { CotizacionForm } from "@/components/landing/cotizacion-form";
 import { CrearProyectoDesdeCotizacion } from "@/components/landing/crear-proyecto-desde-cotizacion";
 import { BorrarCotizacion } from "@/components/landing/borrar";
+import { PlantillaCotizacion } from "@/components/landing/plantilla-cotizacion";
+import { RegistrarCobro } from "@/components/landing/registrar-cobro";
+import { DocumentoCotizacion } from "@/components/landing/documento-cotizacion";
+import { ContactoCliente } from "@/components/landing/contacto-cliente";
 
 export const dynamic = "force-dynamic";
 
 const COLUMNAS = [
   "Cotización",
   "Cliente",
+  "Contacto",
   "Servicio",
   "Valor",
   "Estado",
   "Envío",
+  "Documento",
   "",
 ];
 
 export default async function CotizacionesPage() {
-  const [cotizaciones, clientes, proyectos, miembros] = await Promise.all([
-    listarCotizaciones(),
-    listarClientes(),
-    listarProyectos(),
-    listarMiembros(),
-  ]);
+  const [cotizaciones, clientes, proyectos, miembros, plantillaUrl, procesos] =
+    await Promise.all([
+      listarCotizaciones(),
+      listarClientes(),
+      listarProyectos(),
+      listarMiembros(),
+      obtenerAjuste("quote_template_url"),
+      listarProcesos(),
+    ]);
 
   const nombrePor = new Map(clientes.map((c) => [c.id, c.name]));
+  const clientePor = new Map(clientes.map((c) => [c.id, c]));
   const yaTieneProyecto = new Set(
     proyectos.map((p) => p.quote_id).filter((q): q is string => Boolean(q)),
   );
@@ -44,6 +57,8 @@ export default async function CotizacionesPage() {
         descripcion={`${cotizaciones.length} ${cotizaciones.length === 1 ? "cotización" : "cotizaciones"}`}
         accion={<CotizacionForm clientes={clientes} />}
       />
+
+      <PlantillaCotizacion url={plantillaUrl} />
 
       <div className="overflow-hidden rounded-xl border border-line bg-surface">
         <table className="w-full text-sm">
@@ -78,16 +93,30 @@ export default async function CotizacionesPage() {
                         href={q.proposal_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        aria-label="Abrir propuesta"
-                        className="text-text-3 transition-colors hover:text-text"
+                        className="inline-flex items-center gap-1 rounded-md border border-line px-2 py-1 text-xs text-text-2 transition-colors hover:border-line-strong hover:text-text"
                       >
-                        <ExternalLink className="size-3.5" />
+                        Propuesta
+                        <ExternalLink className="size-3" />
                       </a>
                     )}
                   </span>
                 </td>
                 <td className="px-4 py-3 text-text-2">
-                  {q.client_id ? (nombrePor.get(q.client_id) ?? "—") : "—"}
+                  {q.client_id ? (
+                    <Link
+                      href={`/landing-pages/clients/${q.client_id}`}
+                      className="hover:underline"
+                    >
+                      {nombrePor.get(q.client_id) ?? "—"}
+                    </Link>
+                  ) : (
+                    "—"
+                  )}
+                </td>
+                <td className="px-4 py-3">
+                  <ContactoCliente
+                    cliente={q.client_id ? clientePor.get(q.client_id) : undefined}
+                  />
                 </td>
                 <td className="px-4 py-3 text-text-2">{q.service ?? "—"}</td>
                 <td className="tnum px-4 py-3 text-text-2">
@@ -100,12 +129,37 @@ export default async function CotizacionesPage() {
                   {q.sent_at ?? "—"}
                 </td>
                 <td className="px-4 py-3">
+                  <DocumentoCotizacion
+                    quoteId={q.id}
+                    tieneDocumento={Boolean(q.document_path)}
+                  />
+                </td>
+                <td className="px-4 py-3">
                   <span className="flex items-center justify-end gap-3">
+                    {q.status === "aprobada" && !q.movement_id && (
+                      <RegistrarCobro
+                        cotizacion={q}
+                        cliente={
+                          q.client_id
+                            ? (nombrePor.get(q.client_id) ?? null)
+                            : null
+                        }
+                      />
+                    )}
+                    {q.movement_id && (
+                      <span
+                        title="Cobro ya registrado en finanzas"
+                        className="text-xs text-ok"
+                      >
+                        En finanzas
+                      </span>
+                    )}
                     {q.status === "aprobada" && !yaTieneProyecto.has(q.id) && (
                       <CrearProyectoDesdeCotizacion
                         cotizacion={q}
                         miembros={miembros}
                         clientes={clientes}
+                        procesos={procesos}
                       />
                     )}
                     <CotizacionForm clientes={clientes} cotizacion={q} />
