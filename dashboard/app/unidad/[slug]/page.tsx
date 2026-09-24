@@ -1,17 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ExternalLink, Users } from "lucide-react";
-import { getUnidad, getUnidades } from "@/lib/contexto";
+import { getUnidad } from "@/lib/contexto";
 import { Card, Empty } from "@/components/ui";
 import { ProyectoCard } from "@/components/proyecto-card";
 import { CrearEntidad } from "@/components/crear-entidad";
 import { EstadoClienteSelect } from "@/components/estado-cliente-select";
 
 export const dynamic = "force-dynamic";
-
-export async function generateStaticParams() {
-  return getUnidades().map((u) => ({ slug: u.slug }));
-}
 
 function esUrl(v: string) {
   return /^https?:\/\//.test(v);
@@ -24,7 +20,7 @@ export default async function UnidadPage({
 }) {
   // Next 16: params es una Promise.
   const { slug } = await params;
-  const u = getUnidad(slug);
+  const u = await getUnidad(slug);
   if (!u) notFound();
 
   return (

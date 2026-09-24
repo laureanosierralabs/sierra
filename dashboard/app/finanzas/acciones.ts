@@ -1,12 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import {
-  escribirFinanzas,
-  leerFinanzas,
-  hoyISO,
-  slugify,
-} from "@/lib/escritura";
+import { hoyISO, slugify } from "@/lib/escritura";
+import { supabaseAdmin } from "@/lib/landing/supabase";
 import type { Movimiento } from "@/lib/finanzas";
 
 const MONEDAS = ["ARS", "USD"];
@@ -71,19 +67,19 @@ function parsear(fd: FormData): Movimiento {
 
 export async function guardarMovimiento(fd: FormData) {
   const mov = parsear(fd);
-  const doc = leerFinanzas();
-  const idx = doc.movimientos.findIndex((m) => m.id === mov.id);
 
-  if (idx >= 0) doc.movimientos[idx] = mov;
-  else doc.movimientos.push(mov);
+  const { error } = await supabaseAdmin().from("movements").upsert(mov);
+  if (error) throw new Error(`No se pudo guardar: ${error.message}`);
 
-  escribirFinanzas(doc);
   revalidatePath(`/finanzas/${mov.ambito}`);
 }
 
 export async function borrarMovimiento(id: string, ambito: string) {
-  const doc = leerFinanzas();
-  doc.movimientos = doc.movimientos.filter((m) => m.id !== id);
-  escribirFinanzas(doc);
+  const { error } = await supabaseAdmin()
+    .from("movements")
+    .delete()
+    .eq("id", id);
+
+  if (error) throw new Error(`No se pudo borrar: ${error.message}`);
   revalidatePath(`/finanzas/${ambito}`);
 }

@@ -51,17 +51,23 @@ function Montos({
   );
 }
 
-export function FinanzasVista({
+export async function FinanzasVista({
   ambito,
   titulo,
 }: {
   ambito: Ambito;
   titulo: string;
 }) {
-  const meses = resumenPorMes(ambito);
-  const movs = getMovimientos().filter((m) => m.ambito === ambito);
+  const [meses, todos] = await Promise.all([
+    resumenPorMes(ambito),
+    getMovimientos(),
+  ]);
+
+  const movs = todos.filter((m) => m.ambito === ambito);
   const mesActual = meses[0]?.mes;
-  const egresos = mesActual ? egresosPorCategoria(ambito, mesActual) : [];
+  const egresos = mesActual
+    ? await egresosPorCategoria(ambito, mesActual)
+    : [];
 
   if (movs.length === 0) {
     return (

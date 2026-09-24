@@ -1,5 +1,6 @@
-import fs from "node:fs";
-import path from "node:path";
+import "server-only";
+
+import { supabaseAdmin } from "@/lib/landing/supabase";
 
 export type Ambito = "negocio" | "personal";
 export type TipoMov = "ingreso" | "egreso";
@@ -24,13 +25,16 @@ export interface Movimiento {
   notas?: string;
 }
 
-const ARCHIVO = path.join(process.cwd(), "..", "finanzas", "movimientos.json");
+export async function getMovimientos(): Promise<Movimiento[]> {
+  const { data, error } = await supabaseAdmin()
+    .from("movements")
+    .select("*")
+    .order("fecha", { ascending: false });
 
-export function getMovimientos(): Movimiento[] {
-  if (!fs.existsSync(ARCHIVO)) return [];
-  const raw = fs.readFileSync(ARCHIVO, "utf8");
-  const data = JSON.parse(raw) as { movimientos?: Movimiento[] };
-  return (data.movimientos ?? []).sort((a, b) => b.fecha.localeCompare(a.fecha));
+  if (error) {
+    throw new Error(`No se pudieron leer los movimientos: ${error.message}`);
+  }
+  return (data ?? []) as Movimiento[];
 }
 
 /** Total por moneda. Nunca convierte — pesos y dólares van separados. */
@@ -51,8 +55,10 @@ export interface ResumenMensual {
 }
 
 /** Balance del ámbito, agrupado por mes, con pesos y dólares separados. */
-export function resumenPorMes(ambito: Ambito): ResumenMensual[] {
-  const movs = getMovimientos().filter((m) => m.ambito === ambito);
+export async function resumenPorMes(
+  ambito: Ambito,
+): Promise<ResumenMensual[]> {
+  const movs = (await getMovimientos()).filter((m) => m.ambito === ambito);
   const porMes = new Map<string, ResumenMensual>();
 
   for (const m of movs) {
@@ -75,11 +81,11 @@ export function resumenPorMes(ambito: Ambito): ResumenMensual[] {
 }
 
 /** Egresos agrupados por categoría, del ámbito y mes dados. */
-export function egresosPorCategoria(
+export async function egresosPorCategoria(
   ambito: Ambito,
   mes?: string,
-): { categoria: string; total: TotalMoneda }[] {
-  const movs = getMovimientos().filter(
+): Promise<{ categoria: string; total: TotalMoneda }[]> {
+  const movs = (await getMovimientos()).filter(
     (m) =>
       m.ambito === ambito &&
       m.tipo === "egreso" &&

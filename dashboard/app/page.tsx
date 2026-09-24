@@ -26,8 +26,8 @@ function necesitaAtencion(p: Proyecto): boolean {
   return d !== null && d <= 10;
 }
 
-export default function Inicio() {
-  const unidades = getUnidades();
+export default async function Inicio() {
+  const unidades = await getUnidades();
   const todos = unidades.flatMap((u) => u.proyectos);
 
   const atencion = todos

@@ -8,16 +8,12 @@ import {
   History,
   Scale,
 } from "lucide-react";
-import { getProyecto, getProyectos } from "@/lib/contexto";
+import { getProyecto } from "@/lib/contexto";
 import { diasHasta } from "@/lib/types";
 import { Card, Deadline, Empty, EstadoPill, PrioridadTag } from "@/components/ui";
 import { EditarProyecto } from "@/components/editar-proyecto";
 
 export const dynamic = "force-dynamic";
-
-export async function generateStaticParams() {
-  return getProyectos().map((p) => ({ slug: p.slug }));
-}
 
 function esUrl(v: string) {
   return /^https?:\/\//.test(v);
@@ -30,7 +26,7 @@ export default async function ProyectoPage({
 }) {
   // Next 16: params es una Promise.
   const { slug } = await params;
-  const p = getProyecto(slug);
+  const p = await getProyecto(slug);
   if (!p) notFound();
 
   const dias = diasHasta(p.entrega);

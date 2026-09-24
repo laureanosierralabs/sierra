@@ -5,12 +5,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/landing/supabase";
 import { cifrar, descifrar } from "@/lib/landing/cifrado";
-import {
-  escribirFinanzas,
-  leerFinanzas,
-  hoyISO,
-  slugify,
-} from "@/lib/escritura";
+import { hoyISO, slugify } from "@/lib/escritura";
 import { plantillaDe } from "@/lib/landing/plantillas";
 import {
   ESTADOS_CLIENTE,
@@ -863,8 +858,7 @@ export async function registrarCobro(fd: FormData) {
 
   const id = `${fecha_}-${slugify(concepto)}-${Date.now().toString(36)}`;
 
-  const doc = leerFinanzas();
-  doc.movimientos.push({
+  const { error: errMov } = await supabaseAdmin().from("movements").insert({
     id,
     fecha: fecha_,
     ambito: "negocio",
@@ -874,10 +868,11 @@ export async function registrarCobro(fd: FormData) {
     categoria: "servicio",
     concepto,
     unidad: "landing-pages",
-    cliente: opcional(fd, "cliente") ?? undefined,
+    cliente: opcional(fd, "cliente"),
     estado,
   });
-  escribirFinanzas(doc);
+
+  if (errMov) throw new Error(`No se pudo registrar: ${errMov.message}`);
 
   // Guardar el vínculo evita registrar dos veces el mismo cobro.
   await supabaseAdmin()
