@@ -126,3 +126,8 @@ Cliente y proyecto se definen UNA sola vez, acá. Fase 2 va a leer de estos arch
 Antes de agregar cualquier cosa:
 > ¿Esto elimina fricción o solo agrega complejidad?
 > Si agrega complejidad, no se desarrolla.
+
+## Dashboard (Next.js)
+
+La app vive en la raíz del repo. Antes de tocar código leer `AGENTS.md`:
+Next 16 tiene breaking changes respecto a lo que un modelo "recuerda".

@@ -8,8 +8,8 @@ import fs from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
 
-const RAIZ = path.join(process.cwd(), "..", "contexto");
-const FINANZAS = path.join(process.cwd(), "..", "finanzas", "movimientos.json");
+const RAIZ = path.join(process.cwd(), "contexto");
+const FINANZAS = path.join(process.cwd(), "finanzas", "movimientos.json");
 
 const env = Object.fromEntries(
   fs
