@@ -21,8 +21,17 @@ export default clerkMiddleware(async (auth, req) => {
     return NextResponse.next({ request: { headers } });
   }
 
-  const { userId, redirectToSignIn } = await auth();
-  if (!userId) return redirectToSignIn();
+  const { userId } = await auth();
+  // redirectToSignIn() manda a la pantalla alojada de Clerk. Acá se redirige
+  // a /sign-in, que es la nuestra, conservando adónde queria ir.
+  if (!userId) {
+    const destino = new URL("/sign-in", req.url);
+    destino.searchParams.set(
+      "redirect_url",
+      req.nextUrl.pathname + req.nextUrl.search,
+    );
+    return NextResponse.redirect(destino);
+  }
 
   // El token de sesión de Core 3 no incluye publicMetadata, así que el rol se
   // lee del usuario. Verificado: los claims solo traen azp/exp/iss/sid/sub/v.

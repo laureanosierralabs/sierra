@@ -47,7 +47,14 @@ export default async function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: TEMA_INICIAL }} />
       </head>
       <body className="min-h-full">
-        <ClerkProvider>
+        {/* Sin esto Clerk redirige a su pantalla alojada en accounts.<dominio>
+            en vez de usar /sign-in, que es la nuestra. */}
+        <ClerkProvider
+          signInUrl="/sign-in"
+          signUpUrl="/sign-up"
+          signInFallbackRedirectUrl="/"
+          signUpFallbackRedirectUrl="/"
+        >
           {esAuth ? (
             children
           ) : (
