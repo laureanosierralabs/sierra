@@ -73,7 +73,12 @@ function Tarjeta({
         {responsable && (
           <span className="text-[0.6875rem] text-text-3">{responsable}</span>
         )}
-        {tarea.due_date && <Vencimiento fecha={tarea.due_date} />}
+        {tarea.due_date && (
+          <Vencimiento
+            fecha={tarea.due_date}
+            cerrado={tarea.status === "completada"}
+          />
+        )}
       </div>
     </div>
   );

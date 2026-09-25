@@ -119,7 +119,7 @@ export function GestionProyecto({
                     <Prioridad prioridad={t.priority} />
                   </td>
                   <td className="px-4 py-2.5">
-                    <Vencimiento fecha={t.due_date} />
+                    <Vencimiento fecha={t.due_date} cerrado={t.status === "completada"} />
                   </td>
                   <td className="px-4 py-2.5">
                     <span className="flex items-center justify-end gap-3">

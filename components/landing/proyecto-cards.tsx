@@ -9,6 +9,7 @@ import {
 import { ProyectoForm } from "@/components/landing/proyecto-form";
 import { DuplicarProyecto } from "@/components/landing/duplicar-proyecto";
 import { BorrarProyecto } from "@/components/landing/borrar";
+import { SubirPortada } from "@/components/landing/subir-portada";
 import {
   LABEL_ETAPA,
   nombreCliente,
@@ -17,6 +18,7 @@ import {
   type Proyecto,
 } from "@/lib/landing/tipos";
 
+/** Portada con subida propia: al pasar el mouse aparece el control. */
 function Portada({
   proyecto,
   cliente,
@@ -24,22 +26,29 @@ function Portada({
   proyecto: Proyecto;
   cliente: string | null;
 }) {
-  if (proyecto.cover_url) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={proyecto.cover_url}
-        alt=""
-        className="h-28 w-full border-b border-line object-cover"
-      />
-    );
-  }
-
   return (
-    <div className="flex h-28 items-center justify-center border-b border-line bg-idle-dim px-4">
-      <p className="line-clamp-2 text-center text-sm font-semibold uppercase tracking-wide text-idle">
-        {cliente ?? proyecto.name}
-      </p>
+    <div className="group/cover relative">
+      {proyecto.cover_url ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={proyecto.cover_url}
+          alt=""
+          className="h-28 w-full border-b border-line object-cover"
+        />
+      ) : (
+        <div className="flex h-28 items-center justify-center border-b border-line bg-idle-dim px-4">
+          <p className="line-clamp-2 text-center text-sm font-semibold uppercase tracking-wide text-idle">
+            {cliente ?? proyecto.name}
+          </p>
+        </div>
+      )}
+
+      <div className="absolute right-2 top-2 opacity-0 transition-opacity focus-within:opacity-100 group-hover/cover:opacity-100">
+        <SubirPortada
+          projectId={proyecto.id}
+          tienePortada={Boolean(proyecto.cover_url)}
+        />
+      </div>
     </div>
   );
 }
@@ -78,9 +87,9 @@ export function ProyectoCards({
             key={p.id}
             className="group/card flex flex-col overflow-hidden rounded-xl border border-line bg-surface transition-colors hover:border-line-strong"
           >
-            <Link href={`/landing-pages/projects/${p.id}`} className="block">
-              <Portada proyecto={p} cliente={cliente} />
-            </Link>
+            {/* Fuera del Link: un button dentro de un anchor es HTML inválido.
+                La navegación queda en el título, abajo. */}
+            <Portada proyecto={p} cliente={cliente} />
 
             <div className="flex flex-1 flex-col gap-2 p-3">
               <div>
@@ -104,7 +113,7 @@ export function ProyectoCards({
                 <span className="truncate text-xs text-text-3">
                   {p.stage ? LABEL_ETAPA[p.stage] : (responsable ?? "—")}
                 </span>
-                <Vencimiento fecha={p.due_date} />
+                <Vencimiento fecha={p.due_date} cerrado={p.status === "entregado"} />
               </div>
 
               {/* Acciones al pie: la card ya no es un Link entero, así que

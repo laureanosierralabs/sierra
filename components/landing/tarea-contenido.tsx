@@ -88,7 +88,7 @@ export function TareaContenido({
         </Propiedad>
 
         <Propiedad icono={CalendarClock} label="Deadline">
-          <Vencimiento fecha={tarea.due_date} />
+          <Vencimiento fecha={tarea.due_date} cerrado={tarea.status === "completada"} />
         </Propiedad>
       </div>
 

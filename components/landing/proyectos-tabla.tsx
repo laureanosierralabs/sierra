@@ -82,7 +82,7 @@ export function ProyectosTabla({
                   : "—"}
               </td>
               <td className="px-4 py-3">
-                <Vencimiento fecha={p.due_date} />
+                <Vencimiento fecha={p.due_date} cerrado={p.status === "entregado"} />
               </td>
               <td className="px-4 py-3">
                 <Prioridad prioridad={p.priority} />

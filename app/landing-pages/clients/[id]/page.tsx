@@ -288,7 +288,7 @@ export default async function ClienteDetalle({
                 </Link>
                 <span className="flex shrink-0 items-center gap-2">
                   <EstadoProyectoPill estado={p.status} />
-                  <Vencimiento fecha={p.due_date} />
+                  <Vencimiento fecha={p.due_date} cerrado={p.status === "entregado"} />
                 </span>
               </div>
             ))

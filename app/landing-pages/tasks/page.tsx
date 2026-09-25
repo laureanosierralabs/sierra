@@ -81,7 +81,7 @@ export default async function TareasPage() {
                   <Prioridad prioridad={t.priority} />
                 </td>
                 <td className="px-4 py-3">
-                  <Vencimiento fecha={t.due_date} />
+                  <Vencimiento fecha={t.due_date} cerrado={t.status === "completada"} />
                 </td>
                 <td className="px-4 py-3">
                   <span className="flex items-center justify-end gap-3">

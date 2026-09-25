@@ -100,7 +100,7 @@ export default async function LandingPagesInicio() {
                       : "—"}
                   </td>
                   <td className="px-4 py-2.5">
-                    <Vencimiento fecha={p.due_date} />
+                    <Vencimiento fecha={p.due_date} cerrado={p.status === "entregado"} />
                   </td>
                 </tr>
               ))}

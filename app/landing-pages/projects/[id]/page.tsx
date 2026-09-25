@@ -161,7 +161,7 @@ export default async function ProyectoDetalle({
           </Propiedad>
 
           <Propiedad icono={CalendarClock} label="Deadline">
-            <Vencimiento fecha={proyecto.due_date} />
+            <Vencimiento fecha={proyecto.due_date} cerrado={proyecto.status === "entregado"} />
           </Propiedad>
         </div>
 

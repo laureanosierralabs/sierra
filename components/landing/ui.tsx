@@ -108,12 +108,28 @@ export function Prioridad({ prioridad }: { prioridad: PrioridadLanding }) {
 }
 
 /** Fecha con color por urgencia. El color codifica, no decora. */
-export function Vencimiento({ fecha }: { fecha: string | null }) {
+export function Vencimiento({
+  fecha,
+  cerrado = false,
+}: {
+  fecha: string | null;
+  /** Ya entregado o completado: la fecha se cumplió, no venció. */
+  cerrado?: boolean;
+}) {
   if (!fecha) return <span className="text-xs text-text-3">—</span>;
 
   const objetivo = new Date(`${fecha}T00:00:00`);
   if (Number.isNaN(objetivo.getTime()))
     return <span className="text-xs text-text-3">—</span>;
+
+  // Lo cerrado no corre contra el reloj: se muestra la fecha, sin urgencia.
+  if (cerrado) {
+    return (
+      <span className="tnum inline-flex items-center rounded-md bg-surface-2 px-2 py-1 text-xs font-semibold text-text-2">
+        {fecha}
+      </span>
+    );
+  }
 
   const hoy = new Date();
   hoy.setHours(0, 0, 0, 0);
