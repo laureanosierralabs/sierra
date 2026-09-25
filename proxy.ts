@@ -11,7 +11,15 @@ const esPublica = createRouteMatcher([
 ]);
 
 export default clerkMiddleware(async (auth, req) => {
-  if (esPublica(req)) return;
+  if (esPublica(req)) {
+    // El RootLayout es server component y necesita saber la ruta actual para
+    // ocultar el Sidebar en /sign-in y /sign-up (no hay route group propio
+    // para esas pantallas). No hay API server-side para leer el pathname en
+    // un layout, así que viaja por header seteado acá.
+    const headers = new Headers(req.headers);
+    headers.set("x-pathname", req.nextUrl.pathname);
+    return NextResponse.next({ request: { headers } });
+  }
 
   const { userId, redirectToSignIn } = await auth();
   if (!userId) return redirectToSignIn();
