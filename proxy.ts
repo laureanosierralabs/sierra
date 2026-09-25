@@ -2,7 +2,13 @@ import { clerkClient, clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/
 import { NextResponse } from "next/server";
 import { parsearUnidades, puedeVerRuta, rutaInicial } from "@/lib/unidades";
 
-const esPublica = createRouteMatcher(["/sign-in(.*)", "/sign-up(.*)", "/sin-acceso"]);
+const esPublica = createRouteMatcher([
+  "/sign-in(.*)",
+  "/sign-up(.*)",
+  "/sin-acceso",
+  // Diagnóstico: tiene que responder aunque el login esté roto.
+  "/api/health",
+]);
 
 export default clerkMiddleware(async (auth, req) => {
   if (esPublica(req)) return;
@@ -12,11 +18,19 @@ export default clerkMiddleware(async (auth, req) => {
 
   // El token de sesión de Core 3 no incluye publicMetadata, así que el rol se
   // lee del usuario. Verificado: los claims solo traen azp/exp/iss/sid/sub/v.
-  const cliente = await clerkClient();
-  const usuario = await cliente.users.getUser(userId);
-  const metadata = usuario.publicMetadata as
-    | { role?: unknown; units?: unknown }
-    | undefined;
+  //
+  // Una excepción acá tumba toda la request y el host responde 404 sin pista
+  // de qué pasó. Ante un fallo de Clerk se deja pasar: la página igual valida
+  // sesión del lado del servidor.
+  let metadata: { role?: unknown; units?: unknown } | undefined;
+  try {
+    const cliente = await clerkClient();
+    const usuario = await cliente.users.getUser(userId);
+    metadata = usuario.publicMetadata as typeof metadata;
+  } catch (e) {
+    console.error("[proxy] no se pudo leer el usuario de Clerk:", e);
+    return;
+  }
 
   const esOwner = metadata?.role === "owner";
   const declaradas = parsearUnidades(metadata?.units);
