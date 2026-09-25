@@ -35,7 +35,7 @@ export const DEFINICIONES: Record<Unidad, DefinicionUnidad> = {
     slug: "landing-pages",
     nombre: "Landing Pages",
     href: "/landing-pages",
-    // `owner: true` = sección reservada. Un Team Dev no la ve ni puede entrar.
+    // `owner: true` = sección reservada. Un Builder no la ve ni puede entrar.
     secciones: [
       { href: "/landing-pages", label: "Inicio", icono: "LayoutGrid" },
       { href: "/landing-pages/projects", label: "Proyectos", icono: "FolderKanban" },

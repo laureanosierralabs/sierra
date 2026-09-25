@@ -99,7 +99,7 @@ export default async function EquipoPage() {
                         : "text-xs text-text-2"
                     }
                   >
-                    {m.rol === "owner" ? "Owner" : "Team Dev"}
+                    {m.rol === "owner" ? "Owner" : "Builder"}
                   </span>
                 </td>
                 <td className="px-4 py-3 text-xs text-text-2">

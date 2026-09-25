@@ -38,7 +38,7 @@ export async function Sidebar() {
               {titulo}
             </span>
             <span className="block text-[0.6875rem] text-text-3">
-              {esOwner ? "Owner" : "Team Dev"}
+              {esOwner ? "Owner" : "Builder"}
             </span>
           </span>
         </span>

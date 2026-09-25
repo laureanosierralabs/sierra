@@ -56,22 +56,26 @@ export default function SignInPage() {
 
         <div className="login-brand-head">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="login-logo" src="/brand/logotipo.svg" alt="Sistema Operativo" />
+          <img
+            className="login-logo"
+            src="/logotipo-blanco.png"
+            alt="Sistema Operativo"
+          />
         </div>
 
         <div className="login-brand-body">
           <p className="login-badge">
             <span className="login-badge-orb" aria-hidden="true" />
-            CENTRO DE OPERACIONES
+            LANDING PAGES
           </p>
           <h1 className="login-title">
-            Todas las unidades,
+            Cada proyecto,
             <br />
-            en un solo <span className="login-title-accent">lugar</span>.
+            de punta a <span className="login-title-accent">punta</span>.
           </h1>
           <p className="login-lede">
-            Proyectos, finanzas y landing pages. La herramienta que construimos para
-            operar como queremos operar.
+            Briefing, diseño, montaje y entrega. Todo el proceso en un solo lugar,
+            para que nada se pierda entre herramientas.
           </p>
         </div>
 
@@ -88,7 +92,7 @@ export default function SignInPage() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             className="login-logo login-logo-mobile"
-            src="/brand/logotipo.svg"
+            src="/logotipo-blanco.png"
             alt="Sistema Operativo"
           />
 

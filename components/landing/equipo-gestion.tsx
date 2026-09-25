@@ -33,7 +33,7 @@ function Unidades({
           defaultValue={rol}
           onChange={(e) => setActual(e.target.value as Rol)}
         >
-          <option value="member">Team Dev</option>
+          <option value="member">Builder</option>
           <option value="owner">Owner</option>
         </Select>
       </Campo>
