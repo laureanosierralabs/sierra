@@ -7,6 +7,7 @@ import { DuplicarProyecto } from "@/components/landing/duplicar-proyecto";
 import { BorrarProyecto } from "@/components/landing/borrar";
 import { Prioridad, Vencimiento, VacioTabla } from "@/components/landing/ui";
 import {
+  LABEL_TIPO_PAGINA_CORTO,
   nombreCliente,
   type Cliente,
   type Miembro,
@@ -16,6 +17,7 @@ import {
 const COLUMNAS = [
   "Proyecto",
   "Cliente",
+  "Tipo",
   "Estado",
   "Responsable",
   "Deadline",
@@ -72,6 +74,15 @@ export function ProyectosTabla({
               </td>
               <td className="px-4 py-3 text-text-2">
                 {nombreCliente(p, clientePor) ?? "—"}
+              </td>
+              <td className="px-4 py-3">
+                {p.page_type ? (
+                  <span className="rounded border border-line bg-surface-2 px-1.5 py-0.5 text-[0.625rem] font-medium uppercase tracking-wide text-text-2">
+                    {LABEL_TIPO_PAGINA_CORTO[p.page_type]}
+                  </span>
+                ) : (
+                  <span className="text-xs text-text-3">—</span>
+                )}
               </td>
               <td className="px-4 py-3">
                 <EstadoSelect id={p.id} valor={p.status} tipo="proyecto" />

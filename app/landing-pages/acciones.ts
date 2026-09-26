@@ -16,6 +16,7 @@ import {
   MONEDAS,
   ORIGENES,
   PRIORIDADES,
+  TIPOS_PAGINA,
   TIPOS_RECURSO,
   type EstadoCliente,
   type EstadoCotizacion,
@@ -26,6 +27,7 @@ import {
   type Origen,
   type Paso,
   type PrioridadLanding,
+  type TipoPagina,
   type TipoRecurso,
 } from "@/lib/landing/tipos";
 
@@ -117,6 +119,9 @@ export async function guardarProyecto(fd: FormData) {
     notes: opcional(fd, "notes"),
     cover_url: url(fd, "cover_url"),
     site_url: url(fd, "site_url"),
+    page_type: texto(fd, "page_type")
+      ? unaDe<TipoPagina>(texto(fd, "page_type"), TIPOS_PAGINA, "Tipo de página")
+      : null,
     updated_at: new Date().toISOString(),
   };
 

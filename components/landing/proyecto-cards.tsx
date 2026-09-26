@@ -13,6 +13,7 @@ import { BorrarProyecto } from "@/components/landing/borrar";
 import { PortadaPatron } from "@/components/landing/portada-patron";
 import {
   LABEL_ETAPA,
+  LABEL_TIPO_PAGINA_CORTO,
   nombreCliente,
   type Cliente,
   type Miembro,
@@ -68,9 +69,15 @@ export function ProyectoCards({
             key={p.id}
             className="group/card flex flex-col overflow-hidden rounded-xl border border-line bg-surface transition-colors hover:border-line-strong"
           >
-            {/* Fuera del Link: un button dentro de un anchor es HTML inválido.
-                La navegación queda en el título, abajo. */}
-            <Portada proyecto={p} cliente={cliente} />
+            {/* Ya no hay botón de subir portada, así que puede ser un link:
+                la zona grande de la card lleva al proyecto. */}
+            <Link
+              href={`/landing-pages/projects/${p.id}`}
+              className="group/cover relative block"
+            >
+              <Portada proyecto={p} cliente={cliente} />
+              <span className="pointer-events-none absolute inset-0 bg-black/0 transition-colors group-hover/cover:bg-black/20" />
+            </Link>
 
             <div className="flex flex-1 flex-col gap-2 p-3">
               <div>
@@ -87,6 +94,11 @@ export function ProyectoCards({
 
               <div className="flex flex-wrap items-center gap-1.5">
                 <EstadoProyectoPill estado={p.status} />
+                {p.page_type && (
+                  <span className="rounded border border-line bg-surface-2 px-1.5 py-0.5 text-[0.625rem] font-medium uppercase tracking-wide text-text-2">
+                    {LABEL_TIPO_PAGINA_CORTO[p.page_type]}
+                  </span>
+                )}
                 <Prioridad prioridad={p.priority} />
               </div>
 

@@ -17,6 +17,8 @@ import {
   LABEL_ESTADO_PROYECTO,
   LABEL_ETAPA,
   LABEL_PRIORIDAD,
+  LABEL_TIPO_PAGINA,
+  TIPOS_PAGINA,
   type Cliente,
   type Miembro,
   type Proyecto,
@@ -169,6 +171,17 @@ export function ProyectoForm({
       </Campo>
 
       {/* Subir la imagen se hace desde el detalle; acá solo por URL externa. */}
+      <Campo label="Tipo de página">
+        <Select name="page_type" defaultValue={proyecto?.page_type ?? ""}>
+          <option value="">Sin definir</option>
+          {TIPOS_PAGINA.map((t) => (
+            <option key={t} value={t}>
+              {LABEL_TIPO_PAGINA[t]}
+            </option>
+          ))}
+        </Select>
+      </Campo>
+
       <Campo label="Sitio publicado">
         <Input
           name="site_url"

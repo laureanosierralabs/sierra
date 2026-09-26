@@ -6,11 +6,14 @@ import { ProyectoCards } from "@/components/landing/proyecto-cards";
 import { ProyectosTabla } from "@/components/landing/proyectos-tabla";
 import {
   GRUPOS_PROYECTO,
+  LABEL_TIPO_PAGINA,
+  TIPOS_PAGINA,
   grupoDe,
   type GrupoProyecto,
   type Cliente,
   type Miembro,
   type Proyecto,
+  type TipoPagina,
 } from "@/lib/landing/tipos";
 
 const CLAVE = "landing:vista-proyectos";
@@ -84,6 +87,7 @@ export function VistaProyectos({
   const vista = useSyncExternalStore(suscribir, leerGuardada, () => "cards" as const);
   const [filtro, setFiltro] = useState<GrupoProyecto | "todos">("todos");
   const [empresa, setEmpresa] = useState<string | "todas">("todas");
+  const [tipoPagina, setTipoPagina] = useState<TipoPagina | "todos">("todos");
 
   const clientePor = new Map(clientes.map((c) => [c.id, c.name]));
   const nombreMiembro = new Map(miembros.map((m) => [m.id, m.nombre]));
@@ -93,11 +97,19 @@ export function VistaProyectos({
     ...new Set(clientes.map((c) => c.company).filter((v): v is string => !!v)),
   ].sort((a, b) => a.localeCompare(b, "es"));
 
+  // Solo los tipos que realmente hay: un filtro con opciones vacías es ruido.
+  const tiposPresentes = TIPOS_PAGINA.filter((t) =>
+    proyectos.some((p) => p.page_type === t),
+  );
+
   const deEmpresa = (p: Proyecto) =>
     empresa === "todas" ||
     (p.client_id ? empresaPor.get(p.client_id) === empresa : false);
 
-  const porEmpresa = proyectos.filter(deEmpresa);
+  // Los filtros se acumulan: empresa y tipo acotan antes de agrupar por estado.
+  const porEmpresa = proyectos
+    .filter(deEmpresa)
+    .filter((p) => tipoPagina === "todos" || p.page_type === tipoPagina);
 
   const cuenta = (g: GrupoProyecto) =>
     porEmpresa.filter((p) => grupoDe(p.status) === g).length;
@@ -157,6 +169,24 @@ export function VistaProyectos({
             {empresas.map((e) => (
               <option key={e} value={e}>
                 {e}
+              </option>
+            ))}
+          </select>
+        )}
+
+        {tiposPresentes.length > 0 && (
+          <select
+            value={tipoPagina}
+            onChange={(e) =>
+              setTipoPagina(e.target.value as TipoPagina | "todos")
+            }
+            aria-label="Filtrar por tipo de página"
+            className="rounded-md border border-line bg-surface px-2 py-1 text-xs text-text-2 outline-none transition-colors hover:border-line-strong"
+          >
+            <option value="todos">Todos los tipos</option>
+            {tiposPresentes.map((t) => (
+              <option key={t} value={t}>
+                {LABEL_TIPO_PAGINA[t]}
               </option>
             ))}
           </select>

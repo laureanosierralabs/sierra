@@ -38,6 +38,16 @@ export const ESTADOS_COTIZACION = [
 
 export const MONEDAS = ["USD", "ARS", "EUR"] as const;
 
+/** Qué es la página. Va como etiqueta, no en el nombre del proyecto. */
+export const TIPOS_PAGINA = [
+  "registro",
+  "ventas",
+  "lead-magnet",
+  "portfolio",
+  "institucional",
+  "otro",
+] as const;
+
 /** Etapa del trabajo: independiente del estado y del avance de tareas. */
 export const ETAPAS = [
   "briefing",
@@ -66,6 +76,7 @@ export type Origen = (typeof ORIGENES)[number];
 export type EstadoCotizacion = (typeof ESTADOS_COTIZACION)[number];
 export type Moneda = (typeof MONEDAS)[number];
 export type Etapa = (typeof ETAPAS)[number];
+export type TipoPagina = (typeof TIPOS_PAGINA)[number];
 export type TipoRecurso = (typeof TIPOS_RECURSO)[number];
 
 export const LABEL_ESTADO_PROYECTO: Record<EstadoProyecto, string> = {
@@ -140,6 +151,25 @@ export const LABEL_ETAPA: Record<Etapa, string> = {
   entrega: "Entrega",
 };
 
+export const LABEL_TIPO_PAGINA: Record<TipoPagina, string> = {
+  registro: "Página de registro",
+  ventas: "Página de ventas",
+  "lead-magnet": "Lead magnet",
+  portfolio: "Portfolio",
+  institucional: "Institucional",
+  otro: "Otro",
+};
+
+/** Versión corta para la card, donde el espacio es poco. */
+export const LABEL_TIPO_PAGINA_CORTO: Record<TipoPagina, string> = {
+  registro: "Registro",
+  ventas: "Ventas",
+  "lead-magnet": "Lead magnet",
+  portfolio: "Portfolio",
+  institucional: "Institucional",
+  otro: "Otro",
+};
+
 export const LABEL_TIPO_RECURSO: Record<TipoRecurso, string> = {
   archivo: "Archivos",
   diseno: "Diseño",
@@ -191,6 +221,8 @@ export interface Proyecto {
   cover_url: string | null;
   /** Sitio publicado. Es el link que más se abre desde la lista. */
   site_url: string | null;
+  /** Qué es la página: registro, ventas, etc. Etiqueta, no nombre. */
+  page_type: TipoPagina | null;
   created_at: string;
   updated_at: string;
 }
