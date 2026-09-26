@@ -11,9 +11,30 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { Miembro, Proyecto, Tarea } from "@/lib/landing/tipos";
 
 type Vista = "timeGridWeek" | "dayGridMonth";
+type EstadoVencimiento = "cerrado" | "vencido" | "urgente" | "normal";
 
 const BOTON =
   "rounded-md px-2.5 py-1 text-xs font-medium transition-colors hover:bg-surface-2";
+
+/** Mismo umbral que el componente Vencimiento: cerrado no alarma, ≤7 días urge. */
+function estadoVencimiento(
+  fecha: string | null,
+  cerrado: boolean,
+): EstadoVencimiento {
+  if (cerrado) return "cerrado";
+  if (!fecha) return "normal";
+
+  const objetivo = new Date(`${fecha}T00:00:00`);
+  if (Number.isNaN(objetivo.getTime())) return "normal";
+
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+  const dias = Math.round((objetivo.getTime() - hoy.getTime()) / 86_400_000);
+
+  if (dias < 0) return "vencido";
+  if (dias <= 7) return "urgente";
+  return "normal";
+}
 
 export function Calendario({
   tareas,
@@ -49,6 +70,7 @@ export function Calendario({
             .filter(Boolean)
             .join(" · "),
           completada: t.status === "completada",
+          vencimiento: estadoVencimiento(t.due_date, t.status === "completada"),
         },
       })),
     ...proyectos
@@ -62,6 +84,7 @@ export function Calendario({
           tipo: "proyecto" as const,
           detalle: "Entrega",
           completada: false,
+          vencimiento: estadoVencimiento(p.due_date, false),
         },
       })),
   ];
@@ -154,11 +177,23 @@ export function Calendario({
           eventClick={onEventClick}
           datesSet={(arg) => setTitulo(arg.view.title)}
           eventContent={(arg) => {
-            const { tipo, detalle, completada } = arg.event.extendedProps;
+            const { tipo, detalle, completada, vencimiento } =
+              arg.event.extendedProps as {
+                tipo: "tarea" | "proyecto";
+                detalle: string;
+                completada: boolean;
+                vencimiento: EstadoVencimiento;
+              };
             return (
               <div
-                className={`flex min-w-0 items-center gap-1.5 px-1 py-0.5 text-[0.6875rem] leading-tight ${
+                className={`flex min-w-0 items-center gap-1.5 rounded px-1 py-0.5 text-[0.6875rem] leading-tight ${
                   completada ? "opacity-50" : ""
+                } ${
+                  vencimiento === "vencido"
+                    ? "bg-critical-dim"
+                    : vencimiento === "urgente"
+                      ? "bg-warn-dim"
+                      : ""
                 }`}
               >
                 <span

@@ -5,6 +5,7 @@ import {
   LABEL_ESTADO_COTIZACION,
   LABEL_ESTADO_PROYECTO,
   LABEL_ESTADO_TAREA,
+  LABEL_PRIORIDAD,
   type EstadoCliente,
   type EstadoCotizacion,
   type EstadoProyecto,
@@ -96,15 +97,23 @@ export function EstadoCotizacionPill({ estado }: { estado: EstadoCotizacion }) {
   );
 }
 
+const TONO_PRIORIDAD: Record<PrioridadLanding, string> = {
+  alta: "border-warn/30 bg-warn-dim text-warn",
+  media: "border-line bg-surface-2 text-text-2",
+  baja: "border-line bg-surface-2 text-text-3",
+};
+
 export function Prioridad({ prioridad }: { prioridad: PrioridadLanding }) {
-  if (prioridad === "alta") {
-    return (
-      <span className="rounded border border-warn/30 bg-warn-dim px-1.5 py-0.5 text-[0.6875rem] font-semibold uppercase tracking-wide text-warn">
-        Alta
-      </span>
-    );
-  }
-  return <span className="text-xs text-text-3">—</span>;
+  return (
+    <span
+      className={cn(
+        "rounded border px-1.5 py-0.5 text-[0.6875rem] font-semibold uppercase tracking-wide",
+        TONO_PRIORIDAD[prioridad],
+      )}
+    >
+      {LABEL_PRIORIDAD[prioridad]}
+    </span>
+  );
 }
 
 /** Fecha con color por urgencia. El color codifica, no decora. */
