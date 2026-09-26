@@ -24,7 +24,13 @@ export function EtapaSelect({
           await cambiarEtapaProyecto(id, nueva);
         });
       }}
-      className="cursor-pointer rounded-md border border-line bg-surface-2 px-2 py-1 text-xs text-text outline-none transition-colors hover:border-line-strong disabled:opacity-50"
+      style={
+        {
+          // La etapa avanza en el mismo carril: un solo tono, sin semáforo.
+          "--tono": valor ? "var(--idle)" : "var(--text-3)",
+        } as React.CSSProperties
+      }
+      className="select-glass cursor-pointer rounded-md px-2 py-1 text-xs font-medium outline-none disabled:opacity-50"
     >
       <option value="">Sin etapa</option>
       {ETAPAS.map((e) => (

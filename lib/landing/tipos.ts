@@ -189,6 +189,8 @@ export interface Proyecto {
   notes: string | null;
   notes_important: string | null;
   cover_url: string | null;
+  /** Sitio publicado. Es el link que más se abre desde la lista. */
+  site_url: string | null;
   created_at: string;
   updated_at: string;
 }

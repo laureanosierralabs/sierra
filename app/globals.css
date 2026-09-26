@@ -177,6 +177,33 @@ select:disabled,
   }
 }
 
+/* Selector de estado/etapa: vidrio esmerilado. El color lo pone el dato
+   (data-tono), no el componente, así el estado se lee sin abrir el select. */
+.select-glass {
+  appearance: none;
+  padding-right: 1.75rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2393a1b4' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+  backdrop-filter: blur(10px) saturate(140%);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+  border: 1px solid color-mix(in oklab, var(--tono) 35%, transparent);
+  background-color: color-mix(in oklab, var(--tono) 14%, transparent);
+  color: var(--tono);
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.select-glass:hover:not(:disabled) {
+  border-color: color-mix(in oklab, var(--tono) 55%, transparent);
+  background-color: color-mix(in oklab, var(--tono) 22%, transparent);
+}
+
+/* El desplegable nativo no hereda el vidrio: se fuerza legible en ambos temas. */
+.select-glass option {
+  background: var(--surface);
+  color: var(--text);
+}
+
 @keyframes entrar-derecha {
   from { transform: translateX(100%); }
   to { transform: translateX(0); }

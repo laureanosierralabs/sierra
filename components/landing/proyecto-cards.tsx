@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Globe } from "lucide-react";
 import {
   EstadoProyectoPill,
   Prioridad,
@@ -9,7 +10,7 @@ import {
 import { ProyectoForm } from "@/components/landing/proyecto-form";
 import { DuplicarProyecto } from "@/components/landing/duplicar-proyecto";
 import { BorrarProyecto } from "@/components/landing/borrar";
-import { SubirPortada } from "@/components/landing/subir-portada";
+import { PortadaPatron } from "@/components/landing/portada-patron";
 import {
   LABEL_ETAPA,
   nombreCliente,
@@ -18,7 +19,11 @@ import {
   type Proyecto,
 } from "@/lib/landing/tipos";
 
-/** Portada con subida propia: al pasar el mouse aparece el control. */
+/**
+ * Portada del proyecto. Patrón compartido por todos: la subida de imagen
+ * propia quedó en el código (SubirPortada, cover_url) pero no se ofrece, para
+ * que la lista se lea como un sistema y no como portadas sueltas.
+ */
 function Portada({
   proyecto,
   cliente,
@@ -26,31 +31,7 @@ function Portada({
   proyecto: Proyecto;
   cliente: string | null;
 }) {
-  return (
-    <div className="group/cover relative">
-      {proyecto.cover_url ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={proyecto.cover_url}
-          alt=""
-          className="h-28 w-full border-b border-line object-cover"
-        />
-      ) : (
-        <div className="flex h-28 items-center justify-center border-b border-line bg-idle-dim px-4">
-          <p className="line-clamp-2 text-center text-sm font-semibold uppercase tracking-wide text-idle">
-            {cliente ?? proyecto.name}
-          </p>
-        </div>
-      )}
-
-      <div className="absolute right-2 top-2 opacity-0 transition-opacity focus-within:opacity-100 group-hover/cover:opacity-100">
-        <SubirPortada
-          projectId={proyecto.id}
-          tienePortada={Boolean(proyecto.cover_url)}
-        />
-      </div>
-    </div>
-  );
+  return <PortadaPatron titulo={cliente ?? proyecto.name} />;
 }
 
 export function ProyectoCards({
@@ -108,6 +89,20 @@ export function ProyectoCards({
                 <EstadoProyectoPill estado={p.status} />
                 <Prioridad prioridad={p.priority} />
               </div>
+
+              {p.site_url && (
+                <a
+                  href={p.site_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex min-w-0 items-center gap-1 text-xs text-text-3 transition-colors hover:text-text"
+                >
+                  <Globe className="size-3 shrink-0" />
+                  <span className="truncate">
+                    {p.site_url.replace(/^https?:\/\/(www\.)?/, "")}
+                  </span>
+                </a>
+              )}
 
               <div className="mt-auto flex items-center justify-between gap-2 border-t border-line pt-2">
                 <span className="truncate text-xs text-text-3">

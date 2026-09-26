@@ -116,6 +116,7 @@ export async function guardarProyecto(fd: FormData) {
     priority: unaDe<PrioridadLanding>(texto(fd, "priority"), PRIORIDADES, "Prioridad"),
     notes: opcional(fd, "notes"),
     cover_url: url(fd, "cover_url"),
+    site_url: url(fd, "site_url"),
     updated_at: new Date().toISOString(),
   };
 

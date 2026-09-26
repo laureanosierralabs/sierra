@@ -169,16 +169,15 @@ export function ProyectoForm({
       </Campo>
 
       {/* Subir la imagen se hace desde el detalle; acá solo por URL externa. */}
-      {!editar && (
-        <>
-          <Campo label="Portada (URL)">
-            <Input name="cover_url" placeholder="https://… (opcional)" />
-          </Campo>
-          <p className="text-xs text-text-3">
-            Para subir una imagen, entrá al proyecto después de crearlo.
-          </p>
-        </>
-      )}
+      <Campo label="Sitio publicado">
+        <Input
+          name="site_url"
+          placeholder="https://… (opcional)"
+          defaultValue={proyecto?.site_url ?? ""}
+        />
+      </Campo>
+
+      {/* La portada usa un patrón común; el campo queda por si se retoma. */}
       {editar && proyecto?.cover_url && (
         <input type="hidden" name="cover_url" value={proyecto.cover_url} />
       )}

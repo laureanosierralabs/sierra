@@ -20,6 +20,31 @@ import {
 
 type Tipo = "proyecto" | "tarea" | "cliente" | "cotizacion";
 
+/** Color por estado. El select lo toma con --tono; el CSS hace el vidrio. */
+const TONO: Record<string, string> = {
+  // Proyecto
+  "por-iniciar": "var(--idle)",
+  "en-progreso": "var(--ok)",
+  "en-revision": "var(--warn)",
+  "esperando-cliente": "var(--critical)",
+  "stand-by": "var(--text-3)",
+  entregado: "var(--ok)",
+  // Tarea
+  pendiente: "var(--idle)",
+  bloqueada: "var(--critical)",
+  completada: "var(--ok)",
+  // Cliente
+  prospecto: "var(--idle)",
+  cliente: "var(--ok)",
+  inactivo: "var(--text-3)",
+  // Cotización
+  borrador: "var(--text-3)",
+  enviada: "var(--idle)",
+  seguimiento: "var(--warn)",
+  aprobada: "var(--ok)",
+  rechazada: "var(--critical)",
+};
+
 const CONFIG: Record<
   Tipo,
   {
@@ -74,7 +99,8 @@ export function EstadoSelect({
           await accion(id, nuevo);
         });
       }}
-      className="cursor-pointer rounded-md border border-line bg-surface-2 px-2 py-1 text-xs text-text outline-none transition-colors hover:border-line-strong disabled:opacity-50"
+      style={{ "--tono": TONO[valor] ?? "var(--text-2)" } as React.CSSProperties}
+      className="select-glass cursor-pointer rounded-md px-2 py-1 text-xs font-medium outline-none disabled:opacity-50"
     >
       {opciones.map((e) => (
         <option key={e} value={e}>
