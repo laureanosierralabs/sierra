@@ -25,14 +25,9 @@ import {
  * propia quedó en el código (SubirPortada, cover_url) pero no se ofrece, para
  * que la lista se lea como un sistema y no como portadas sueltas.
  */
-function Portada({
-  proyecto,
-  cliente,
-}: {
-  proyecto: Proyecto;
-  cliente: string | null;
-}) {
-  return <PortadaPatron titulo={cliente ?? proyecto.name} />;
+function Portada({ proyecto }: { proyecto: Proyecto }) {
+  // El nombre del proyecto: el cliente ya se lee abajo, repetirlo no informa.
+  return <PortadaPatron titulo={proyecto.name} />;
 }
 
 export function ProyectoCards({
@@ -75,7 +70,7 @@ export function ProyectoCards({
               href={`/landing-pages/projects/${p.id}`}
               className="group/cover relative block"
             >
-              <Portada proyecto={p} cliente={cliente} />
+              <Portada proyecto={p} />
               <span className="pointer-events-none absolute inset-0 bg-black/0 transition-colors group-hover/cover:bg-black/20" />
             </Link>
 

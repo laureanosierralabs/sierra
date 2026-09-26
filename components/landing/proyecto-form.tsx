@@ -196,7 +196,15 @@ export function ProyectoForm({
       )}
 
       <Campo label="Notas">
-        <Textarea name="notes" rows={3} defaultValue={proyecto?.notes ?? ""} />
+        {/* Escribe en notes_important, que es el campo que el detalle muestra
+            bajo "Anotaciones importantes". Antes iba a `notes`, que se
+            guardaba pero no se veía en ninguna pantalla. */}
+        <Textarea
+          name="notes_important"
+          rows={3}
+          placeholder="Lo que no se puede olvidar de este proyecto…"
+          defaultValue={proyecto?.notes_important ?? ""}
+        />
       </Campo>
     </DialogoForm>
   );

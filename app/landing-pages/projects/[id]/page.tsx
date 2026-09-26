@@ -120,10 +120,7 @@ export default async function ProyectoDetalle({
       />
 
       <div className="mb-8 overflow-hidden rounded-xl border border-line bg-surface">
-        <PortadaPatron
-          titulo={nombreCliente(proyecto, clientePor) ?? proyecto.name}
-          alto="h-36"
-        />
+        <PortadaPatron titulo={proyecto.name} alto="h-36" />
 
         <div className="grid gap-x-10 px-4 py-3 md:grid-cols-2">
           <Propiedad icono={CircleDashed} label="Estado">

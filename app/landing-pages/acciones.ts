@@ -117,6 +117,7 @@ export async function guardarProyecto(fd: FormData) {
     due_date: fecha(fd, "due_date"),
     priority: unaDe<PrioridadLanding>(texto(fd, "priority"), PRIORIDADES, "Prioridad"),
     notes: opcional(fd, "notes"),
+    notes_important: opcional(fd, "notes_important"),
     cover_url: url(fd, "cover_url"),
     site_url: url(fd, "site_url"),
     page_type: texto(fd, "page_type")
