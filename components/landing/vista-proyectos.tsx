@@ -44,7 +44,9 @@ function elegirVista(v: "cards" | "tabla") {
 }
 
 const BOTON =
-  "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors";
+  "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-all duration-150";
+const BOTON_ACTIVO = "bg-surface text-text shadow-e1";
+const BOTON_INACTIVO = "text-text-2 hover:bg-surface/60 hover:text-text";
 
 export function ToggleVista() {
   // El servidor no tiene localStorage: renderiza "cards" y el cliente corrige
@@ -52,12 +54,12 @@ export function ToggleVista() {
   const vista = useSyncExternalStore(suscribir, leerGuardada, () => "cards" as const);
 
   return (
-    <div className="flex items-center gap-0.5 rounded-lg border border-line p-0.5">
+    <div className="flex items-center gap-0.5 rounded-lg border border-line bg-surface-2 p-0.5">
       <button
         type="button"
         aria-label="Ver como tarjetas"
         onClick={() => elegirVista("cards")}
-        className={`${BOTON} ${vista === "cards" ? "bg-surface-2 text-text" : "text-text-2 hover:text-text"}`}
+        className={`${BOTON} ${vista === "cards" ? BOTON_ACTIVO : BOTON_INACTIVO}`}
       >
         <LayoutGrid className="size-3.5" />
         Cards
@@ -66,7 +68,7 @@ export function ToggleVista() {
         type="button"
         aria-label="Ver como tabla"
         onClick={() => elegirVista("tabla")}
-        className={`${BOTON} ${vista === "tabla" ? "bg-surface-2 text-text" : "text-text-2 hover:text-text"}`}
+        className={`${BOTON} ${vista === "tabla" ? BOTON_ACTIVO : BOTON_INACTIVO}`}
       >
         <Table2 className="size-3.5" />
         Tabla
@@ -128,42 +130,48 @@ export function VistaProyectos({
         })).filter((g) => g.items.length > 0)
       : [];
 
+  // Los chips viven dentro de un riel: se leen como un grupo de opciones
+  // excluyentes, no como botones sueltos.
   const CHIP =
-    "rounded-md px-2.5 py-1 text-xs font-medium transition-colors";
+    "rounded-md px-2.5 py-1 text-xs font-medium transition-all duration-150";
+  const CHIP_ACTIVO = "bg-surface text-text shadow-e1";
+  const CHIP_INACTIVO = "text-text-2 hover:bg-surface/60 hover:text-text";
 
   return (
     <>
-      <div className="mb-4 flex flex-wrap items-center gap-1">
-        <button
-          type="button"
-          onClick={() => setFiltro("todos")}
-          className={`${CHIP} ${filtro === "todos" ? "bg-surface-2 text-text" : "text-text-2 hover:text-text"}`}
-        >
-          Todos{" "}
-          <span className="tnum text-text-3">{porEmpresa.length}</span>
-        </button>
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-0.5 rounded-lg border border-line bg-surface-2 p-0.5">
+          <button
+            type="button"
+            onClick={() => setFiltro("todos")}
+            className={`${CHIP} ${filtro === "todos" ? CHIP_ACTIVO : CHIP_INACTIVO}`}
+          >
+            Todos{" "}
+            <span className="tnum text-text-3">{porEmpresa.length}</span>
+          </button>
 
-        {GRUPOS_PROYECTO.map((g) => {
-          const n = cuenta(g.id);
-          if (n === 0 && filtro !== g.id) return null;
-          return (
-            <button
-              key={g.id}
-              type="button"
-              onClick={() => setFiltro(g.id)}
-              className={`${CHIP} ${filtro === g.id ? "bg-surface-2 text-text" : "text-text-2 hover:text-text"}`}
-            >
-              {g.label} <span className="tnum text-text-3">{n}</span>
-            </button>
-          );
-        })}
+          {GRUPOS_PROYECTO.map((g) => {
+            const n = cuenta(g.id);
+            if (n === 0 && filtro !== g.id) return null;
+            return (
+              <button
+                key={g.id}
+                type="button"
+                onClick={() => setFiltro(g.id)}
+                className={`${CHIP} ${filtro === g.id ? CHIP_ACTIVO : CHIP_INACTIVO}`}
+              >
+                {g.label} <span className="tnum text-text-3">{n}</span>
+              </button>
+            );
+          })}
+        </div>
 
         {empresas.length > 0 && (
           <select
             value={empresa}
             onChange={(e) => setEmpresa(e.target.value)}
             aria-label="Filtrar por empresa"
-            className="ml-2 rounded-md border border-line bg-surface px-2 py-1 text-xs text-text-2 outline-none transition-colors hover:border-line-strong"
+            className="filtro-select"
           >
             <option value="todas">Todas las empresas</option>
             {empresas.map((e) => (
@@ -181,7 +189,7 @@ export function VistaProyectos({
               setTipoPagina(e.target.value as TipoPagina | "todos")
             }
             aria-label="Filtrar por tipo de página"
-            className="rounded-md border border-line bg-surface px-2 py-1 text-xs text-text-2 outline-none transition-colors hover:border-line-strong"
+            className="filtro-select"
           >
             <option value="todos">Todos los tipos</option>
             {tiposPresentes.map((t) => (

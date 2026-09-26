@@ -6,43 +6,102 @@ import {
   LABEL_ESTADO_PROYECTO,
   LABEL_ESTADO_TAREA,
   LABEL_PRIORIDAD,
+  LABEL_TIPO_PAGINA_CORTO,
+  TONO_TIPO_PAGINA,
   type EstadoCliente,
   type EstadoCotizacion,
   type EstadoProyecto,
   type EstadoTarea,
   type PrioridadLanding,
+  type TipoPagina,
 } from "@/lib/landing/tipos";
 
-type Tono = { dot: string; text: string };
+/** El fondo teñido pertenece al estado, no al componente: así el color
+    hace el trabajo de señalizar y el texto solo confirma. */
+type Tono = { dot: string; text: string; fondo: string; borde: string };
+
+/* Clases literales, no interpoladas: Tailwind escanea el fuente y no
+   genera una clase que se arma en runtime. */
+const NEUTRO: Tono = {
+  dot: "bg-text-3",
+  text: "text-text-3",
+  fondo: "bg-surface-2",
+  borde: "border-line",
+};
+
+const OK: Tono = {
+  dot: "bg-ok",
+  text: "text-ok",
+  fondo: "bg-ok-dim",
+  borde: "border-ok/20",
+};
+
+const WARN: Tono = {
+  dot: "bg-warn",
+  text: "text-warn",
+  fondo: "bg-warn-dim",
+  borde: "border-warn/20",
+};
+
+const CRITICAL: Tono = {
+  dot: "bg-critical",
+  text: "text-critical",
+  fondo: "bg-critical-dim",
+  borde: "border-critical/20",
+};
+
+const IDLE: Tono = {
+  dot: "bg-idle",
+  text: "text-idle",
+  fondo: "bg-idle-dim",
+  borde: "border-idle/20",
+};
 
 const TONO_PROYECTO: Record<EstadoProyecto, Tono> = {
-  "por-iniciar": { dot: "bg-idle", text: "text-idle" },
-  "en-progreso": { dot: "bg-ok", text: "text-ok" },
-  "en-revision": { dot: "bg-warn", text: "text-warn" },
-  "esperando-cliente": { dot: "bg-critical", text: "text-critical" },
-  "stand-by": { dot: "bg-text-3", text: "text-text-3" },
-  entregado: { dot: "bg-ok", text: "text-ok" },
+  "por-iniciar": IDLE,
+  "en-progreso": OK,
+  "en-revision": WARN,
+  "esperando-cliente": CRITICAL,
+  "stand-by": NEUTRO,
+  entregado: OK,
 };
 
 const TONO_TAREA: Record<EstadoTarea, Tono> = {
-  pendiente: { dot: "bg-idle", text: "text-idle" },
-  "en-progreso": { dot: "bg-ok", text: "text-ok" },
-  "en-revision": { dot: "bg-warn", text: "text-warn" },
-  bloqueada: { dot: "bg-critical", text: "text-critical" },
-  completada: { dot: "bg-text-3", text: "text-text-3" },
+  pendiente: IDLE,
+  "en-progreso": OK,
+  "en-revision": WARN,
+  bloqueada: CRITICAL,
+  completada: NEUTRO,
 };
 
 function Pill({ tono, label }: { tono: Tono; label: string }) {
   return (
     <span
       className={cn(
-        "inline-flex shrink-0 items-center gap-1.5 rounded-full border border-line",
-        "bg-surface-2 px-2.5 py-1 text-xs font-medium",
+        "inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1",
+        "text-xs font-medium",
+        tono.borde,
+        tono.fondo,
         tono.text,
       )}
     >
       <span className={cn("size-1.5 rounded-full", tono.dot)} />
       {label}
+    </span>
+  );
+}
+
+/** Badge de categoría: identifica qué ES la página, no su estado. */
+export function TipoPaginaBadge({ tipo }: { tipo: TipoPagina }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex shrink-0 items-center rounded-md border px-1.5 py-0.5",
+        "text-[0.625rem] font-semibold uppercase tracking-wide",
+        TONO_TIPO_PAGINA[tipo],
+      )}
+    >
+      {LABEL_TIPO_PAGINA_CORTO[tipo]}
     </span>
   );
 }
@@ -66,17 +125,17 @@ export function EstadoTareaPill({ estado }: { estado: EstadoTarea }) {
 }
 
 const TONO_CLIENTE: Record<EstadoCliente, Tono> = {
-  prospecto: { dot: "bg-idle", text: "text-idle" },
-  cliente: { dot: "bg-ok", text: "text-ok" },
-  inactivo: { dot: "bg-text-3", text: "text-text-3" },
+  prospecto: IDLE,
+  cliente: OK,
+  inactivo: NEUTRO,
 };
 
 const TONO_COTIZACION: Record<EstadoCotizacion, Tono> = {
-  borrador: { dot: "bg-text-3", text: "text-text-3" },
-  enviada: { dot: "bg-idle", text: "text-idle" },
-  seguimiento: { dot: "bg-warn", text: "text-warn" },
-  aprobada: { dot: "bg-ok", text: "text-ok" },
-  rechazada: { dot: "bg-critical", text: "text-critical" },
+  borrador: NEUTRO,
+  enviada: IDLE,
+  seguimiento: WARN,
+  aprobada: OK,
+  rechazada: CRITICAL,
 };
 
 export function EstadoClientePill({ estado }: { estado: EstadoCliente }) {

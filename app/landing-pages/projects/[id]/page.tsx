@@ -85,9 +85,11 @@ export default async function ProyectoDetalle({
 
   const clientePor = new Map(clientes.map((c) => [c.id, c.name]));
   const nombreMiembro = new Map(miembros.map((m) => [m.id, m.nombre]));
-  const responsable = proyecto.responsible_user_id
-    ? (nombreMiembro.get(proyecto.responsible_user_id) ?? null)
-    : null;
+  const responsables =
+    proyecto.assignee_ids
+      .map((id) => nombreMiembro.get(id))
+      .filter((n): n is string => Boolean(n))
+      .join(", ") || null;
 
   const enlaces = recursos.filter((r) => r.url);
   const susCotizaciones = proyecto.client_id
@@ -135,8 +137,8 @@ export default async function ProyectoDetalle({
             <EtapaSelect id={proyecto.id} valor={proyecto.stage} />
           </Propiedad>
 
-          <Propiedad icono={UserRound} label="Responsable">
-            <p className="truncate text-sm">{responsable ?? "—"}</p>
+          <Propiedad icono={UserRound} label="Responsables">
+            <p className="truncate text-sm">{responsables ?? "—"}</p>
           </Propiedad>
 
           <Propiedad icono={Building2} label="Cliente">

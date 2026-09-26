@@ -26,6 +26,30 @@
   --ok-dim: #e7f5ed;
   --idle: #4949c9;
   --idle-dim: #ececfc;
+
+  /* Paleta categórica — identifica QUÉ es algo, no en qué estado está.
+     Nunca se mezcla con la semántica de arriba: si un badge usa estos
+     colores no comunica urgencia, solo pertenencia. */
+  --cat-azul: #1d6fd4;
+  --cat-azul-dim: #e8f1fd;
+  --cat-violeta: #7c3aed;
+  --cat-violeta-dim: #f1eafe;
+  --cat-rosa: #c026a3;
+  --cat-rosa-dim: #fbe9f7;
+  --cat-ambar: #b45309;
+  --cat-ambar-dim: #fdf1e0;
+  --cat-teal: #0d7490;
+  --cat-teal-dim: #e2f4f8;
+  --cat-lima: #4d7c0f;
+  --cat-lima-dim: #eff6e2;
+
+  /* Elevación: sombra + vidrio. La profundidad comunica jerarquía —
+     lo que flota más alto es lo que reclama atención primero. */
+  --sombra-1: 0 1px 2px rgb(16 24 40 / 0.04), 0 1px 3px rgb(16 24 40 / 0.06);
+  --sombra-2: 0 2px 4px rgb(16 24 40 / 0.04), 0 4px 12px rgb(16 24 40 / 0.08);
+  --sombra-3: 0 8px 16px rgb(16 24 40 / 0.08), 0 16px 32px rgb(16 24 40 / 0.12);
+  --vidrio: rgb(255 255 255 / 0.72);
+  --vidrio-borde: rgb(255 255 255 / 0.5);
 }
 
 /* Tema oscuro — se aplica si el sistema lo pide */
@@ -49,6 +73,25 @@
     --ok-dim: #10291d;
     --idle: #6e6ee0;
     --idle-dim: #1d1d3d;
+
+    --cat-azul: #5aa2f7;
+    --cat-azul-dim: #10233c;
+    --cat-violeta: #a78bfa;
+    --cat-violeta-dim: #221a3d;
+    --cat-rosa: #e879d0;
+    --cat-rosa-dim: #34142d;
+    --cat-ambar: #f0a94c;
+    --cat-ambar-dim: #33230d;
+    --cat-teal: #3fb6d4;
+    --cat-teal-dim: #0d2831;
+    --cat-lima: #9cc94a;
+    --cat-lima-dim: #1d2810;
+
+    --sombra-1: 0 1px 2px rgb(0 0 0 / 0.3), 0 1px 3px rgb(0 0 0 / 0.4);
+    --sombra-2: 0 2px 4px rgb(0 0 0 / 0.3), 0 4px 12px rgb(0 0 0 / 0.45);
+    --sombra-3: 0 8px 16px rgb(0 0 0 / 0.4), 0 16px 32px rgb(0 0 0 / 0.55);
+    --vidrio: rgb(25 25 32 / 0.72);
+    --vidrio-borde: rgb(255 255 255 / 0.08);
   }
 }
 
@@ -70,6 +113,25 @@
   --ok-dim: #e8f5ee;
   --idle: #4b4bc4;
   --idle-dim: #ecebfb;
+
+  --cat-azul: #1d6fd4;
+  --cat-azul-dim: #e8f1fd;
+  --cat-violeta: #7c3aed;
+  --cat-violeta-dim: #f1eafe;
+  --cat-rosa: #c026a3;
+  --cat-rosa-dim: #fbe9f7;
+  --cat-ambar: #b45309;
+  --cat-ambar-dim: #fdf1e0;
+  --cat-teal: #0d7490;
+  --cat-teal-dim: #e2f4f8;
+  --cat-lima: #4d7c0f;
+  --cat-lima-dim: #eff6e2;
+
+  --sombra-1: 0 1px 2px rgb(16 24 40 / 0.04), 0 1px 3px rgb(16 24 40 / 0.06);
+  --sombra-2: 0 2px 4px rgb(16 24 40 / 0.04), 0 4px 12px rgb(16 24 40 / 0.08);
+  --sombra-3: 0 8px 16px rgb(16 24 40 / 0.08), 0 16px 32px rgb(16 24 40 / 0.12);
+  --vidrio: rgb(255 255 255 / 0.72);
+  --vidrio-borde: rgb(255 255 255 / 0.5);
 }
 
 :root[data-theme="dark"] {
@@ -89,6 +151,25 @@
   --ok-dim: #10291d;
   --idle: #6e6ee0;
   --idle-dim: #1d1d3d;
+
+  --cat-azul: #5aa2f7;
+  --cat-azul-dim: #10233c;
+  --cat-violeta: #a78bfa;
+  --cat-violeta-dim: #221a3d;
+  --cat-rosa: #e879d0;
+  --cat-rosa-dim: #34142d;
+  --cat-ambar: #f0a94c;
+  --cat-ambar-dim: #33230d;
+  --cat-teal: #3fb6d4;
+  --cat-teal-dim: #0d2831;
+  --cat-lima: #9cc94a;
+  --cat-lima-dim: #1d2810;
+
+  --sombra-1: 0 1px 2px rgb(0 0 0 / 0.3), 0 1px 3px rgb(0 0 0 / 0.4);
+  --sombra-2: 0 2px 4px rgb(0 0 0 / 0.3), 0 4px 12px rgb(0 0 0 / 0.45);
+  --sombra-3: 0 8px 16px rgb(0 0 0 / 0.4), 0 16px 32px rgb(0 0 0 / 0.55);
+  --vidrio: rgb(25 25 32 / 0.72);
+  --vidrio-borde: rgb(255 255 255 / 0.08);
 }
 
 @theme inline {
@@ -108,6 +189,21 @@
   --color-ok-dim: var(--ok-dim);
   --color-idle: var(--idle);
   --color-idle-dim: var(--idle-dim);
+  --color-cat-azul: var(--cat-azul);
+  --color-cat-azul-dim: var(--cat-azul-dim);
+  --color-cat-violeta: var(--cat-violeta);
+  --color-cat-violeta-dim: var(--cat-violeta-dim);
+  --color-cat-rosa: var(--cat-rosa);
+  --color-cat-rosa-dim: var(--cat-rosa-dim);
+  --color-cat-ambar: var(--cat-ambar);
+  --color-cat-ambar-dim: var(--cat-ambar-dim);
+  --color-cat-teal: var(--cat-teal);
+  --color-cat-teal-dim: var(--cat-teal-dim);
+  --color-cat-lima: var(--cat-lima);
+  --color-cat-lima-dim: var(--cat-lima-dim);
+  --shadow-e1: var(--sombra-1);
+  --shadow-e2: var(--sombra-2);
+  --shadow-e3: var(--sombra-3);
   --font-display: var(--font-jakarta), system-ui, sans-serif;
   --font-sans: var(--font-dm-sans), system-ui, sans-serif;
 }
@@ -204,13 +300,87 @@ select:disabled,
   color: var(--text);
 }
 
+/* Superficie de vidrio: para lo que flota sobre contenido (paneles,
+   menús, barras fijas). No usar en contenido plano — el blur cuesta
+   GPU y sobre fondo liso no aporta nada. */
+.vidrio {
+  background: var(--vidrio);
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+}
+
+/* El borde del vidrio va aparte: quien la use decide si lo quiere en los
+   cuatro lados o solo en uno (una barra sticky suele querer solo abajo). */
+.vidrio-borde {
+  border: 1px solid var(--vidrio-borde);
+}
+
+/* Select de filtro: mismo peso visual que un chip, con chevron propio
+   porque el nativo no sigue el tema. */
+.filtro-select {
+  appearance: none;
+  padding: 0.3125rem 1.75rem 0.3125rem 0.625rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border);
+  background-color: var(--surface);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2393a1b4' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.625rem center;
+  font-size: 0.75rem;
+  color: var(--text-2);
+  outline: none;
+  box-shadow: var(--sombra-1);
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.filtro-select:hover {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.filtro-select option {
+  background: var(--surface);
+  color: var(--text);
+}
+
+/* Fila de tabla: el hover tiñe en vez de saltar, y la transición corta
+   evita que el barrido del mouse deje un rastro de parpadeos. */
+.fila-hover {
+  transition: background-color 0.12s ease;
+}
+
+.fila-hover:hover {
+  background: color-mix(in oklab, var(--surface-2) 70%, transparent);
+}
+
+/* Card que responde al puntero: sube apenas y gana sombra. El
+   desplazamiento mínimo basta para leerse como "esto es clickeable". */
+.card-interactiva {
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.card-interactiva:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--sombra-2);
+  border-color: var(--border-strong);
+}
+
 @keyframes entrar-derecha {
   from { transform: translateX(100%); }
   to { transform: translateX(0); }
 }
 
+@keyframes aparecer {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 .panel-lateral {
-  animation: entrar-derecha 0.18s ease-out;
+  animation: entrar-derecha 0.22s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.panel-fondo {
+  animation: aparecer 0.18s ease-out;
 }
 
 /* ─────────────────────────────────────────────

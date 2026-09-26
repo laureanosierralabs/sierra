@@ -5,6 +5,7 @@ import { Globe } from "lucide-react";
 import {
   EstadoProyectoPill,
   Prioridad,
+  TipoPaginaBadge,
   Vencimiento,
 } from "@/components/landing/ui";
 import { ProyectoForm } from "@/components/landing/proyecto-form";
@@ -13,7 +14,6 @@ import { BorrarProyecto } from "@/components/landing/borrar";
 import { PortadaPatron } from "@/components/landing/portada-patron";
 import {
   LABEL_ETAPA,
-  LABEL_TIPO_PAGINA_CORTO,
   nombreCliente,
   type Cliente,
   type Miembro,
@@ -55,14 +55,14 @@ export function ProyectoCards({
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {proyectos.map((p) => {
         const cliente = nombreCliente(p, clientePor);
-        const responsable = p.responsible_user_id
-          ? (nombreMiembro.get(p.responsible_user_id) ?? null)
-          : null;
+        const responsables = p.assignee_ids
+          .map((id) => nombreMiembro.get(id))
+          .filter((n): n is string => Boolean(n));
 
         return (
           <div
             key={p.id}
-            className="group/card flex flex-col overflow-hidden rounded-xl border border-line bg-surface transition-colors hover:border-line-strong"
+            className="card-interactiva group/card flex flex-col overflow-hidden rounded-xl border border-line bg-surface shadow-e1"
           >
             {/* Ya no hay botón de subir portada, así que puede ser un link:
                 la zona grande de la card lleva al proyecto. */}
@@ -89,11 +89,7 @@ export function ProyectoCards({
 
               <div className="flex flex-wrap items-center gap-1.5">
                 <EstadoProyectoPill estado={p.status} />
-                {p.page_type && (
-                  <span className="rounded border border-line bg-surface-2 px-1.5 py-0.5 text-[0.625rem] font-medium uppercase tracking-wide text-text-2">
-                    {LABEL_TIPO_PAGINA_CORTO[p.page_type]}
-                  </span>
-                )}
+                {p.page_type && <TipoPaginaBadge tipo={p.page_type} />}
                 <Prioridad prioridad={p.priority} />
               </div>
 
@@ -113,7 +109,11 @@ export function ProyectoCards({
 
               <div className="mt-auto flex items-center justify-between gap-2 border-t border-line pt-2">
                 <span className="truncate text-xs text-text-3">
-                  {p.stage ? LABEL_ETAPA[p.stage] : (responsable ?? "—")}
+                  {p.stage
+                    ? LABEL_ETAPA[p.stage]
+                    : responsables.length > 0
+                      ? responsables.join(", ")
+                      : "—"}
                 </span>
                 <Vencimiento fecha={p.due_date} cerrado={p.status === "entregado"} />
               </div>

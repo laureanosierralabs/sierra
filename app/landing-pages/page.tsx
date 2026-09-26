@@ -95,9 +95,10 @@ export default async function LandingPagesInicio() {
                     <EstadoProyectoPill estado={p.status} />
                   </td>
                   <td className="px-4 py-2.5 text-text-2">
-                    {p.responsible_user_id
-                      ? (nombreMiembro.get(p.responsible_user_id) ?? "—")
-                      : "—"}
+                    {p.assignee_ids
+                      .map((id) => nombreMiembro.get(id))
+                      .filter((n): n is string => Boolean(n))
+                      .join(", ") || "—"}
                   </td>
                   <td className="px-4 py-2.5">
                     <Vencimiento fecha={p.due_date} cerrado={p.status === "entregado"} />

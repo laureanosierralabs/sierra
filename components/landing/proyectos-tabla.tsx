@@ -5,9 +5,13 @@ import { EstadoSelect } from "@/components/landing/estado-select";
 import { ProyectoForm } from "@/components/landing/proyecto-form";
 import { DuplicarProyecto } from "@/components/landing/duplicar-proyecto";
 import { BorrarProyecto } from "@/components/landing/borrar";
-import { Prioridad, Vencimiento, VacioTabla } from "@/components/landing/ui";
 import {
-  LABEL_TIPO_PAGINA_CORTO,
+  Prioridad,
+  TipoPaginaBadge,
+  Vencimiento,
+  VacioTabla,
+} from "@/components/landing/ui";
+import {
   nombreCliente,
   type Cliente,
   type Miembro,
@@ -39,10 +43,12 @@ export function ProyectosTabla({
   nombreMiembro: Map<string, string>;
 }) {
   return (
-    <div className="overflow-hidden rounded-xl border border-line bg-surface">
+    <div className="overflow-hidden rounded-xl border border-line bg-surface shadow-e1">
       <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-line text-left">
+        {/* Sticky: en listas largas la cabecera es la única referencia
+            de qué significa cada columna. */}
+        <thead className="sticky top-0 z-10">
+          <tr className="vidrio border-b border-line text-left">
             {COLUMNAS.map((h, i) => (
               <th
                 key={h || i}
@@ -62,7 +68,7 @@ export function ProyectosTabla({
           {proyectos.map((p) => (
             <tr
               key={p.id}
-              className="border-b border-line transition-colors last:border-0 hover:bg-surface-2"
+              className="fila-hover group/fila border-b border-line last:border-0"
             >
               <td className="px-4 py-3 font-medium">
                 <Link
@@ -77,9 +83,7 @@ export function ProyectosTabla({
               </td>
               <td className="px-4 py-3">
                 {p.page_type ? (
-                  <span className="rounded border border-line bg-surface-2 px-1.5 py-0.5 text-[0.625rem] font-medium uppercase tracking-wide text-text-2">
-                    {LABEL_TIPO_PAGINA_CORTO[p.page_type]}
-                  </span>
+                  <TipoPaginaBadge tipo={p.page_type} />
                 ) : (
                   <span className="text-xs text-text-3">—</span>
                 )}
@@ -88,9 +92,10 @@ export function ProyectosTabla({
                 <EstadoSelect id={p.id} valor={p.status} tipo="proyecto" />
               </td>
               <td className="px-4 py-3 text-text-2">
-                {p.responsible_user_id
-                  ? (nombreMiembro.get(p.responsible_user_id) ?? "—")
-                  : "—"}
+                {p.assignee_ids
+                  .map((id) => nombreMiembro.get(id))
+                  .filter((n): n is string => Boolean(n))
+                  .join(", ") || "—"}
               </td>
               <td className="px-4 py-3">
                 <Vencimiento fecha={p.due_date} cerrado={p.status === "entregado"} />
@@ -99,7 +104,9 @@ export function ProyectosTabla({
                 <Prioridad prioridad={p.priority} />
               </td>
               <td className="px-4 py-3">
-                <span className="flex items-center justify-end gap-3">
+                {/* Se revelan al apuntar la fila: menos ruido en reposo.
+                    focus-within las mantiene accesibles por teclado. */}
+                <span className="flex items-center justify-end gap-3 opacity-0 transition-opacity group-hover/fila:opacity-100 focus-within:opacity-100">
                   <ProyectoForm
                     miembros={miembros}
                     clientes={clientes}

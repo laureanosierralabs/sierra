@@ -44,11 +44,12 @@ export function PanelLateral({
       role="dialog"
       aria-modal="true"
       aria-label={titulo}
-      className="fixed inset-0 z-50 flex justify-end bg-black/40"
+      className="panel-fondo fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-[2px]"
       onMouseDown={(e) => e.target === e.currentTarget && router.back()}
     >
-      <aside className="panel-lateral flex h-full w-full flex-col border-l border-line bg-ground shadow-2xl sm:w-[58%] sm:min-w-125">
-        <header className="flex items-start justify-between gap-3 border-b border-line px-5 py-4">
+      <aside className="panel-lateral flex h-full w-full flex-col border-l border-line bg-ground shadow-e3 sm:w-[58%] sm:min-w-125">
+        {/* Sticky con vidrio: el título queda anclado aunque el cuerpo scrollee. */}
+        <header className="vidrio sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-line px-5 py-4">
           <h1 className="min-w-0 font-display text-lg font-bold">{titulo}</h1>
 
           <span className="flex shrink-0 items-center gap-3">
