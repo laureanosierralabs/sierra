@@ -325,6 +325,123 @@ const ENTREGA: Plantilla = {
   ],
 };
 
+const INFRA_CODIGO: Plantilla = {
+  id: "infra-codigo",
+  nombre: "Infraestructura (Código)",
+  secciones: [
+    {
+      id: "pasos",
+      titulo: "Checklist de infraestructura",
+      campos: [
+        {
+          id: "pasos",
+          label: "",
+          tipo: "checklist",
+          items: [
+            {
+              texto: "Crear cuentas del cliente en los proveedores",
+              hijos: [
+                "Gmail",
+                "GitHub",
+                "Vercel",
+                "Cloudflare",
+                "Otro proveedor (varía según integraciones del cliente)",
+              ],
+            },
+            { texto: "Contratar dominio" },
+            { texto: "Vincular el dominio a Cloudflare" },
+            { texto: "Crear el repositorio en GitHub" },
+            { texto: "Crear el proyecto en Vercel y conectarlo al repositorio" },
+            { texto: "Apuntar el dominio al proyecto de Vercel" },
+            { texto: "Crear el proyecto en Supabase (si el sitio necesita backend)" },
+            { texto: "Cargar las variables de entorno en Vercel" },
+            {
+              texto: "Configurar accesos e integraciones adicionales",
+              hijos: ["Pixel de Meta", "Google Analytics", "Otras herramientas del cliente"],
+            },
+          ],
+        },
+        {
+          id: "notas",
+          label: "Notas",
+          tipo: "texto",
+          ayuda: "Credenciales en el gestor, no acá. Accesos van en Recursos.",
+          filas: 3,
+        },
+      ],
+    },
+  ],
+};
+
+const MONTAJE_CODIGO: Plantilla = {
+  id: "montaje-codigo",
+  nombre: "Montaje de la web (Código)",
+  secciones: [
+    {
+      id: "pasos",
+      titulo: "Checklist de montaje",
+      campos: [
+        {
+          id: "pasos",
+          label: "",
+          tipo: "checklist",
+          opciones: [
+            "Armar la estructura de carpetas y componentes",
+            "Cargar fuentes y tokens de diseño (colores, tipografía, espaciado)",
+            "Desarrollar el layout base y la navegación",
+            "Maquetar cada sección según el diseño aprobado",
+            "Conectar formularios e integraciones (pixel, analytics, pagos)",
+            "Responsive: celular, tablet y desktop",
+            "Animaciones",
+            "Metadatos de SEO (título, meta descripción, Open Graph)",
+          ],
+        },
+        {
+          id: "notas",
+          label: "Notas",
+          tipo: "texto",
+          filas: 3,
+        },
+      ],
+    },
+  ],
+};
+
+const OPTIMIZACION_CODIGO: Plantilla = {
+  id: "optimizacion-codigo",
+  nombre: "Optimización (Código)",
+  secciones: [
+    {
+      id: "pasos",
+      titulo: "Checklist de optimización",
+      campos: [
+        {
+          id: "pasos",
+          label: "",
+          tipo: "checklist",
+          opciones: [
+            "Realizar testeo 1",
+            "Optimizar imágenes (formatos webp/avif, tamaños correctos)",
+            "Revisar que no queden dependencias ni código sin usar",
+            "Precargar fuentes e imagen LCP (Largest Contentful Paint)",
+            "Cambiar font-display a swap",
+            "Revisar Core Web Vitals (LCP, CLS, INP)",
+            "Configurar caching y headers en Vercel/Cloudflare",
+            "Realizar testeo final",
+          ],
+        },
+        {
+          id: "notas",
+          label: "Resultados de los testeos",
+          tipo: "texto",
+          ayuda: "PageSpeed, GTmetrix: puntajes antes y después.",
+          filas: 3,
+        },
+      ],
+    },
+  ],
+};
+
 const REVISION: Plantilla = {
   id: "revision",
   nombre: "Revisión",
@@ -370,6 +487,9 @@ export const PLANTILLAS: Record<string, Plantilla> = {
   "infra-wordpress": INFRA_WORDPRESS,
   "montaje-wordpress": MONTAJE_WORDPRESS,
   "optimizacion-wordpress": OPTIMIZACION_WORDPRESS,
+  "infra-codigo": INFRA_CODIGO,
+  "montaje-codigo": MONTAJE_CODIGO,
+  "optimizacion-codigo": OPTIMIZACION_CODIGO,
   entrega: ENTREGA,
   revision: REVISION,
   modificaciones: MODIFICACIONES,
@@ -424,8 +544,11 @@ const POR_TIPO: Record<TipoProyecto, TareaDefecto[]> = {
     montaje: "montaje-wordpress",
     optimizacion: "optimizacion-wordpress",
   }),
-  // Todavía sin plantillas técnicas propias.
-  codigo: checklist({ infra: null, montaje: null, optimizacion: null }),
+  codigo: checklist({
+    infra: "infra-codigo",
+    montaje: "montaje-codigo",
+    optimizacion: "optimizacion-codigo",
+  }),
 };
 
 export function tareasPorDefecto(tipo: string | null): TareaDefecto[] {
