@@ -8,6 +8,7 @@ import {
   ExternalLink,
   FileText,
   Flag,
+  Globe,
   Target,
   UserRound,
   type LucideIcon,
@@ -33,7 +34,7 @@ import { EstadoSelect } from "@/components/landing/estado-select";
 import { EtapaSelect } from "@/components/landing/etapa-select";
 import { ProyectoForm } from "@/components/landing/proyecto-form";
 import { DuplicarProyecto } from "@/components/landing/duplicar-proyecto";
-import { PortadaProyecto } from "@/components/landing/portada-proyecto";
+import { PortadaPatron } from "@/components/landing/portada-patron";
 import { BorrarProyecto } from "@/components/landing/borrar";
 import { GestionProyecto } from "@/components/landing/gestion-proyecto";
 import { Recursos } from "@/components/landing/recursos";
@@ -119,9 +120,9 @@ export default async function ProyectoDetalle({
       />
 
       <div className="mb-8 overflow-hidden rounded-xl border border-line bg-surface">
-        <PortadaProyecto
-          projectId={proyecto.id}
-          coverUrl={proyecto.cover_url}
+        <PortadaPatron
+          titulo={nombreCliente(proyecto, clientePor) ?? proyecto.name}
+          alto="h-36"
         />
 
         <div className="grid gap-x-10 px-4 py-3 md:grid-cols-2">
@@ -166,8 +167,20 @@ export default async function ProyectoDetalle({
         </div>
 
         {/* Los links que se usan todo el día, sin scrollear hasta Recursos */}
-        {enlaces.length > 0 && (
+        {(proyecto.site_url || enlaces.length > 0) && (
           <div className="flex flex-wrap items-center gap-2 border-t border-line px-4 py-3">
+            {proyecto.site_url && (
+              <a
+                href={proyecto.site_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group inline-flex items-center gap-2 rounded-lg border border-ok/30 bg-ok-dim px-3 py-2 text-sm font-medium text-ok transition-colors hover:border-ok/50"
+              >
+                <Globe className="size-3.5" />
+                Ver sitio
+                <ExternalLink className="size-3.5 opacity-60" />
+              </a>
+            )}
             {enlaces.map((r) => (
               <a
                 key={r.id}
