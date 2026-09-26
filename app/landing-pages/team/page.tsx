@@ -29,17 +29,18 @@ export default async function EquipoPage() {
 
   const proyectosPor = new Map<string, number>();
   for (const p of proyectos) {
-    if (!p.responsible_user_id || !esProyectoActivo(p.status)) continue;
-    proyectosPor.set(
-      p.responsible_user_id,
-      (proyectosPor.get(p.responsible_user_id) ?? 0) + 1,
-    );
+    if (!esProyectoActivo(p.status)) continue;
+    for (const userId of p.assignee_ids) {
+      proyectosPor.set(userId, (proyectosPor.get(userId) ?? 0) + 1);
+    }
   }
 
   const tareasPor = new Map<string, number>();
   for (const t of tareas) {
-    if (!t.assigned_to || !esTareaAbierta(t.status)) continue;
-    tareasPor.set(t.assigned_to, (tareasPor.get(t.assigned_to) ?? 0) + 1);
+    if (!esTareaAbierta(t.status)) continue;
+    for (const userId of t.assignee_ids) {
+      tareasPor.set(userId, (tareasPor.get(userId) ?? 0) + 1);
+    }
   }
 
   const columnas = [

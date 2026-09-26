@@ -111,9 +111,10 @@ export function GestionProyecto({
                     <EstadoSelect id={t.id} valor={t.status} tipo="tarea" />
                   </td>
                   <td className="px-4 py-2.5 text-text-2">
-                    {t.assigned_to
-                      ? (nombreMiembro.get(t.assigned_to) ?? "—")
-                      : "—"}
+                    {t.assignee_ids
+                      .map((id) => nombreMiembro.get(id))
+                      .filter((n): n is string => Boolean(n))
+                      .join(", ") || "—"}
                   </td>
                   <td className="px-4 py-2.5">
                     <Prioridad prioridad={t.priority} />

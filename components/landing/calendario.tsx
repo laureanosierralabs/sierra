@@ -65,7 +65,8 @@ export function Calendario({
           tipo: "tarea" as const,
           detalle: [
             t.project_id ? nombreProyecto.get(t.project_id) : null,
-            t.assigned_to ? nombreMiembro.get(t.assigned_to) : null,
+            t.assignee_ids.map((id) => nombreMiembro.get(id)).filter(Boolean).join(", ") ||
+              null,
           ]
             .filter(Boolean)
             .join(" · "),

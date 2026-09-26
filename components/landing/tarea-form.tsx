@@ -8,6 +8,7 @@ import {
   Select,
   Textarea,
 } from "@/components/landing/dialogo-form";
+import { SelectorMiembros } from "@/components/landing/selector-miembros";
 import { guardarTarea } from "@/app/landing-pages/acciones";
 import {
   ESTADOS_TAREA,
@@ -88,26 +89,17 @@ export function TareaForm({
         </Campo>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <Campo label="Responsable">
-          <Select name="assigned_to" defaultValue={tarea?.assigned_to ?? ""}>
-            <option value="">Sin asignar</option>
-            {miembros.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.nombre}
-              </option>
-            ))}
-          </Select>
-        </Campo>
+      <Campo label="Responsables">
+        <SelectorMiembros miembros={miembros} defaultValue={tarea?.assignee_ids} />
+      </Campo>
 
-        <Campo label="Deadline">
-          <Input
-            type="date"
-            name="due_date"
-            defaultValue={tarea?.due_date ?? ""}
-          />
-        </Campo>
-      </div>
+      <Campo label="Deadline">
+        <Input
+          type="date"
+          name="due_date"
+          defaultValue={tarea?.due_date ?? ""}
+        />
+      </Campo>
 
       <Campo label="Descripción">
         <Textarea

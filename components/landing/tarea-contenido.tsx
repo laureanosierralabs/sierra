@@ -49,9 +49,11 @@ export function TareaContenido({
   columnas?: 1 | 2;
 }) {
   const nombreMiembro = new Map(miembros.map((m) => [m.id, m.nombre]));
-  const responsable = tarea.assigned_to
-    ? (nombreMiembro.get(tarea.assigned_to) ?? null)
-    : null;
+  const responsable =
+    tarea.assignee_ids
+      .map((id) => nombreMiembro.get(id))
+      .filter((n): n is string => Boolean(n))
+      .join(", ") || null;
 
   const plantilla = plantillaDe(tarea.template);
 

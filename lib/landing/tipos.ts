@@ -170,6 +170,22 @@ export const LABEL_TIPO_PAGINA_CORTO: Record<TipoPagina, string> = {
   otro: "Otro",
 };
 
+/**
+ * Color fijo por tipo de página: el mismo tipo se ve siempre igual, así se
+ * reconoce sin leer la etiqueta. Es color categórico, no de estado — no
+ * comunica urgencia. El criterio: ventas ámbar (conversión), registro azul
+ * (captura fría), lead magnet lima (entrada al funnel), portfolio violeta
+ * (creativo), institucional teal (corporativo), otro neutro (no informa).
+ */
+export const TONO_TIPO_PAGINA: Record<TipoPagina, string> = {
+  registro: "border-cat-azul/25 bg-cat-azul-dim text-cat-azul",
+  ventas: "border-cat-ambar/25 bg-cat-ambar-dim text-cat-ambar",
+  "lead-magnet": "border-cat-lima/25 bg-cat-lima-dim text-cat-lima",
+  portfolio: "border-cat-violeta/25 bg-cat-violeta-dim text-cat-violeta",
+  institucional: "border-cat-teal/25 bg-cat-teal-dim text-cat-teal",
+  otro: "border-line bg-surface-2 text-text-3",
+};
+
 export const LABEL_TIPO_RECURSO: Record<TipoRecurso, string> = {
   archivo: "Archivos",
   diseno: "Diseño",
@@ -213,7 +229,8 @@ export interface Proyecto {
   stage: Etapa | null;
   /** Define el checklist inicial: wordpress | codigo. */
   kind: string;
-  responsible_user_id: string | null;
+  /** Puede haber más de un responsable (ej: un dev + un diseñador). */
+  assignee_ids: string[];
   due_date: string | null;
   priority: PrioridadLanding;
   notes: string | null;
@@ -323,7 +340,8 @@ export interface Tarea {
   title: string;
   description: string | null;
   status: EstadoTarea;
-  assigned_to: string | null;
+  /** Puede haber más de una persona asignada a la misma tarea. */
+  assignee_ids: string[];
   priority: PrioridadLanding;
   due_date: string | null;
   position: number;

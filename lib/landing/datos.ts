@@ -12,35 +12,69 @@ import type {
   TareaProceso,
 } from "@/lib/landing/tipos";
 
+/** Aplana el join anidado de Supabase a un array simple de ids. */
+function conAsignados(
+  fila: Omit<Proyecto, "assignee_ids"> & {
+    project_assignees?: { user_id: string }[] | null;
+  },
+): Proyecto {
+  const { project_assignees, ...resto } = fila;
+  return { ...resto, assignee_ids: (project_assignees ?? []).map((a) => a.user_id) };
+}
+
+function conAsignadosTarea(
+  fila: Omit<Tarea, "assignee_ids"> & {
+    task_assignees?: { user_id: string }[] | null;
+  },
+): Tarea {
+  const { task_assignees, ...resto } = fila;
+  return { ...resto, assignee_ids: (task_assignees ?? []).map((a) => a.user_id) };
+}
+
+/**
+ * Ordena por urgencia real, no por fecha calendario pura: lo más cercano a
+ * hoy va primero (venza pronto o haya vencido hace poco), y lo sin fecha
+ * queda al final. Un "due_date asc" simple pondría un deadline ya vencido
+ * hace un año antes que uno que vence mañana, que es al revés de lo útil.
+ */
+function porUrgencia<T extends { due_date: string | null }>(filas: T[]): T[] {
+  const hoy = Date.now();
+  const distancia = (f: T) =>
+    f.due_date === null
+      ? Infinity
+      : Math.abs(new Date(`${f.due_date}T00:00:00`).getTime() - hoy);
+
+  return [...filas].sort((a, b) => distancia(a) - distancia(b));
+}
+
 export async function listarProyectos(): Promise<Proyecto[]> {
   const { data, error } = await supabaseAdmin()
     .from("projects")
-    .select("*")
-    .order("due_date", { ascending: true, nullsFirst: false });
+    .select("*, project_assignees(user_id)");
 
   if (error) throw new Error(`No se pudieron leer los proyectos: ${error.message}`);
-  return data ?? [];
+  return porUrgencia((data ?? []).map(conAsignados));
 }
 
 export async function listarTareas(): Promise<Tarea[]> {
   const { data, error } = await supabaseAdmin()
     .from("tasks")
-    .select("*")
+    .select("*, task_assignees(user_id)")
     .order("due_date", { ascending: true, nullsFirst: false });
 
   if (error) throw new Error(`No se pudieron leer las tareas: ${error.message}`);
-  return data ?? [];
+  return (data ?? []).map(conAsignadosTarea);
 }
 
 export async function obtenerProyecto(id: string): Promise<Proyecto | null> {
   const { data, error } = await supabaseAdmin()
     .from("projects")
-    .select("*")
+    .select("*, project_assignees(user_id)")
     .eq("id", id)
     .maybeSingle();
 
   if (error) throw new Error(`No se pudo leer el proyecto: ${error.message}`);
-  return data;
+  return data ? conAsignados(data) : null;
 }
 
 /** Tareas del proyecto en orden de kanban. */
@@ -49,13 +83,13 @@ export async function listarTareasDeProyecto(
 ): Promise<Tarea[]> {
   const { data, error } = await supabaseAdmin()
     .from("tasks")
-    .select("*")
+    .select("*, task_assignees(user_id)")
     .eq("project_id", projectId)
     .order("position", { ascending: true })
     .order("created_at", { ascending: true });
 
   if (error) throw new Error(`No se pudieron leer las tareas: ${error.message}`);
-  return data ?? [];
+  return (data ?? []).map(conAsignadosTarea);
 }
 
 export type RecursoVista = Omit<Recurso, "secret_encrypted"> & {
@@ -121,12 +155,12 @@ export async function listarTareasDeProceso(
 export async function obtenerTarea(id: string): Promise<Tarea | null> {
   const { data, error } = await supabaseAdmin()
     .from("tasks")
-    .select("*")
+    .select("*, task_assignees(user_id)")
     .eq("id", id)
     .maybeSingle();
 
   if (error) throw new Error(`No se pudo leer la tarea: ${error.message}`);
-  return data;
+  return data ? conAsignadosTarea(data) : null;
 }
 
 export async function listarNotasCliente(

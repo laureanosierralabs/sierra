@@ -47,6 +47,11 @@ function opcional(fd: FormData, campo: string): string | null {
   return v === "" ? null : v;
 }
 
+/** Checkboxes con el mismo name: FormData los junta, getAll() los separa. */
+function varios(fd: FormData, campo: string): string[] {
+  return fd.getAll(campo).map(String).filter(Boolean);
+}
+
 function fecha(fd: FormData, campo: string): string | null {
   const v = texto(fd, campo);
   if (v === "") return null;
@@ -96,11 +101,38 @@ function url(fd: FormData, campo: string): string | null {
   return parsed.toString();
 }
 
+/**
+ * Reemplaza el set completo de asignados de una fila: borra los que ya no
+ * están y agrega los nuevos. Más simple que un diff y correcto igual, porque
+ * el form siempre manda el set completo, no un delta.
+ */
+async function sincronizarAsignados(
+  tabla: "project_assignees" | "task_assignees",
+  columna: "project_id" | "task_id",
+  id: string,
+  userIds: string[],
+) {
+  const db = supabaseAdmin();
+  const { error: errorBorrar } = await db.from(tabla).delete().eq(columna, id);
+  if (errorBorrar)
+    throw new Error(`No se pudieron actualizar los asignados: ${errorBorrar.message}`);
+
+  if (userIds.length === 0) return;
+
+  const { error: errorInsertar } = await db
+    .from(tabla)
+    .insert(userIds.map((user_id) => ({ [columna]: id, user_id })));
+  if (errorInsertar)
+    throw new Error(`No se pudieron actualizar los asignados: ${errorInsertar.message}`);
+}
+
 export async function guardarProyecto(fd: FormData) {
   await exigirSesion();
 
   const nombre = texto(fd, "name");
   if (!nombre) throw new Error("Falta el nombre del proyecto");
+
+  const asignados = varios(fd, "assignee_ids");
 
   const fila = {
     name: nombre,
@@ -113,7 +145,6 @@ export async function guardarProyecto(fd: FormData) {
       : null,
     // El tipo lo validan los procesos existentes, no una lista en código.
     kind: texto(fd, "kind") || "wordpress",
-    responsible_user_id: opcional(fd, "responsible_user_id"),
     due_date: fecha(fd, "due_date"),
     priority: unaDe<PrioridadLanding>(texto(fd, "priority"), PRIORIDADES, "Prioridad"),
     notes: opcional(fd, "notes"),
@@ -133,6 +164,7 @@ export async function guardarProyecto(fd: FormData) {
     const { error } = await db.from("projects").update(fila).eq("id", id);
     if (error)
       throw new Error(`No se pudo guardar el proyecto: ${error.message}`);
+    await sincronizarAsignados("project_assignees", "project_id", id, asignados);
     revalidar();
     revalidatePath(`/landing-pages/projects/${id}`);
     return;
@@ -146,6 +178,8 @@ export async function guardarProyecto(fd: FormData) {
 
   if (error || !creado)
     throw new Error(`No se pudo guardar el proyecto: ${error?.message ?? ""}`);
+
+  await sincronizarAsignados("project_assignees", "project_id", creado.id, asignados);
 
   // Las tareas salen del SOP del tipo elegido. Se copian, no se referencian:
   // editar el proceso después no debe alterar proyectos en curso.
@@ -187,12 +221,13 @@ export async function guardarTarea(fd: FormData) {
   const titulo = texto(fd, "title");
   if (!titulo) throw new Error("Falta el título de la tarea");
 
+  const asignados = varios(fd, "assignee_ids");
+
   const fila = {
     title: titulo,
     project_id: opcional(fd, "project_id"),
     description: opcional(fd, "description"),
     status: unaDe<EstadoTarea>(texto(fd, "status"), ESTADOS_TAREA, "Estado"),
-    assigned_to: opcional(fd, "assigned_to"),
     priority: unaDe<PrioridadLanding>(texto(fd, "priority"), PRIORIDADES, "Prioridad"),
     due_date: fecha(fd, "due_date"),
     updated_at: new Date().toISOString(),
@@ -200,11 +235,25 @@ export async function guardarTarea(fd: FormData) {
 
   const id = opcional(fd, "id");
   const db = supabaseAdmin();
-  const { error } = id
-    ? await db.from("tasks").update(fila).eq("id", id)
-    : await db.from("tasks").insert(fila);
 
-  if (error) throw new Error(`No se pudo guardar la tarea: ${error.message}`);
+  if (id) {
+    const { error } = await db.from("tasks").update(fila).eq("id", id);
+    if (error) throw new Error(`No se pudo guardar la tarea: ${error.message}`);
+    await sincronizarAsignados("task_assignees", "task_id", id, asignados);
+    revalidar();
+    return;
+  }
+
+  const { data: creada, error } = await db
+    .from("tasks")
+    .insert(fila)
+    .select("id")
+    .single();
+
+  if (error || !creada)
+    throw new Error(`No se pudo guardar la tarea: ${error?.message ?? ""}`);
+
+  await sincronizarAsignados("task_assignees", "task_id", creada.id, asignados);
   revalidar();
 }
 
@@ -535,7 +584,7 @@ export async function duplicarProyecto(id: string) {
 
   const { data: original, error: errLeer } = await db
     .from("projects")
-    .select("*")
+    .select("*, project_assignees(user_id)")
     .eq("id", id)
     .maybeSingle();
 
@@ -551,7 +600,6 @@ export async function duplicarProyecto(id: string) {
       kind: original.kind,
       status: "por-iniciar",
       stage: null,
-      responsible_user_id: original.responsible_user_id,
       due_date: null,
       priority: original.priority,
       notes: original.notes,
@@ -564,24 +612,44 @@ export async function duplicarProyecto(id: string) {
   if (errCrear || !copia)
     throw new Error(`No se pudo duplicar: ${errCrear?.message ?? "sin id"}`);
 
+  const asignadosOriginal = (original.project_assignees ?? []).map(
+    (a: { user_id: string }) => a.user_id,
+  );
+  await sincronizarAsignados("project_assignees", "project_id", copia.id, asignadosOriginal);
+
   const [{ data: tareas }, { data: recursos }] = await Promise.all([
-    db.from("tasks").select("*").eq("project_id", id).order("position"),
+    db.from("tasks").select("*, task_assignees(user_id)").eq("project_id", id).order("position"),
     db.from("project_resources").select("*").eq("project_id", id),
   ]);
 
   if (tareas?.length) {
-    await db.from("tasks").insert(
-      tareas.map((t, i) => ({
-        project_id: copia.id,
-        title: t.title,
-        description: t.description,
-        status: "pendiente",
-        assigned_to: t.assigned_to,
-        priority: t.priority,
-        due_date: null,
-        position: i,
-      })),
-    );
+    // Una por una, no en bulk: así el id creado queda atado a su propia
+    // tarea y los asignados no se mezclan entre tareas del clon.
+    for (let i = 0; i < tareas.length; i++) {
+      const t = tareas[i];
+      const { data: tareaCreada } = await db
+        .from("tasks")
+        .insert({
+          project_id: copia.id,
+          title: t.title,
+          description: t.description,
+          status: "pendiente",
+          priority: t.priority,
+          due_date: null,
+          position: i,
+        })
+        .select("id")
+        .single();
+
+      const asignadosTarea = (t.task_assignees ?? []).map(
+        (a: { user_id: string }) => a.user_id,
+      );
+      if (tareaCreada && asignadosTarea.length) {
+        await db
+          .from("task_assignees")
+          .insert(asignadosTarea.map((user_id: string) => ({ task_id: tareaCreada.id, user_id })));
+      }
+    }
   }
 
   if (recursos?.length) {

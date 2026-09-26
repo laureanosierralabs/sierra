@@ -9,6 +9,7 @@ import {
   Textarea,
 } from "@/components/landing/dialogo-form";
 import { guardarProyecto } from "@/app/landing-pages/acciones";
+import { SelectorMiembros } from "@/components/landing/selector-miembros";
 import type { Proceso } from "@/lib/landing/tipos";
 import {
   ESTADOS_PROYECTO,
@@ -119,29 +120,17 @@ export function ProyectoForm({
         </Campo>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <Campo label="Responsable">
-          <Select
-            name="responsible_user_id"
-            defaultValue={proyecto?.responsible_user_id ?? ""}
-          >
-            <option value="">Sin asignar</option>
-            {miembros.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.nombre}
-              </option>
-            ))}
-          </Select>
-        </Campo>
+      <Campo label="Responsables">
+        <SelectorMiembros miembros={miembros} defaultValue={proyecto?.assignee_ids} />
+      </Campo>
 
-        <Campo label="Deadline">
-          <Input
-            type="date"
-            name="due_date"
-            defaultValue={proyecto?.due_date ?? ""}
-          />
-        </Campo>
-      </div>
+      <Campo label="Deadline">
+        <Input
+          type="date"
+          name="due_date"
+          defaultValue={proyecto?.due_date ?? ""}
+        />
+      </Campo>
 
       {/* Solo al crear: cambiarlo después no recrearía las tareas ya hechas. */}
       {!editar && procesos.length > 0 && (
