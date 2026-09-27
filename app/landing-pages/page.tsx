@@ -13,6 +13,7 @@ import {
   VacioTabla,
 } from "@/components/landing/ui";
 import { Calendario } from "@/components/landing/calendario";
+import { Tabla, TablaHead } from "@/components/landing/tabla";
 
 export const dynamic = "force-dynamic";
 
@@ -55,20 +56,9 @@ export default async function LandingPagesInicio() {
           </Link>
         </div>
 
-        <div className="overflow-hidden rounded-xl border border-line bg-surface">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-line text-left">
-                {COLUMNAS.map((h) => (
-                  <th
-                    key={h}
-                    className="px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-text-3"
-                  >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
+        <Tabla filas={activos.length}>
+          <table className="w-full min-w-200 text-sm">
+            <TablaHead columnas={COLUMNAS} />
             <tbody>
               {activos.length === 0 && (
                 <VacioTabla colSpan={COLUMNAS.length}>
@@ -107,7 +97,7 @@ export default async function LandingPagesInicio() {
               ))}
             </tbody>
           </table>
-        </div>
+        </Tabla>
       </section>
     </>
   );

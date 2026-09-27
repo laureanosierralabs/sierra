@@ -8,6 +8,7 @@ import {
 } from "@/lib/landing/tipos";
 import { GastoForm } from "@/components/landing/gasto-form";
 import { BorrarGastoFijo } from "@/components/landing/borrar";
+import { Tabla, TablaHead } from "@/components/landing/tabla";
 
 /**
  * Va después de ingresos y equipo a propósito: es el número más chico y no
@@ -40,22 +41,9 @@ export async function FinanzasGastos() {
           Todavía no cargaste gastos operativos.
         </p>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-line bg-surface shadow-e1">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-line text-left">
-                {["Gasto", "Categoría", "Monto", "Periodicidad", "Por mes", ""].map(
-                  (h, i) => (
-                    <th
-                      key={h || i}
-                      className="px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-text-3"
-                    >
-                      {h}
-                    </th>
-                  ),
-                )}
-              </tr>
-            </thead>
+        <Tabla filas={gastos.length}>
+          <table className="w-full min-w-200 text-sm">
+            <TablaHead columnas={["Gasto", "Categoría", "Monto", "Periodicidad", "Por mes", ""]} />
             <tbody>
               {gastos.map((g) => {
                 const vigente = gastoVigente(g, hoy);
@@ -101,7 +89,7 @@ export async function FinanzasGastos() {
               })}
             </tbody>
           </table>
-        </div>
+        </Tabla>
       )}
     </section>
   );

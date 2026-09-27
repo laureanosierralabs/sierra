@@ -12,6 +12,7 @@ import {
   VacioTabla,
 } from "@/components/landing/ui";
 import type { ResumenCotizado } from "@/lib/landing/datos";
+import { Tabla, TablaHead } from "@/components/landing/tabla";
 import {
   formatearMonto,
   nombreCliente,
@@ -54,22 +55,11 @@ export function ProyectosTabla({
 }) {
   const COLUMNAS = columnas(verCotizacion);
   return (
-    <div className="overflow-hidden rounded-xl border border-line bg-surface shadow-e1">
-      <table className="w-full text-sm">
+    <Tabla filas={proyectos.length}>
+      <table className="w-full min-w-200 text-sm">
         {/* Sticky: en listas largas la cabecera es la única referencia
             de qué significa cada columna. */}
-        <thead className="sticky top-0 z-10">
-          <tr className="vidrio border-b border-line text-left">
-            {COLUMNAS.map((h, i) => (
-              <th
-                key={h || i}
-                className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-text-3"
-              >
-                {h}
-              </th>
-            ))}
-          </tr>
-        </thead>
+        <TablaHead columnas={COLUMNAS} />
         <tbody>
           {proyectos.length === 0 && (
             <VacioTabla colSpan={COLUMNAS.length}>
@@ -139,6 +129,6 @@ export function ProyectosTabla({
           ))}
         </tbody>
       </table>
-    </div>
+    </Tabla>
   );
 }

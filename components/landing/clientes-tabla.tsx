@@ -8,6 +8,7 @@ import { EstadoSelect } from "@/components/landing/estado-select";
 import { ClienteForm } from "@/components/landing/cliente-form";
 import { BorrarCliente } from "@/components/landing/borrar";
 import { VacioTabla } from "@/components/landing/ui";
+import { Tabla as Contenedor, TablaHead } from "@/components/landing/tabla";
 import {
   ESTADOS_CLIENTE,
   LABEL_ESTADO_CLIENTE,
@@ -108,20 +109,9 @@ function Fila({ c }: { c: Cliente }) {
 
 function Tabla({ clientes }: { clientes: Cliente[] }) {
   return (
-    <div className="overflow-hidden rounded-xl border border-line bg-surface">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-line text-left">
-            {COLUMNAS.map((h, i) => (
-              <th
-                key={h || i}
-                className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-text-3"
-              >
-                {h}
-              </th>
-            ))}
-          </tr>
-        </thead>
+    <Contenedor filas={clientes.length}>
+      <table className="w-full min-w-200 text-sm">
+        <TablaHead columnas={COLUMNAS} />
         <tbody>
           {clientes.length === 0 && (
             <VacioTabla colSpan={COLUMNAS.length}>
@@ -133,7 +123,7 @@ function Tabla({ clientes }: { clientes: Cliente[] }) {
           ))}
         </tbody>
       </table>
-    </div>
+    </Contenedor>
   );
 }
 

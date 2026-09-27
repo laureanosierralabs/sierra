@@ -20,6 +20,7 @@ import {
 import { CotizacionForm } from "@/components/landing/cotizacion-form";
 import { BorrarCotizacion } from "@/components/landing/borrar";
 import { PlantillaCotizacion } from "@/components/landing/plantilla-cotizacion";
+import { Tabla, TablaHead } from "@/components/landing/tabla";
 
 export const dynamic = "force-dynamic";
 
@@ -56,20 +57,9 @@ export default async function CotizacionesPage() {
 
       <PlantillaCotizacion url={plantillaUrl} />
 
-      <div className="overflow-hidden rounded-xl border border-line bg-surface shadow-e1">
-        <table className="w-full text-sm">
-          <thead className="sticky top-0 z-10">
-            <tr className="vidrio border-b border-line text-left">
-              {COLUMNAS.map((h, i) => (
-                <th
-                  key={h || i}
-                  className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-text-3"
-                >
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
+      <Tabla filas={cotizaciones.length}>
+        <table className="w-full min-w-200 text-sm">
+          <TablaHead columnas={COLUMNAS} />
           <tbody>
             {cotizaciones.length === 0 && (
               <VacioTabla colSpan={COLUMNAS.length}>
@@ -182,7 +172,7 @@ export default async function CotizacionesPage() {
             })}
           </tbody>
         </table>
-      </div>
+      </Tabla>
     </>
   );
 }

@@ -3,6 +3,7 @@ import type { Balance, PorMoneda } from "@/lib/landing/balance";
 import { formatearMonto, type Moneda } from "@/lib/landing/tipos";
 import { FiltroMes } from "@/components/landing/filtro-mes";
 import { nombreMes } from "@/lib/landing/meses";
+import { Tabla, TablaHead } from "@/components/landing/tabla";
 
 export function textoMontos(total: PorMoneda, signo = false): string {
   const partes = (Object.entries(total) as [Moneda, number][])
@@ -133,26 +134,15 @@ export function BalanceMensual({
             : "Todavía no hay movimientos con fecha."}
         </p>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-line bg-surface shadow-e1">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-line text-left">
-                {[
+        <Tabla filas={balance.meses.length}>
+          <table className="w-full min-w-200 text-sm">
+            <TablaHead columnas={[
                   "Mes",
                   "Ingresos cobrados",
                   "Equipo pagado",
                   "Gastos",
                   "Resultado real",
-                ].map((h) => (
-                  <th
-                    key={h}
-                    className="px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-text-3"
-                  >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
+                ]} />
             <tbody>
               {balance.meses.map((m) => {
                 const s = signoDe(m.resultado);
@@ -189,7 +179,7 @@ export function BalanceMensual({
               })}
             </tbody>
           </table>
-        </div>
+        </Tabla>
       )}
     </section>
   );

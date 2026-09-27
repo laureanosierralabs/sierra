@@ -11,6 +11,7 @@ import {
 } from "@/lib/landing/tipos";
 import { EstadoPagoPill } from "@/components/landing/ui";
 import { AcuerdoForm } from "@/components/landing/acuerdo-form";
+import { Tabla, TablaHead } from "@/components/landing/tabla";
 
 /** Los egresos hacia el equipo, al lado de los ingresos para compararlos. */
 export async function FinanzasEgresos() {
@@ -43,11 +44,9 @@ export async function FinanzasEgresos() {
         </p>
       ) : (
 
-      <div className="overflow-hidden rounded-xl border border-line bg-surface shadow-e1">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-line text-left">
-              {[
+      <Tabla filas={acuerdos.length}>
+        <table className="w-full min-w-200 text-sm">
+          <TablaHead columnas={[
                 "Acuerdo",
                 "Para",
                 "Proyectos",
@@ -56,16 +55,7 @@ export async function FinanzasEgresos() {
                 "Pagado",
                 "Resta",
                 "Estado",
-              ].map((h) => (
-                <th
-                  key={h}
-                  className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-text-3"
-                >
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
+              ]} />
           <tbody>
             {acuerdos.map((a) => {
               const nombres = a.project_ids
@@ -139,7 +129,7 @@ export async function FinanzasEgresos() {
             })}
           </tbody>
         </table>
-      </div>
+      </Tabla>
       )}
     </section>
   );

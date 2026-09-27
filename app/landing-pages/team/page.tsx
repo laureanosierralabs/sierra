@@ -7,6 +7,7 @@ import {
 import { esProyectoActivo, esTareaAbierta } from "@/lib/landing/tipos";
 import { DEFINICIONES } from "@/lib/unidades";
 import { PageHeader, VacioTabla } from "@/components/landing/ui";
+import { Tabla, TablaHead } from "@/components/landing/tabla";
 import {
   EditarAcceso,
   Invitaciones,
@@ -65,20 +66,9 @@ export default async function EquipoPage() {
         accion={esOwner ? <InvitarMiembro /> : undefined}
       />
 
-      <div className="overflow-hidden rounded-xl border border-line bg-surface">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-line text-left">
-              {columnas.map((h, i) => (
-                <th
-                  key={h || i}
-                  className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-text-3"
-                >
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
+      <Tabla filas={miembros.length}>
+        <table className="w-full min-w-200 text-sm">
+          <TablaHead columnas={columnas} />
           <tbody>
             {miembros.length === 0 && (
               <VacioTabla colSpan={columnas.length}>
@@ -128,7 +118,7 @@ export default async function EquipoPage() {
             ))}
           </tbody>
         </table>
-      </div>
+      </Tabla>
 
       {esOwner && <Invitaciones invitaciones={invitaciones} />}
     </>

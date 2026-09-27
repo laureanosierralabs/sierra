@@ -14,6 +14,7 @@ import {
   EstadoCotizacionPill,
   EstadoPagoPill,
 } from "@/components/landing/ui";
+import { Tabla, TablaHead } from "@/components/landing/tabla";
 
 /**
  * Los ingresos salen de quotes directamente: no hay un movimiento espejo por
@@ -49,28 +50,19 @@ export async function FinanzasCotizaciones() {
         </Link>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-line bg-surface shadow-e1">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-line text-left">
-              {[
-                "Cliente",
-                "Cotización",
-                "Proyectos",
-                "Total",
-                "Cobrado",
-                "Pendiente",
-                "Estado",
-              ].map((h) => (
-                <th
-                  key={h}
-                  className="px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-text-3"
-                >
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
+      <Tabla filas={cotizaciones.length}>
+        <table className="w-full min-w-200 text-sm">
+          <TablaHead
+            columnas={[
+              "Cliente",
+              "Cotización",
+              "Proyectos",
+              "Total",
+              "Cobrado",
+              "Pendiente",
+              "Estado",
+            ]}
+          />
           <tbody>
             {cotizaciones.map((q) => {
               const nombres = q.project_ids
@@ -162,7 +154,7 @@ export async function FinanzasCotizaciones() {
             })}
           </tbody>
         </table>
-      </div>
+      </Tabla>
     </section>
   );
 }

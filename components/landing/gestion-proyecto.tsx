@@ -14,6 +14,7 @@ import {
   VacioTabla,
 } from "@/components/landing/ui";
 import type { Miembro, Proyecto, Tarea } from "@/lib/landing/tipos";
+import { Tabla, TablaHead } from "@/components/landing/tabla";
 
 const COLUMNAS = ["Tarea", "Estado", "Responsable", "Prioridad", "Deadline", ""];
 
@@ -74,20 +75,9 @@ export function GestionProyecto({
       {vista === "cuadro" ? (
         <Kanban tareas={tareas} miembros={miembros} projectId={proyecto.id} />
       ) : (
-        <div className="overflow-hidden rounded-xl border border-line bg-surface">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-line text-left">
-                {COLUMNAS.map((h, i) => (
-                  <th
-                    key={h || i}
-                    className="px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-text-3"
-                  >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
+        <Tabla filas={tareas.length}>
+          <table className="w-full min-w-200 text-sm">
+            <TablaHead columnas={COLUMNAS} />
             <tbody>
               {tareas.length === 0 && (
                 <VacioTabla colSpan={COLUMNAS.length}>
@@ -136,7 +126,7 @@ export function GestionProyecto({
               ))}
             </tbody>
           </table>
-        </div>
+        </Tabla>
       )}
 
     </section>

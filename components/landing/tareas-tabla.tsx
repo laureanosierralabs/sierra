@@ -12,6 +12,7 @@ import { Prioridad, Vencimiento, VacioTabla } from "@/components/landing/ui";
 import { EstadoSelect } from "@/components/landing/estado-select";
 import { TareaForm } from "@/components/landing/tarea-form";
 import { BorrarTarea } from "@/components/landing/borrar";
+import { Tabla, TablaHead } from "@/components/landing/tabla";
 
 const CHIP =
   "rounded-md px-2.5 py-1 text-xs font-medium transition-all duration-150";
@@ -63,22 +64,9 @@ export function TareasTabla({
         )}
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-line bg-surface shadow-e1">
-        <table className="w-full text-sm">
-          <thead className="sticky top-0 z-10">
-            <tr className="vidrio border-b border-line text-left">
-              {["Tarea", "Proyecto", "Responsable", "Estado", "Prioridad", "Deadline", ""].map(
-                (h, i) => (
-                  <th
-                    key={h || i}
-                    className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-text-3"
-                  >
-                    {h}
-                  </th>
-                ),
-              )}
-            </tr>
-          </thead>
+      <Tabla filas={visibles.length}>
+        <table className="w-full min-w-200 text-sm">
+          <TablaHead columnas={["Tarea", "Proyecto", "Responsable", "Estado", "Prioridad", "Deadline", ""]} />
           <tbody>
             {visibles.length === 0 && (
               <VacioTabla colSpan={7}>
@@ -132,7 +120,7 @@ export function TareasTabla({
             ))}
           </tbody>
         </table>
-      </div>
+      </Tabla>
     </>
   );
 }
