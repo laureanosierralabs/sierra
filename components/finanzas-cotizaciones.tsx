@@ -86,12 +86,14 @@ export async function FinanzasCotizaciones() {
   return (
     <section className="mb-10">
       <div className="mb-4 flex items-center justify-between gap-3">
-        <h2 className="font-display text-lg font-bold">Cotizaciones</h2>
+        <h2 className="font-display text-lg font-bold">
+          Ingresos: cotizaciones
+        </h2>
         <Link
           href="/landing-pages/quotes"
           className="text-xs text-text-3 transition-colors hover:text-text"
         >
-          Ver todas
+          Gestionar cotizaciones
         </Link>
       </div>
 

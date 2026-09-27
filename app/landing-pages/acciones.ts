@@ -92,6 +92,7 @@ function revalidar() {
   revalidatePath("/landing-pages/clients");
   revalidatePath("/landing-pages/quotes");
   revalidatePath("/landing-pages/team");
+  revalidatePath("/landing-pages/finanzas");
 }
 
 function monto(fd: FormData, campo: string): number | null {
@@ -1103,7 +1104,7 @@ async function sincronizarProyectosAcuerdo(
 
 function revalidarEquipo(id?: string) {
   revalidatePath("/landing-pages/costos");
-  revalidatePath("/finanzas/negocio");
+  revalidatePath("/landing-pages/finanzas");
   if (id) revalidatePath(`/landing-pages/costos/${id}`);
 }
 
@@ -1205,7 +1206,7 @@ export async function guardarGastoFijo(fd: FormData) {
     : await db.from("fixed_expenses").insert(fila);
 
   if (error) throw new Error(`No se pudo guardar el gasto: ${error.message}`);
-  revalidatePath("/finanzas/negocio");
+  revalidatePath("/landing-pages/finanzas");
 }
 
 export async function borrarGastoFijo(id: string) {
@@ -1217,7 +1218,7 @@ export async function borrarGastoFijo(id: string) {
     .eq("id", id);
 
   if (error) throw new Error(`No se pudo borrar el gasto: ${error.message}`);
-  revalidatePath("/finanzas/negocio");
+  revalidatePath("/landing-pages/finanzas");
 }
 
 export async function guardarAjuste(clave: string, valor: string) {

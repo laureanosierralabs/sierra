@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import Image from "next/image";
 import {
   Building2,
+  ChartLine,
   ChevronDown,
   ExternalLink,
   FileText,
@@ -31,6 +32,7 @@ const ICONOS: Record<string, LucideIcon> = {
   FileText,
   UserCog,
   Wallet,
+  ChartLine,
 };
 
 const ICONO_UNIDAD: Record<Unidad, LucideIcon> = {

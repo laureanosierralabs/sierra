@@ -54,6 +54,12 @@ export const DEFINICIONES: Record<Unidad, DefinicionUnidad> = {
         owner: true,
       },
       {
+        href: "/landing-pages/finanzas",
+        label: "Finanzas",
+        icono: "ChartLine",
+        owner: true,
+      },
+      {
         href: "/landing-pages/team",
         label: "Equipo",
         icono: "UserCog",
