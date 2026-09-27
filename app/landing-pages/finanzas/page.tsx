@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { PageHeader } from "@/components/landing/ui";
 import { FinanzasBalance } from "@/components/finanzas-balance";
 import { FinanzasCotizaciones } from "@/components/finanzas-cotizaciones";
@@ -5,7 +6,13 @@ import { FinanzasEgresos } from "@/components/finanzas-egresos";
 
 export const dynamic = "force-dynamic";
 
-export default function FinanzasLanding() {
+export default async function FinanzasLanding({
+  searchParams,
+}: {
+  searchParams: Promise<{ mes?: string }>;
+}) {
+  const { mes } = await searchParams;
+
   return (
     <>
       <PageHeader
@@ -15,7 +22,10 @@ export default function FinanzasLanding() {
 
       {/* Todo sale de cotizaciones, acuerdos y gastos fijos: no hay un
           movimiento espejo por cada cobro, que contaría el dinero dos veces. */}
-      <FinanzasBalance />
+      <Suspense>
+        <FinanzasBalance mes={mes} />
+      </Suspense>
+
       <FinanzasCotizaciones />
       <FinanzasEgresos />
     </>

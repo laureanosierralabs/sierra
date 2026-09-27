@@ -29,6 +29,8 @@ export interface Mes {
 
 export interface Balance {
   meses: Mes[];
+  /** Los meses con movimiento, para armar el filtro. */
+  mesesDisponibles: string[];
   /** Lo que ya entró, histórico. */
   cobrado: PorMoneda;
   /** Aprobado y sin cobrar: exigible. */
@@ -57,7 +59,7 @@ function mesDe(fecha: string): string {
  * Los gastos fijos no tienen movimiento por mes — se declaran una vez — así
  * que se proyectan sobre cada mes en que estuvieron vigentes.
  */
-export async function calcularBalance(): Promise<Balance> {
+export async function calcularBalance(mesFiltro?: string): Promise<Balance> {
   const [cotizaciones, acuerdos, gastos] = await Promise.all([
     listarCotizaciones(),
     listarAcuerdos(),
@@ -132,7 +134,20 @@ export async function calcularBalance(): Promise<Balance> {
     }
   }
 
-  const meses = [...porMes.values()].sort((a, b) => b.mes.localeCompare(a.mes));
+  const todos = [...porMes.values()].sort((a, b) => b.mes.localeCompare(a.mes));
+  const mesesDisponibles = todos.map((m) => m.mes);
 
-  return { meses, cobrado, porCobrar, prevision, porPagar, gastoMensual };
+  // El filtro acota los meses listados, no los totales de arriba: "por
+  // cobrar" es deuda viva, no pertenece a un mes.
+  const meses = mesFiltro ? todos.filter((m) => m.mes === mesFiltro) : todos;
+
+  return {
+    meses,
+    mesesDisponibles,
+    cobrado,
+    porCobrar,
+    prevision,
+    porPagar,
+    gastoMensual,
+  };
 }

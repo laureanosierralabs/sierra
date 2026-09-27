@@ -10,10 +10,11 @@ import {
 } from "@/lib/landing/tipos";
 import { GastoForm } from "@/components/landing/gasto-form";
 import { BorrarGastoFijo } from "@/components/landing/borrar";
+import { FiltroMes, nombreMes } from "@/components/landing/filtro-mes";
 
 function textoMontos(total: PorMoneda, signo = false): string {
   const partes = (Object.entries(total) as [Moneda, number][])
-    .filter(([, v]) => Math.round(v) !== 0)
+    .filter(([, v]) => Math.round(v * 100) !== 0)
     .map(([m, v]) => {
       const t = formatearMonto(Math.abs(v), m);
       return signo && v < 0 ? `-${t}` : t;
@@ -43,19 +44,9 @@ function Bloque({
   );
 }
 
-const MESES = [
-  "enero", "febrero", "marzo", "abril", "mayo", "junio",
-  "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
-];
-
-function nombreMes(mes: string): string {
-  const [anio, m] = mes.split("-");
-  return `${MESES[Number(m) - 1]} ${anio}`;
-}
-
-export async function FinanzasBalance() {
+export async function FinanzasBalance({ mes }: { mes?: string }) {
   const [balance, gastos] = await Promise.all([
-    calcularBalance(),
+    calcularBalance(mes),
     listarGastosFijos(),
   ]);
 
@@ -66,7 +57,7 @@ export async function FinanzasBalance() {
       <section className="mb-10">
         <h2 className="mb-4 font-display text-lg font-bold">Resumen</h2>
 
-        <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mb-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Bloque
             titulo="Cobrado"
             detalle="Lo que ya entró"
@@ -100,11 +91,23 @@ export async function FinanzasBalance() {
       </section>
 
       <section className="mb-10">
-        <h2 className="mb-4 font-display text-lg font-bold">Balance por mes</h2>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="font-display text-lg font-bold">
+            Balance por mes
+            {mes && (
+              <span className="ml-2 text-sm font-normal capitalize text-text-3">
+                {nombreMes(mes)}
+              </span>
+            )}
+          </h2>
+          <FiltroMes meses={balance.mesesDisponibles} />
+        </div>
 
         {balance.meses.length === 0 ? (
           <p className="rounded-xl border border-line bg-surface px-4 py-10 text-center text-sm text-text-3">
-            Todavía no hay movimientos con fecha.
+            {mes
+              ? "No hubo movimientos en ese mes."
+              : "Todavía no hay movimientos con fecha."}
           </p>
         ) : (
           <div className="overflow-hidden rounded-xl border border-line bg-surface shadow-e1">
@@ -166,7 +169,12 @@ export async function FinanzasBalance() {
 
       <section className="mb-10">
         <div className="mb-4 flex items-center justify-between gap-3">
-          <h2 className="font-display text-lg font-bold">Gastos fijos</h2>
+          <h2 className="font-display text-lg font-bold">
+            Gastos fijos
+            <span className="tnum ml-2 text-sm font-normal text-text-3">
+              {textoMontos(balance.gastoMensual)}/mes
+            </span>
+          </h2>
           <GastoForm />
         </div>
 

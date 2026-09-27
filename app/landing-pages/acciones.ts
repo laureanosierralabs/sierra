@@ -1103,9 +1103,9 @@ async function sincronizarProyectosAcuerdo(
 }
 
 function revalidarEquipo(id?: string) {
-  revalidatePath("/landing-pages/costos");
   revalidatePath("/landing-pages/finanzas");
-  if (id) revalidatePath(`/landing-pages/costos/${id}`);
+  revalidatePath("/landing-pages/finanzas");
+  if (id) revalidatePath(`/landing-pages/finanzas/acuerdo/${id}`);
 }
 
 export async function borrarAcuerdo(id: string) {

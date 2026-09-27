@@ -76,11 +76,11 @@ export default async function AcuerdoDetalle({
   return (
     <>
       <Link
-        href="/landing-pages/costos"
+        href="/landing-pages/finanzas"
         className="mb-4 inline-flex items-center gap-1.5 text-sm text-text-3 transition-colors hover:text-text"
       >
         <ArrowLeft className="size-3.5" />
-        Costos
+        Finanzas
       </Link>
 
       <PageHeader
@@ -93,7 +93,7 @@ export default async function AcuerdoDetalle({
               clientes={clientes}
               acuerdo={acuerdo}
             />
-            <BorrarAcuerdo id={acuerdo.id} redirigirA="/landing-pages/costos" />
+            <BorrarAcuerdo id={acuerdo.id} redirigirA="/landing-pages/finanzas" />
           </span>
         }
       />
