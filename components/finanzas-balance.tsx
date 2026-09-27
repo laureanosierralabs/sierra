@@ -48,7 +48,6 @@ function Indicador({
 
 export function Resumen({ balance }: { balance: Balance }) {
   const real = signoDe(balance.resultadoReal);
-  const proy = signoDe(balance.resultadoProyectado);
 
   return (
     <section className="mb-8">
@@ -85,40 +84,20 @@ export function Resumen({ balance }: { balance: Balance }) {
         />
       </div>
 
-      {/* Real y proyectado separados: mezclarlos haría creer que hay plata
-          disponible que todavía nadie pagó. */}
-      <div className="grid gap-2.5 sm:grid-cols-2">
-        <div className="rounded-lg border border-line bg-surface-2 px-3.5 py-3">
-          <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-text-3">
-            Resultado real
-          </p>
-          <p
-            className={`tnum mt-1.5 text-2xl font-bold ${
-              real === "neg" ? "text-critical" : real === "pos" ? "text-ok" : "text-text"
-            }`}
-          >
-            {textoMontos(balance.resultadoReal, true)}
-          </p>
-          <p className="mt-0.5 text-[0.6875rem] text-text-3">
-            Cobrado − pagado al equipo − gastos. Solo caja efectiva.
-          </p>
-        </div>
-
-        <div className="rounded-lg border border-dashed border-line bg-surface px-3.5 py-3">
-          <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-text-3">
-            Resultado proyectado
-          </p>
-          <p
-            className={`tnum mt-1.5 text-2xl font-bold ${
-              proy === "neg" ? "text-critical" : proy === "pos" ? "text-ok" : "text-text"
-            }`}
-          >
-            {textoMontos(balance.resultadoProyectado, true)}
-          </p>
-          <p className="mt-0.5 text-[0.6875rem] text-text-3">
-            Real + por cobrar − por pagar. Todavía no ocurrió.
-          </p>
-        </div>
+      <div className="rounded-lg border border-line bg-surface-2 px-3.5 py-3">
+        <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-text-3">
+          Resultado real
+        </p>
+        <p
+          className={`tnum mt-1.5 text-2xl font-bold ${
+            real === "neg" ? "text-critical" : real === "pos" ? "text-ok" : "text-text"
+          }`}
+        >
+          {textoMontos(balance.resultadoReal, true)}
+        </p>
+        <p className="mt-0.5 text-[0.6875rem] text-text-3">
+          Cobrado − pagado al equipo − gastos. Solo caja efectiva.
+        </p>
       </div>
     </section>
   );

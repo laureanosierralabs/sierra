@@ -67,6 +67,14 @@ export interface Balance {
   gastoMensual: PorMoneda;
   /** Caja real acumulada: cobrado − pagado al equipo − gastos. */
   resultadoReal: PorMoneda;
+
+  /*
+   * Lo que sigue no se muestra en pantalla: alarga la página sin ayudar a
+   * decidir, y con proyectos sin costo cargado un margen del 100% se lee
+   * como excelente cuando solo significa que falta el dato. Se conserva
+   * para los exports, donde el informe para IA sí se beneficia de tenerlo.
+   */
+
   /** Suma lo aprobado sin cobrar y resta lo comprometido sin pagar. */
   resultadoProyectado: PorMoneda;
   margenes: MargenProyecto[];
