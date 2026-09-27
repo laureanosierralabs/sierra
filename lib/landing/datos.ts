@@ -221,23 +221,35 @@ export async function obtenerCliente(id: string): Promise<Cliente | null> {
   return data;
 }
 
-/** Aplana el join de la tabla puente a un array de ids. */
+/** Aplana el join de la tabla puente a ids y montos asignados. */
 function conProyectos(
-  fila: Omit<Cotizacion, "project_ids"> & {
-    quote_projects?: { project_id: string }[] | null;
+  fila: Omit<Cotizacion, "project_ids" | "allocated"> & {
+    quote_projects?:
+      | { project_id: string; allocated_amount?: number | null }[]
+      | null;
   },
 ): Cotizacion {
   const { quote_projects, ...resto } = fila;
+  const vinculos = quote_projects ?? [];
+
+  const allocated: Record<string, number> = {};
+  for (const v of vinculos) {
+    if (v.allocated_amount !== null && v.allocated_amount !== undefined) {
+      allocated[v.project_id] = Number(v.allocated_amount);
+    }
+  }
+
   return {
     ...resto,
-    project_ids: (quote_projects ?? []).map((q) => q.project_id),
+    project_ids: vinculos.map((q) => q.project_id),
+    allocated,
   };
 }
 
 export async function listarCotizaciones(): Promise<Cotizacion[]> {
   const { data, error } = await supabaseAdmin()
     .from("quotes")
-    .select("*, quote_projects(project_id)")
+    .select("*, quote_projects(project_id, allocated_amount)")
     .order("numero", { ascending: false });
 
   if (error)
@@ -248,7 +260,7 @@ export async function listarCotizaciones(): Promise<Cotizacion[]> {
 export async function obtenerCotizacion(id: string): Promise<Cotizacion | null> {
   const { data, error } = await supabaseAdmin()
     .from("quotes")
-    .select("*, quote_projects(project_id)")
+    .select("*, quote_projects(project_id, allocated_amount)")
     .eq("id", id)
     .maybeSingle();
 
@@ -402,7 +414,7 @@ export async function listarCotizacionesDeProyecto(
 
   const { data, error: errQuotes } = await db
     .from("quotes")
-    .select("*, quote_projects(project_id)")
+    .select("*, quote_projects(project_id, allocated_amount)")
     .in("id", ids)
     .order("numero", { ascending: false });
 

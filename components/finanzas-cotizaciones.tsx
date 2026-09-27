@@ -1,63 +1,24 @@
 import Link from "next/link";
-import { listarClientes, listarCotizaciones, listarProyectos } from "@/lib/landing/datos";
+import {
+  listarClientes,
+  listarCotizaciones,
+  listarProyectos,
+} from "@/lib/landing/datos";
 import {
   codigoCotizacion,
   esCuentaPorCobrar,
-  esPrevision,
   formatearMonto,
   pendienteDeCobro,
-  type Cotizacion,
-  type Moneda,
 } from "@/lib/landing/tipos";
 import {
   EstadoCotizacionPill,
   EstadoPagoPill,
 } from "@/components/landing/ui";
 
-/** Acumula por moneda: no se convierte nada, pesos y dólares van separados. */
-type PorMoneda = Record<Moneda, number>;
-
-function vacio(): PorMoneda {
-  return { USD: 0, ARS: 0, EUR: 0 };
-}
-
-function sumar(acc: PorMoneda, q: Cotizacion, monto: number) {
-  acc[q.currency] += monto;
-}
-
-function textoMontos(total: PorMoneda): string {
-  const partes = (Object.entries(total) as [Moneda, number][])
-    .filter(([, v]) => v !== 0)
-    .map(([m, v]) => formatearMonto(v, m));
-  return partes.length > 0 ? partes.join(" · ") : "—";
-}
-
-function Bloque({
-  titulo,
-  detalle,
-  total,
-  clase,
-}: {
-  titulo: string;
-  detalle: string;
-  total: PorMoneda;
-  clase: string;
-}) {
-  return (
-    <div className="rounded-xl border border-line bg-surface p-4 shadow-e1">
-      <p className="eyebrow">{titulo}</p>
-      <p className={`tnum mt-2 text-2xl font-bold ${clase}`}>
-        {textoMontos(total)}
-      </p>
-      <p className="mt-1 text-xs text-text-3">{detalle}</p>
-    </div>
-  );
-}
-
 /**
- * Finanzas lee las cotizaciones directamente: no hay un movimiento espejo por
- * cada cobro. Una cotización que cubre tres proyectos suma una sola vez,
- * porque el importe vive en la cotización y no en cada proyecto.
+ * Los ingresos salen de quotes directamente: no hay un movimiento espejo por
+ * cada cobro. Una cotización que cubre tres proyectos suma una sola vez.
+ * Los totales viven en el resumen de arriba, no se repiten acá.
  */
 export async function FinanzasCotizaciones() {
   const [cotizaciones, clientes, proyectos] = await Promise.all([
@@ -68,54 +29,24 @@ export async function FinanzasCotizaciones() {
 
   if (cotizaciones.length === 0) return null;
 
-  const nombrePor = new Map(clientes.map((c) => [c.id, c.name]));
+  const nombrePor = new Map(clientes.map((c) => [c.id, c.company ?? c.name]));
   const proyectoPor = new Map(proyectos.map((p) => [p.id, p.name]));
-
-  const cobrado = vacio();
-  const porCobrar = vacio();
-  const prevision = vacio();
-
-  for (const q of cotizaciones) {
-    if (q.amount_paid > 0) sumar(cobrado, q, q.amount_paid);
-
-    // Solo lo aprobado es exigible. Un borrador todavía no lo aceptó nadie.
-    if (esCuentaPorCobrar(q)) sumar(porCobrar, q, pendienteDeCobro(q));
-    else if (esPrevision(q)) sumar(prevision, q, q.total_amount ?? 0);
-  }
 
   return (
     <section className="mb-10">
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <h2 className="font-display text-lg font-bold">
-          Ingresos: cotizaciones
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <h2 className="font-display text-base font-bold">
+          Ingresos · Cotizaciones
+          <span className="tnum ml-2 text-sm font-normal text-text-3">
+            {cotizaciones.length}
+          </span>
         </h2>
         <Link
           href="/landing-pages/quotes"
           className="text-xs text-text-3 transition-colors hover:text-text"
         >
-          Gestionar cotizaciones
+          Gestionar cotizaciones →
         </Link>
-      </div>
-
-      <div className="mb-4 grid gap-3 sm:grid-cols-3">
-        <Bloque
-          titulo="Cobrado"
-          detalle="Dinero efectivamente recibido"
-          total={cobrado}
-          clase="text-ok"
-        />
-        <Bloque
-          titulo="Pendiente de cobro"
-          detalle="Aprobadas con saldo impago"
-          total={porCobrar}
-          clase="text-warn"
-        />
-        <Bloque
-          titulo="Previsión"
-          detalle="Borradores y enviadas, sin cerrar"
-          total={prevision}
-          clase="text-text-2"
-        />
       </div>
 
       <div className="overflow-hidden rounded-xl border border-line bg-surface shadow-e1">
@@ -133,7 +64,7 @@ export async function FinanzasCotizaciones() {
               ].map((h) => (
                 <th
                   key={h}
-                  className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-text-3"
+                  className="px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-text-3"
                 >
                   {h}
                 </th>
@@ -152,11 +83,20 @@ export async function FinanzasCotizaciones() {
                   key={q.id}
                   className="fila-hover border-b border-line last:border-0"
                 >
-                  <td className="px-4 py-3 text-text-2">
-                    {q.client_id ? (nombrePor.get(q.client_id) ?? "—") : "—"}
+                  <td className="px-4 py-2.5 text-text-2">
+                    {q.client_id ? (
+                      <Link
+                        href={`/landing-pages/clients/${q.client_id}`}
+                        className="hover:underline"
+                      >
+                        {nombrePor.get(q.client_id) ?? "—"}
+                      </Link>
+                    ) : (
+                      "—"
+                    )}
                   </td>
 
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-2.5">
                     <Link
                       href={`/landing-pages/quotes/${q.id}`}
                       className="block font-medium hover:underline"
@@ -168,7 +108,7 @@ export async function FinanzasCotizaciones() {
                     </span>
                   </td>
 
-                  <td className="px-4 py-3 text-text-2">
+                  <td className="px-4 py-2.5 text-text-2">
                     {nombres.length === 0 ? (
                       <span className="text-text-3">—</span>
                     ) : (
@@ -183,11 +123,11 @@ export async function FinanzasCotizaciones() {
                     )}
                   </td>
 
-                  <td className="tnum px-4 py-3 font-medium">
+                  <td className="tnum px-4 py-2.5 font-medium">
                     {formatearMonto(q.total_amount, q.currency)}
                   </td>
 
-                  <td className="tnum px-4 py-3">
+                  <td className="tnum px-4 py-2.5">
                     {q.amount_paid > 0 ? (
                       <span className="text-ok">
                         {formatearMonto(q.amount_paid, q.currency)}
@@ -197,7 +137,7 @@ export async function FinanzasCotizaciones() {
                     )}
                   </td>
 
-                  <td className="tnum px-4 py-3">
+                  <td className="tnum px-4 py-2.5">
                     {pendiente > 0 ? (
                       <span
                         className={
@@ -211,7 +151,7 @@ export async function FinanzasCotizaciones() {
                     )}
                   </td>
 
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-2.5">
                     <span className="flex flex-wrap items-center gap-1.5">
                       <EstadoCotizacionPill estado={q.commercial_status} />
                       <EstadoPagoPill estado={q.payment_status} />

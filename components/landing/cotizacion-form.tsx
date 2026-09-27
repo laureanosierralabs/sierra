@@ -72,7 +72,13 @@ export function CotizacionForm({
           proyectos={proyectos}
           clientePor={clientePor}
           defaultValue={cotizacion?.project_ids}
+          asignado={cotizacion?.allocated ?? {}}
+          moneda={cotizacion?.currency ?? "USD"}
         />
+        <p className="mt-1 text-xs text-text-3">
+          El monto de cada proyecto es opcional. Sin él, la rentabilidad de
+          ese proyecto queda sin asignar en vez de repartirse por promedio.
+        </p>
       </Campo>
 
       <div className="grid grid-cols-3 gap-4">

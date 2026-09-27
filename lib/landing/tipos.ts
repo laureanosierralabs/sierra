@@ -355,6 +355,8 @@ export interface Cotizacion {
   notes: string | null;
   /** Proyectos que cubre. Una cotización puede abarcar varios. */
   project_ids: string[];
+  /** Cuánto del total corresponde a cada proyecto. Ausente = sin asignar. */
+  allocated: Record<string, number>;
   created_at: string;
   updated_at: string;
 }
@@ -382,18 +384,20 @@ export interface AcuerdoEquipo {
   updated_at: string;
 }
 
-export const PERIODOS_GASTO = ["monthly", "yearly"] as const;
+export const PERIODOS_GASTO = ["monthly", "yearly", "once"] as const;
 export type PeriodoGasto = (typeof PERIODOS_GASTO)[number];
 
 export const LABEL_PERIODO: Record<PeriodoGasto, string> = {
   monthly: "Mensual",
   yearly: "Anual",
+  once: "Único",
 };
 
 export const CATEGORIAS_GASTO = [
   "herramienta",
   "suscripcion",
   "infraestructura",
+  "servicio",
   "impuesto",
   "otro",
 ] as const;
@@ -403,6 +407,7 @@ export const LABEL_CATEGORIA_GASTO: Record<CategoriaGasto, string> = {
   herramienta: "Herramienta",
   suscripcion: "Suscripción",
   infraestructura: "Infraestructura",
+  servicio: "Servicio",
   impuesto: "Impuesto",
   otro: "Otro",
 };
@@ -422,13 +427,28 @@ export interface GastoFijo {
   updated_at: string;
 }
 
-/** Cuánto pesa por mes: un gasto anual se prorratea. */
+/**
+ * Cuánto pesa por mes. Un anual se prorratea; uno único no, porque no se
+ * repite: pesa entero en su mes y no forma parte del gasto fijo.
+ */
 export function costoMensual(g: GastoFijo): number {
+  if (g.period === "once") return 0;
   return g.period === "yearly" ? g.amount / 12 : g.amount;
+}
+
+/** Lo que impacta en un mes puntual, incluido el gasto único de ese mes. */
+export function costoEnMes(g: GastoFijo, mes: string): number {
+  if (!gastoVigente(g, mes)) return 0;
+  if (g.period === "once") {
+    return g.active_from.slice(0, 7) === mes ? g.amount : 0;
+  }
+  return costoMensual(g);
 }
 
 export function gastoVigente(g: GastoFijo, mes: string): boolean {
   const desde = g.active_from.slice(0, 7);
+  // Un gasto único solo existe en su propio mes.
+  if (g.period === "once") return desde === mes;
   const hasta = g.active_until?.slice(0, 7);
   return desde <= mes && (!hasta || hasta >= mes);
 }

@@ -15,11 +15,16 @@ export function SelectorProyectos({
   clientePor,
   defaultValue = [],
   name = "project_ids",
+  asignado,
+  moneda,
 }: {
   proyectos: Pick<Proyecto, "id" | "name" | "client_id">[];
   clientePor: Map<string, string>;
   defaultValue?: string[];
   name?: string;
+  /** Presente = se ofrece repartir el total entre los proyectos elegidos. */
+  asignado?: Record<string, number>;
+  moneda?: string;
 }) {
   const [elegidos, setElegidos] = useState<Set<string>>(new Set(defaultValue));
 
@@ -58,29 +63,47 @@ export function SelectorProyectos({
             {lista.map((p) => {
               const activo = elegidos.has(p.id);
               return (
-                <label
+                <div
                   key={p.id}
-                  className="flex cursor-pointer items-center gap-2 rounded-md px-1.5 py-1.5 transition-colors hover:bg-surface-2"
+                  className="flex items-center gap-2 rounded-md px-1.5 py-1 transition-colors hover:bg-surface-2"
                 >
-                  <input
-                    type="checkbox"
-                    name={name}
-                    value={p.id}
-                    defaultChecked={activo}
-                    onChange={() => alternar(p.id)}
-                    className="peer sr-only"
-                  />
-                  <span
-                    className={`flex size-4 shrink-0 items-center justify-center rounded border transition-colors ${
-                      activo
-                        ? "border-text bg-text text-ground"
-                        : "border-line-strong"
-                    }`}
-                  >
-                    {activo && <Check className="size-3" strokeWidth={3} />}
-                  </span>
-                  <span className="truncate text-sm">{p.name}</span>
-                </label>
+                  {/* El label cubre checkbox y nombre; el monto queda
+                      afuera para que escribir no alterne la selección. */}
+                  <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 py-0.5">
+                    <input
+                      type="checkbox"
+                      name={name}
+                      value={p.id}
+                      defaultChecked={activo}
+                      onChange={() => alternar(p.id)}
+                      className="peer sr-only"
+                    />
+                    <span
+                      className={`flex size-4 shrink-0 items-center justify-center rounded border transition-colors ${
+                        activo
+                          ? "border-text bg-text text-ground"
+                          : "border-line-strong"
+                      }`}
+                    >
+                      {activo && <Check className="size-3" strokeWidth={3} />}
+                    </span>
+                    <span className="truncate text-sm">{p.name}</span>
+                  </label>
+
+                  {/* Cuánto del total corresponde a este proyecto. Vacío
+                      queda sin asignar: no se reparte por promedio. */}
+                  {asignado && activo && (
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      name={`alloc_${p.id}`}
+                      defaultValue={asignado[p.id]?.toString() ?? ""}
+                      placeholder={moneda ?? "—"}
+                      aria-label={`Monto asignado a ${p.name}`}
+                      className="tnum w-24 shrink-0 rounded border border-line bg-surface px-2 py-1 text-right text-xs outline-none focus:border-line-strong"
+                    />
+                  )}
+                </div>
               );
             })}
           </div>

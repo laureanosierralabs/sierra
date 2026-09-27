@@ -362,10 +362,15 @@ export async function cambiarEstadoCliente(id: string, estado: string) {
   revalidatePath(`/landing-pages/clients/${id}`);
 }
 
-/** Reemplaza el set completo de proyectos que cubre la cotización. */
+/**
+ * Reemplaza el set completo de proyectos que cubre la cotización, con su
+ * monto asignado. Sin monto queda null: la rentabilidad muestra "sin
+ * asignar" en vez de repartir el total por promedio.
+ */
 async function sincronizarProyectosCotizacion(
   quoteId: string,
   projectIds: string[],
+  asignado: Record<string, number | null>,
 ) {
   const db = supabaseAdmin();
   const { error: errBorrar } = await db
@@ -377,9 +382,13 @@ async function sincronizarProyectosCotizacion(
 
   if (projectIds.length === 0) return;
 
-  const { error: errInsertar } = await db
-    .from("quote_projects")
-    .insert(projectIds.map((project_id) => ({ quote_id: quoteId, project_id })));
+  const { error: errInsertar } = await db.from("quote_projects").insert(
+    projectIds.map((project_id) => ({
+      quote_id: quoteId,
+      project_id,
+      allocated_amount: asignado[project_id] ?? null,
+    })),
+  );
   if (errInsertar)
     throw new Error(`No se pudieron vincular los proyectos: ${errInsertar.message}`);
 }
@@ -392,6 +401,31 @@ export async function guardarCotizacion(fd: FormData) {
 
   const total = monto(fd, "total_amount");
   const proyectos = varios(fd, "project_ids");
+
+  // Un campo por proyecto: alloc_<id>. Vacío = sin asignar.
+  const asignado: Record<string, number | null> = {};
+  for (const pid of proyectos) {
+    const v = texto(fd, `alloc_${pid}`);
+    if (v === "") {
+      asignado[pid] = null;
+      continue;
+    }
+    const n = Number(v.replace(/\s/g, "").replace(",", "."));
+    if (!Number.isFinite(n) || n < 0) {
+      throw new Error("Monto asignado inválido");
+    }
+    asignado[pid] = n;
+  }
+
+  const sumaAsignada = Object.values(asignado).reduce<number>(
+    (t, v) => t + (v ?? 0),
+    0,
+  );
+  if (total !== null && sumaAsignada > total) {
+    throw new Error(
+      `Lo asignado a los proyectos (${sumaAsignada}) supera el total (${total})`,
+    );
+  }
 
   const fila = {
     title: titulo,
@@ -420,7 +454,7 @@ export async function guardarCotizacion(fd: FormData) {
     const { error } = await db.from("quotes").update(fila).eq("id", id);
     if (error)
       throw new Error(`No se pudo guardar la cotización: ${error.message}`);
-    await sincronizarProyectosCotizacion(id, proyectos);
+    await sincronizarProyectosCotizacion(id, proyectos, asignado);
     // Cambiar el total cambia si lo cobrado ya alcanza o no.
     await sincronizarEstadoPago(id);
     revalidar();
@@ -437,7 +471,7 @@ export async function guardarCotizacion(fd: FormData) {
   if (error || !creada)
     throw new Error(`No se pudo guardar la cotización: ${error?.message ?? ""}`);
 
-  await sincronizarProyectosCotizacion(creada.id, proyectos);
+  await sincronizarProyectosCotizacion(creada.id, proyectos, asignado);
   revalidar();
 }
 
