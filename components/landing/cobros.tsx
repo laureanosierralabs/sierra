@@ -40,7 +40,9 @@ function RegistrarPago({
           />
         </Campo>
 
-        <Campo label="Fecha">
+        {/* Define en qué mes impacta en el balance: si el cobro fue en
+            agosto, dejarlo en hoy lo manda al mes equivocado. */}
+        <Campo label="Fecha del cobro">
           <Input
             type="date"
             name="paid_on"
@@ -49,6 +51,11 @@ function RegistrarPago({
           />
         </Campo>
       </div>
+
+      <p className="-mt-2 text-xs text-text-3">
+        La fecha define en qué mes suma en el balance. Si la plata entró antes,
+        cambiala.
+      </p>
 
       <Campo label="Medio de pago">
         <Input name="method" placeholder="Transferencia, USDT, efectivo…" />
