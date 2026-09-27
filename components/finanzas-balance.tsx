@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { calcularBalance, type PorMoneda } from "@/lib/landing/balance";
 import { listarGastosFijos } from "@/lib/landing/datos";
 import {
@@ -10,7 +11,8 @@ import {
 } from "@/lib/landing/tipos";
 import { GastoForm } from "@/components/landing/gasto-form";
 import { BorrarGastoFijo } from "@/components/landing/borrar";
-import { FiltroMes, nombreMes } from "@/components/landing/filtro-mes";
+import { FiltroMes } from "@/components/landing/filtro-mes";
+import { nombreMes } from "@/lib/landing/meses";
 
 function textoMontos(total: PorMoneda, signo = false): string {
   const partes = (Object.entries(total) as [Moneda, number][])
@@ -100,7 +102,10 @@ export async function FinanzasBalance({ mes }: { mes?: string }) {
               </span>
             )}
           </h2>
-          <FiltroMes meses={balance.mesesDisponibles} />
+          {/* useSearchParams necesita su propio límite de Suspense. */}
+          <Suspense fallback={null}>
+            <FiltroMes meses={balance.mesesDisponibles} />
+          </Suspense>
         </div>
 
         {balance.meses.length === 0 ? (

@@ -1,16 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-
-const MESES = [
-  "enero", "febrero", "marzo", "abril", "mayo", "junio",
-  "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
-];
-
-export function nombreMes(mes: string): string {
-  const [anio, m] = mes.split("-");
-  return `${MESES[Number(m) - 1]} ${anio}`;
-}
+import { nombreMes } from "@/lib/landing/meses";
 
 /** El mes elegido viaja en la URL: así el filtro sobrevive a un refresh. */
 export function FiltroMes({ meses }: { meses: string[] }) {
