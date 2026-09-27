@@ -150,6 +150,18 @@ export async function guardarProyecto(fd: FormData) {
   const nombre = texto(fd, "name");
   if (!nombre) throw new Error("Falta el nombre del proyecto");
 
+  const id = opcional(fd, "id");
+  const inicio = fecha(fd, "start_date");
+  const entrega = fecha(fd, "due_date");
+
+  // Se exige solo al crear: los proyectos viejos no tienen el dato y
+  // obligarlos impediría editarles cualquier otra cosa.
+  if (!id && !inicio) throw new Error("Falta la fecha de inicio");
+
+  if (inicio && entrega && inicio > entrega) {
+    throw new Error("El inicio no puede ser posterior a la entrega");
+  }
+
   const asignados = varios(fd, "assignee_ids");
 
   const fila = {
@@ -163,7 +175,8 @@ export async function guardarProyecto(fd: FormData) {
       : null,
     // El tipo lo validan los procesos existentes, no una lista en código.
     kind: texto(fd, "kind") || "wordpress",
-    due_date: fecha(fd, "due_date"),
+    start_date: inicio,
+    due_date: entrega,
     priority: unaDe<PrioridadLanding>(texto(fd, "priority"), PRIORIDADES, "Prioridad"),
     notes: opcional(fd, "notes"),
     notes_important: opcional(fd, "notes_important"),
@@ -175,7 +188,6 @@ export async function guardarProyecto(fd: FormData) {
     updated_at: new Date().toISOString(),
   };
 
-  const id = opcional(fd, "id");
   const db = supabaseAdmin();
 
   if (id) {

@@ -124,13 +124,25 @@ export function ProyectoForm({
         <SelectorMiembros miembros={miembros} defaultValue={proyecto?.assignee_ids} />
       </Campo>
 
-      <Campo label="Deadline">
-        <Input
-          type="date"
-          name="due_date"
-          defaultValue={proyecto?.due_date ?? ""}
-        />
-      </Campo>
+      {/* Las dos fechas definen la barra del proyecto en el calendario. */}
+      <div className="grid grid-cols-2 gap-4">
+        <Campo label="Inicio">
+          <Input
+            type="date"
+            name="start_date"
+            required={!editar}
+            defaultValue={proyecto?.start_date ?? ""}
+          />
+        </Campo>
+
+        <Campo label="Entrega">
+          <Input
+            type="date"
+            name="due_date"
+            defaultValue={proyecto?.due_date ?? ""}
+          />
+        </Campo>
+      </div>
 
       {/* Solo al crear: cambiarlo después no recrearía las tareas ya hechas. */}
       {!editar && procesos.length > 0 && (

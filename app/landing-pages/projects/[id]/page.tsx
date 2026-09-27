@@ -169,7 +169,13 @@ export default async function ProyectoDetalle({
             <Prioridad prioridad={proyecto.priority} />
           </Propiedad>
 
-          <Propiedad icono={CalendarClock} label="Deadline">
+          <Propiedad icono={CalendarClock} label="Inicio">
+            <p className="tnum text-sm text-text-2">
+              {proyecto.start_date ?? "—"}
+            </p>
+          </Propiedad>
+
+          <Propiedad icono={CalendarClock} label="Entrega">
             <Vencimiento fecha={proyecto.due_date} cerrado={proyecto.status === "entregado"} />
           </Propiedad>
 

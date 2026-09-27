@@ -248,6 +248,8 @@ export interface Proyecto {
   kind: string;
   /** Puede haber más de un responsable (ej: un dev + un diseñador). */
   assignee_ids: string[];
+  /** Cuándo arranca. Con due_date define la barra del calendario. */
+  start_date: string | null;
   due_date: string | null;
   priority: PrioridadLanding;
   notes: string | null;

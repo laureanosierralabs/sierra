@@ -16,6 +16,13 @@ type EstadoVencimiento = "cerrado" | "vencido" | "urgente" | "normal";
 const BOTON =
   "rounded-md px-2.5 py-1 text-xs font-medium transition-colors hover:bg-surface-2";
 
+/** El `end` de un evento de día completo es exclusivo: hay que correrlo uno. */
+function sumarUnDia(fecha: string): string {
+  const d = new Date(`${fecha}T00:00:00`);
+  d.setDate(d.getDate() + 1);
+  return d.toISOString().slice(0, 10);
+}
+
 /** Mismo umbral que el componente Vencimiento: cerrado no alarma, ≤7 días urge. */
 function estadoVencimiento(
   fecha: string | null,
@@ -74,20 +81,30 @@ export function Calendario({
           vencimiento: estadoVencimiento(t.due_date, t.status === "completada"),
         },
       })),
+    // Con las dos fechas el proyecto se dibuja como una barra que abarca lo
+    // que dura; con una sola queda como un punto suelto, igual que antes.
     ...proyectos
-      .filter((p) => p.due_date && p.status !== "entregado")
-      .map((p) => ({
-        id: `proyecto-${p.id}`,
-        title: p.name,
-        start: p.due_date!,
-        allDay: true,
-        extendedProps: {
-          tipo: "proyecto" as const,
-          detalle: "Entrega",
-          completada: false,
-          vencimiento: estadoVencimiento(p.due_date, false),
-        },
-      })),
+      .filter((p) => (p.start_date || p.due_date) && p.status !== "entregado")
+      .map((p) => {
+        const desde = p.start_date ?? p.due_date!;
+        const rango = Boolean(p.start_date && p.due_date);
+
+        return {
+          id: `proyecto-${p.id}`,
+          title: p.name,
+          start: desde,
+          // FullCalendar trata `end` como exclusivo en eventos de día
+          // completo: sin el +1 la barra cortaría un día antes.
+          ...(rango ? { end: sumarUnDia(p.due_date!) } : {}),
+          allDay: true,
+          extendedProps: {
+            tipo: "proyecto" as const,
+            detalle: rango ? "En curso" : "Entrega",
+            completada: false,
+            vencimiento: estadoVencimiento(p.due_date, false),
+          },
+        };
+      }),
   ];
 
   function api() {
