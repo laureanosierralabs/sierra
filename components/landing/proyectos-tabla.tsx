@@ -11,7 +11,9 @@ import {
   Vencimiento,
   VacioTabla,
 } from "@/components/landing/ui";
+import type { ResumenCotizado } from "@/lib/landing/datos";
 import {
+  formatearMonto,
   nombreCliente,
   type Cliente,
   type Miembro,
@@ -24,6 +26,7 @@ const COLUMNAS = [
   "Tipo",
   "Estado",
   "Responsable",
+  "Cotización",
   "Deadline",
   "Prioridad",
   "",
@@ -35,12 +38,14 @@ export function ProyectosTabla({
   miembros,
   clientePor,
   nombreMiembro,
+  cotizado,
 }: {
   proyectos: Proyecto[];
   clientes: Cliente[];
   miembros: Miembro[];
   clientePor: Map<string, string>;
   nombreMiembro: Map<string, string>;
+  cotizado: Map<string, ResumenCotizado>;
 }) {
   return (
     <div className="overflow-hidden rounded-xl border border-line bg-surface shadow-e1">
@@ -96,6 +101,12 @@ export function ProyectosTabla({
                   .map((id) => nombreMiembro.get(id))
                   .filter((n): n is string => Boolean(n))
                   .join(", ") || "—"}
+              </td>
+              <td className="tnum px-4 py-3 text-text-2">
+                {(() => {
+                  const c = cotizado.get(p.id);
+                  return c ? formatearMonto(c.total, c.currency) : "—";
+                })()}
               </td>
               <td className="px-4 py-3">
                 <Vencimiento fecha={p.due_date} cerrado={p.status === "entregado"} />

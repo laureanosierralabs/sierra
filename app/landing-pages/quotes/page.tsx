@@ -3,67 +3,63 @@ import { ExternalLink } from "lucide-react";
 import {
   listarClientes,
   listarCotizaciones,
-  listarProcesos,
   listarProyectos,
   obtenerAjuste,
 } from "@/lib/landing/datos";
-import { listarMiembros } from "@/lib/landing/auth";
-import { formatearMonto } from "@/lib/landing/tipos";
-import { PageHeader, VacioTabla } from "@/components/landing/ui";
-import { EstadoSelect } from "@/components/landing/estado-select";
+import {
+  codigoCotizacion,
+  formatearMonto,
+  pendienteDeCobro,
+} from "@/lib/landing/tipos";
+import {
+  EstadoCotizacionPill,
+  EstadoPagoPill,
+  PageHeader,
+  VacioTabla,
+} from "@/components/landing/ui";
 import { CotizacionForm } from "@/components/landing/cotizacion-form";
-import { CrearProyectoDesdeCotizacion } from "@/components/landing/crear-proyecto-desde-cotizacion";
 import { BorrarCotizacion } from "@/components/landing/borrar";
 import { PlantillaCotizacion } from "@/components/landing/plantilla-cotizacion";
-import { RegistrarCobro } from "@/components/landing/registrar-cobro";
-import { DocumentoCotizacion } from "@/components/landing/documento-cotizacion";
-import { ContactoCliente } from "@/components/landing/contacto-cliente";
 
 export const dynamic = "force-dynamic";
 
 const COLUMNAS = [
   "Cotización",
   "Cliente",
-  "Contacto",
-  "Servicio",
-  "Valor",
+  "Proyectos",
+  "Total",
   "Estado",
-  "Envío",
+  "Pago",
+  "Pendiente",
   "Documento",
   "",
 ];
 
 export default async function CotizacionesPage() {
-  const [cotizaciones, clientes, proyectos, miembros, plantillaUrl, procesos] =
-    await Promise.all([
-      listarCotizaciones(),
-      listarClientes(),
-      listarProyectos(),
-      listarMiembros(),
-      obtenerAjuste("quote_template_url"),
-      listarProcesos(),
-    ]);
+  const [cotizaciones, clientes, proyectos, plantillaUrl] = await Promise.all([
+    listarCotizaciones(),
+    listarClientes(),
+    listarProyectos(),
+    obtenerAjuste("quote_template_url"),
+  ]);
 
   const nombrePor = new Map(clientes.map((c) => [c.id, c.name]));
-  const clientePor = new Map(clientes.map((c) => [c.id, c]));
-  const yaTieneProyecto = new Set(
-    proyectos.map((p) => p.quote_id).filter((q): q is string => Boolean(q)),
-  );
+  const proyectoPor = new Map(proyectos.map((p) => [p.id, p.name]));
 
   return (
     <>
       <PageHeader
         titulo="Cotizaciones"
         descripcion={`${cotizaciones.length} ${cotizaciones.length === 1 ? "cotización" : "cotizaciones"}`}
-        accion={<CotizacionForm clientes={clientes} />}
+        accion={<CotizacionForm clientes={clientes} proyectos={proyectos} />}
       />
 
       <PlantillaCotizacion url={plantillaUrl} />
 
-      <div className="overflow-hidden rounded-xl border border-line bg-surface">
+      <div className="overflow-hidden rounded-xl border border-line bg-surface shadow-e1">
         <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-line text-left">
+          <thead className="sticky top-0 z-10">
+            <tr className="vidrio border-b border-line text-left">
               {COLUMNAS.map((h, i) => (
                 <th
                   key={h || i}
@@ -80,94 +76,110 @@ export default async function CotizacionesPage() {
                 Todavía no hay cotizaciones.
               </VacioTabla>
             )}
-            {cotizaciones.map((q) => (
-              <tr
-                key={q.id}
-                className="border-b border-line transition-colors last:border-0 hover:bg-surface-2"
-              >
-                <td className="px-4 py-3 font-medium">
-                  <span className="flex items-center gap-2">
-                    {q.title}
-                    {q.proposal_url && (
+            {cotizaciones.map((q) => {
+              const nombres = q.project_ids
+                .map((id) => proyectoPor.get(id))
+                .filter((n): n is string => Boolean(n));
+              const pendiente = pendienteDeCobro(q);
+
+              return (
+                <tr
+                  key={q.id}
+                  className="fila-hover group/fila border-b border-line last:border-0"
+                >
+                  <td className="px-4 py-3">
+                    <Link
+                      href={`/landing-pages/quotes/${q.id}`}
+                      className="block font-medium hover:underline"
+                    >
+                      {q.title}
+                    </Link>
+                    <span className="tnum text-xs text-text-3">
+                      {codigoCotizacion(q.numero)}
+                    </span>
+                  </td>
+
+                  <td className="px-4 py-3 text-text-2">
+                    {q.client_id ? (
+                      <Link
+                        href={`/landing-pages/clients/${q.client_id}`}
+                        className="hover:underline"
+                      >
+                        {nombrePor.get(q.client_id) ?? "—"}
+                      </Link>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+
+                  {/* Con varios proyectos se nombra el primero y se cuenta el
+                      resto: la lista entera no entra sin romper la tabla. */}
+                  <td className="px-4 py-3 text-text-2">
+                    {nombres.length === 0 ? (
+                      <span className="text-text-3">—</span>
+                    ) : (
+                      <span title={nombres.join(" · ")} className="cursor-default">
+                        <span className="truncate">{nombres[0]}</span>
+                        {nombres.length > 1 && (
+                          <span className="ml-1 rounded bg-surface-2 px-1.5 py-0.5 text-[0.6875rem] font-medium text-text-3">
+                            +{nombres.length - 1}
+                          </span>
+                        )}
+                      </span>
+                    )}
+                  </td>
+
+                  <td className="tnum px-4 py-3 font-medium">
+                    {formatearMonto(q.total_amount, q.currency)}
+                  </td>
+
+                  <td className="px-4 py-3">
+                    <EstadoCotizacionPill estado={q.commercial_status} />
+                  </td>
+
+                  <td className="px-4 py-3">
+                    <EstadoPagoPill estado={q.payment_status} />
+                  </td>
+
+                  <td className="tnum px-4 py-3">
+                    {pendiente > 0 ? (
+                      <span className="text-warn">
+                        {formatearMonto(pendiente, q.currency)}
+                      </span>
+                    ) : (
+                      <span className="text-text-3">—</span>
+                    )}
+                  </td>
+
+                  <td className="px-4 py-3">
+                    {q.proposal_url ? (
                       <a
                         href={q.proposal_url}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1 rounded-md border border-line px-2 py-1 text-xs text-text-2 transition-colors hover:border-line-strong hover:text-text"
                       >
-                        Propuesta
+                        Ver cotización
                         <ExternalLink className="size-3" />
                       </a>
+                    ) : (
+                      <span className="text-xs text-text-3">—</span>
                     )}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-text-2">
-                  {q.client_id ? (
-                    <Link
-                      href={`/landing-pages/clients/${q.client_id}`}
-                      className="hover:underline"
-                    >
-                      {nombrePor.get(q.client_id) ?? "—"}
-                    </Link>
-                  ) : (
-                    "—"
-                  )}
-                </td>
-                <td className="px-4 py-3">
-                  <ContactoCliente
-                    cliente={q.client_id ? clientePor.get(q.client_id) : undefined}
-                  />
-                </td>
-                <td className="px-4 py-3 text-text-2">{q.service ?? "—"}</td>
-                <td className="tnum px-4 py-3 text-text-2">
-                  {formatearMonto(q.amount, q.currency)}
-                </td>
-                <td className="px-4 py-3">
-                  <EstadoSelect id={q.id} valor={q.status} tipo="cotizacion" />
-                </td>
-                <td className="tnum px-4 py-3 text-text-2">
-                  {q.sent_at ?? "—"}
-                </td>
-                <td className="px-4 py-3">
-                  <DocumentoCotizacion
-                    quoteId={q.id}
-                    tieneDocumento={Boolean(q.document_path)}
-                  />
-                </td>
-                <td className="px-4 py-3">
-                  <span className="flex items-center justify-end gap-3">
-                    {q.status === "aprobada" && !q.movement_id && (
-                      <RegistrarCobro
-                        cotizacion={q}
-                        cliente={
-                          q.client_id
-                            ? (nombrePor.get(q.client_id) ?? null)
-                            : null
-                        }
-                      />
-                    )}
-                    {q.movement_id && (
-                      <span
-                        title="Cobro ya registrado en finanzas"
-                        className="text-xs text-ok"
-                      >
-                        En finanzas
-                      </span>
-                    )}
-                    {q.status === "aprobada" && !yaTieneProyecto.has(q.id) && (
-                      <CrearProyectoDesdeCotizacion
-                        cotizacion={q}
-                        miembros={miembros}
+                  </td>
+
+                  <td className="px-4 py-3">
+                    <span className="flex items-center justify-end gap-3 opacity-0 transition-opacity group-hover/fila:opacity-100 focus-within:opacity-100">
+                      <CotizacionForm
                         clientes={clientes}
-                        procesos={procesos}
+                        proyectos={proyectos}
+                        cotizacion={q}
                       />
-                    )}
-                    <CotizacionForm clientes={clientes} cotizacion={q} />
-                    <BorrarCotizacion id={q.id} />
-                  </span>
-                </td>
-              </tr>
-            ))}
+                      <BorrarCotizacion id={q.id} />
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

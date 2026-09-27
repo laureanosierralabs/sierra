@@ -8,25 +8,32 @@ import {
   Select,
   Textarea,
 } from "@/components/landing/dialogo-form";
+import { SelectorProyectos } from "@/components/landing/selector-proyectos";
 import { guardarCotizacion } from "@/app/landing-pages/acciones";
 import {
   ESTADOS_COTIZACION,
+  ESTADOS_PAGO,
   LABEL_ESTADO_COTIZACION,
+  LABEL_ESTADO_PAGO,
   MONEDAS,
   type Cliente,
   type Cotizacion,
+  type Proyecto,
 } from "@/lib/landing/tipos";
 
 export function CotizacionForm({
   clientes,
+  proyectos,
   cotizacion,
   clienteFijo,
 }: {
   clientes: Pick<Cliente, "id" | "name">[];
+  proyectos: Pick<Proyecto, "id" | "name" | "client_id">[];
   cotizacion?: Cotizacion;
   clienteFijo?: string;
 }) {
   const editar = Boolean(cotizacion);
+  const clientePor = new Map(clientes.map((c) => [c.id, c.name]));
 
   return (
     <DialogoForm
@@ -38,35 +45,44 @@ export function CotizacionForm({
       {cotizacion && <input type="hidden" name="id" value={cotizacion.id} />}
 
       <Campo label="Título">
-        <Input name="title" required defaultValue={cotizacion?.title ?? ""} />
+        <Input
+          name="title"
+          required
+          placeholder="Bootcamp + Misión Origen + Game"
+          defaultValue={cotizacion?.title ?? ""}
+        />
       </Campo>
 
-      <div className="grid grid-cols-2 gap-4">
-        <Campo label="Cliente">
-          <Select
-            name="client_id"
-            defaultValue={cotizacion?.client_id ?? clienteFijo ?? ""}
-          >
-            <option value="">Sin cliente</option>
-            {clientes.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </Select>
-        </Campo>
+      <Campo label="Cliente que paga">
+        <Select
+          name="client_id"
+          defaultValue={cotizacion?.client_id ?? clienteFijo ?? ""}
+        >
+          <option value="">Sin cliente</option>
+          {clientes.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </Select>
+      </Campo>
 
-        <Campo label="Servicio">
-          <Input name="service" defaultValue={cotizacion?.service ?? ""} />
-        </Campo>
-      </div>
+      {/* El cliente que paga puede no ser el del proyecto: una agencia
+          intermediaria factura el trabajo hecho para su propio cliente. */}
+      <Campo label="Proyectos que cubre">
+        <SelectorProyectos
+          proyectos={proyectos}
+          clientePor={clientePor}
+          defaultValue={cotizacion?.project_ids}
+        />
+      </Campo>
 
       <div className="grid grid-cols-3 gap-4">
-        <Campo label="Monto">
+        <Campo label="Monto total">
           <Input
-            name="amount"
+            name="total_amount"
             inputMode="decimal"
-            defaultValue={cotizacion?.amount?.toString() ?? ""}
+            defaultValue={cotizacion?.total_amount?.toString() ?? ""}
           />
         </Campo>
 
@@ -80,8 +96,21 @@ export function CotizacionForm({
           </Select>
         </Campo>
 
-        <Campo label="Estado">
-          <Select name="status" defaultValue={cotizacion?.status ?? "borrador"}>
+        <Campo label="Monto pagado">
+          <Input
+            name="amount_paid"
+            inputMode="decimal"
+            defaultValue={cotizacion?.amount_paid?.toString() ?? "0"}
+          />
+        </Campo>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <Campo label="Estado comercial">
+          <Select
+            name="commercial_status"
+            defaultValue={cotizacion?.commercial_status ?? "draft"}
+          >
             {ESTADOS_COTIZACION.map((e) => (
               <option key={e} value={e}>
                 {LABEL_ESTADO_COTIZACION[e]}
@@ -89,9 +118,30 @@ export function CotizacionForm({
             ))}
           </Select>
         </Campo>
+
+        <Campo label="Estado de pago">
+          <Select
+            name="payment_status"
+            defaultValue={cotizacion?.payment_status ?? "not_applicable"}
+          >
+            {ESTADOS_PAGO.map((e) => (
+              <option key={e} value={e}>
+                {e === "not_applicable" ? "No aplica" : LABEL_ESTADO_PAGO[e]}
+              </option>
+            ))}
+          </Select>
+        </Campo>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
+        <Campo label="Condiciones de pago">
+          <Input
+            name="payment_terms"
+            placeholder="2 pagos / Pago único"
+            defaultValue={cotizacion?.payment_terms ?? ""}
+          />
+        </Campo>
+
         <Campo label="Fecha de envío">
           <Input
             type="date"
@@ -99,25 +149,19 @@ export function CotizacionForm({
             defaultValue={cotizacion?.sent_at ?? ""}
           />
         </Campo>
-
-        <Campo label="Link externo a la propuesta">
-          <Input
-            name="proposal_url"
-            placeholder="https://drive.google.com/… (opcional)"
-            defaultValue={cotizacion?.proposal_url ?? ""}
-          />
-        </Campo>
       </div>
+
+      <Campo label="Link a la propuesta">
+        <Input
+          name="proposal_url"
+          placeholder="https://drive.google.com/… (opcional)"
+          defaultValue={cotizacion?.proposal_url ?? ""}
+        />
+      </Campo>
 
       <Campo label="Notas">
         <Textarea name="notes" rows={3} defaultValue={cotizacion?.notes ?? ""} />
       </Campo>
-
-      <p className="text-xs text-text-3">
-        {editar
-          ? "El PDF se sube desde la columna Documento de la tabla."
-          : "Después de crearla vas a poder subir el PDF desde la tabla."}
-      </p>
     </DialogoForm>
   );
 }

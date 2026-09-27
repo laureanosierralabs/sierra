@@ -28,12 +28,21 @@ export const ORIGENES = [
   "otro",
 ] as const;
 
+/** Eje comercial: en qué punto de la negociación está. */
 export const ESTADOS_COTIZACION = [
-  "borrador",
-  "enviada",
-  "seguimiento",
-  "aprobada",
-  "rechazada",
+  "draft",
+  "sent",
+  "approved",
+  "rejected",
+  "cancelled",
+] as const;
+
+/** Eje de cobro, independiente del comercial: una aprobada puede estar impaga. */
+export const ESTADOS_PAGO = [
+  "not_applicable",
+  "pending",
+  "partial",
+  "paid",
 ] as const;
 
 export const MONEDAS = ["USD", "ARS", "EUR"] as const;
@@ -74,6 +83,7 @@ export type PrioridadLanding = (typeof PRIORIDADES)[number];
 export type EstadoCliente = (typeof ESTADOS_CLIENTE)[number];
 export type Origen = (typeof ORIGENES)[number];
 export type EstadoCotizacion = (typeof ESTADOS_COTIZACION)[number];
+export type EstadoPago = (typeof ESTADOS_PAGO)[number];
 export type Moneda = (typeof MONEDAS)[number];
 export type Etapa = (typeof ETAPAS)[number];
 export type TipoPagina = (typeof TIPOS_PAGINA)[number];
@@ -211,11 +221,18 @@ export const LABEL_ORIGEN: Record<Origen, string> = {
 };
 
 export const LABEL_ESTADO_COTIZACION: Record<EstadoCotizacion, string> = {
-  borrador: "Borrador",
-  enviada: "Enviada",
-  seguimiento: "Seguimiento",
-  aprobada: "Aprobada",
-  rechazada: "Rechazada",
+  draft: "Borrador",
+  sent: "Enviada",
+  approved: "Aprobada",
+  rejected: "Rechazada",
+  cancelled: "Cancelada",
+};
+
+export const LABEL_ESTADO_PAGO: Record<EstadoPago, string> = {
+  not_applicable: "—",
+  pending: "Pendiente",
+  partial: "Pago parcial",
+  paid: "Pagada",
 };
 
 export interface Proyecto {
@@ -317,21 +334,48 @@ export interface Cliente {
 
 export interface Cotizacion {
   id: string;
+  /** Número legible para la interfaz: COT-0001. El uuid es la clave real. */
+  numero: number;
   client_id: string | null;
   title: string;
   service: string | null;
-  amount: number | null;
+  total_amount: number | null;
   currency: Moneda;
-  status: EstadoCotizacion;
+  commercial_status: EstadoCotizacion;
+  payment_status: EstadoPago;
+  amount_paid: number;
+  payment_terms: string | null;
+  /** La propuesta vive en Drive; acá solo se guarda el acceso directo. */
   proposal_url: string | null;
-  /** PDF subido al bucket privado. Se accede con URL firmada. */
   document_path: string | null;
-  /** Id del movimiento en finanzas, si ya se registró el cobro. */
   movement_id: string | null;
   sent_at: string | null;
   notes: string | null;
+  /** Proyectos que cubre. Una cotización puede abarcar varios. */
+  project_ids: string[];
   created_at: string;
   updated_at: string;
+}
+
+export function codigoCotizacion(numero: number): string {
+  return `COT-${String(numero).padStart(4, "0")}`;
+}
+
+export function pendienteDeCobro(q: Cotizacion): number {
+  return Math.max((q.total_amount ?? 0) - q.amount_paid, 0);
+}
+
+/**
+ * Solo lo aprobado es una cuenta por cobrar real. Un borrador es una
+ * previsión: contarlo como deuda del cliente infla el número y lleva a
+ * decidir sobre plata que todavía nadie se comprometió a pagar.
+ */
+export function esCuentaPorCobrar(q: Cotizacion): boolean {
+  return q.commercial_status === "approved" && pendienteDeCobro(q) > 0;
+}
+
+export function esPrevision(q: Cotizacion): boolean {
+  return q.commercial_status === "draft" || q.commercial_status === "sent";
 }
 
 export interface Tarea {
@@ -448,8 +492,9 @@ export function urlWhatsapp(valor: string | null): string | null {
   return `https://wa.me/${digitos}`;
 }
 
+/** Enviada y sin respuesta: es la que hay que ir a golpear. */
 export function requiereSeguimiento(estado: EstadoCotizacion): boolean {
-  return estado === "enviada" || estado === "seguimiento";
+  return estado === "sent";
 }
 
 export function formatearMonto(

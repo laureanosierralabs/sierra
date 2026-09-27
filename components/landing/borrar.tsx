@@ -63,11 +63,24 @@ export function BorrarCliente({ id }: { id: string }) {
   );
 }
 
-export function BorrarCotizacion({ id }: { id: string }) {
+export function BorrarCotizacion({
+  id,
+  redirigirA,
+}: {
+  id: string;
+  /** Adónde ir después de borrar, cuando se borra desde el propio detalle. */
+  redirigirA?: string;
+}) {
+  const router = useRouter();
+
   return (
     <BorrarBoton
       etiqueta="Borrar cotización"
-      onConfirmar={() => borrarCotizacion(id)}
+      advertencia="Desvincula los proyectos que cubría."
+      onConfirmar={async () => {
+        await borrarCotizacion(id);
+        if (redirigirA) router.push(redirigirA);
+      }}
     />
   );
 }

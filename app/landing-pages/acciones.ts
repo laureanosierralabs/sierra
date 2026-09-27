@@ -5,11 +5,12 @@ import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/landing/supabase";
 import { cifrar, descifrar } from "@/lib/landing/cifrado";
-import { hoyISO, slugify } from "@/lib/escritura";
+import { slugify } from "@/lib/escritura";
 import { plantillaDe } from "@/lib/landing/plantillas";
 import {
   ESTADOS_CLIENTE,
   ESTADOS_COTIZACION,
+  ESTADOS_PAGO,
   ESTADOS_PROYECTO,
   ESTADOS_TAREA,
   ETAPAS,
@@ -20,6 +21,7 @@ import {
   TIPOS_RECURSO,
   type EstadoCliente,
   type EstadoCotizacion,
+  type EstadoPago,
   type EstadoProyecto,
   type EstadoTarea,
   type Etapa,
@@ -332,23 +334,61 @@ export async function cambiarEstadoCliente(id: string, estado: string) {
   revalidatePath(`/landing-pages/clients/${id}`);
 }
 
+/** Reemplaza el set completo de proyectos que cubre la cotización. */
+async function sincronizarProyectosCotizacion(
+  quoteId: string,
+  projectIds: string[],
+) {
+  const db = supabaseAdmin();
+  const { error: errBorrar } = await db
+    .from("quote_projects")
+    .delete()
+    .eq("quote_id", quoteId);
+  if (errBorrar)
+    throw new Error(`No se pudieron vincular los proyectos: ${errBorrar.message}`);
+
+  if (projectIds.length === 0) return;
+
+  const { error: errInsertar } = await db
+    .from("quote_projects")
+    .insert(projectIds.map((project_id) => ({ quote_id: quoteId, project_id })));
+  if (errInsertar)
+    throw new Error(`No se pudieron vincular los proyectos: ${errInsertar.message}`);
+}
+
 export async function guardarCotizacion(fd: FormData) {
   await exigirSesion();
 
   const titulo = texto(fd, "title");
   if (!titulo) throw new Error("Falta el título de la cotización");
 
+  const total = monto(fd, "total_amount");
+  const pagado = monto(fd, "amount_paid") ?? 0;
+
+  if (total !== null && pagado > total) {
+    throw new Error("El monto pagado no puede superar el total");
+  }
+
+  const proyectos = varios(fd, "project_ids");
+
   const fila = {
     title: titulo,
     client_id: opcional(fd, "client_id"),
     service: opcional(fd, "service"),
-    amount: monto(fd, "amount"),
+    total_amount: total,
     currency: unaDe<Moneda>(texto(fd, "currency"), MONEDAS, "Moneda"),
-    status: unaDe<EstadoCotizacion>(
-      texto(fd, "status"),
+    commercial_status: unaDe<EstadoCotizacion>(
+      texto(fd, "commercial_status"),
       ESTADOS_COTIZACION,
-      "Estado",
+      "Estado comercial",
     ),
+    payment_status: unaDe<EstadoPago>(
+      texto(fd, "payment_status"),
+      ESTADOS_PAGO,
+      "Estado de pago",
+    ),
+    amount_paid: pagado,
+    payment_terms: opcional(fd, "payment_terms"),
     proposal_url: url(fd, "proposal_url"),
     sent_at: fecha(fd, "sent_at"),
     notes: opcional(fd, "notes"),
@@ -357,12 +397,27 @@ export async function guardarCotizacion(fd: FormData) {
 
   const id = opcional(fd, "id");
   const db = supabaseAdmin();
-  const { error } = id
-    ? await db.from("quotes").update(fila).eq("id", id)
-    : await db.from("quotes").insert(fila);
 
-  if (error)
-    throw new Error(`No se pudo guardar la cotización: ${error.message}`);
+  if (id) {
+    const { error } = await db.from("quotes").update(fila).eq("id", id);
+    if (error)
+      throw new Error(`No se pudo guardar la cotización: ${error.message}`);
+    await sincronizarProyectosCotizacion(id, proyectos);
+    revalidar();
+    revalidatePath(`/landing-pages/quotes/${id}`);
+    return;
+  }
+
+  const { data: creada, error } = await db
+    .from("quotes")
+    .insert(fila)
+    .select("id")
+    .single();
+
+  if (error || !creada)
+    throw new Error(`No se pudo guardar la cotización: ${error?.message ?? ""}`);
+
+  await sincronizarProyectosCotizacion(creada.id, proyectos);
   revalidar();
 }
 
@@ -900,63 +955,6 @@ export async function guardarAjuste(clave: string, valor: string) {
 
   if (error) throw new Error(`No se pudo guardar: ${error.message}`);
   revalidatePath("/landing-pages/quotes");
-}
-
-/**
- * Registra el cobro de una cotización aprobada en finanzas/movimientos.json.
- * Finanzas es transversal a las unidades: se escribe ahí, no se duplica acá.
- */
-export async function registrarCobro(fd: FormData) {
-  await exigirSesion();
-
-  const quoteId = texto(fd, "quote_id");
-  if (!quoteId) throw new Error("Falta la cotización");
-
-  const fecha_ = fecha(fd, "fecha") ?? hoyISO();
-
-  const moneda = texto(fd, "moneda");
-  // El JSON de finanzas solo maneja ARS y USD.
-  if (moneda !== "ARS" && moneda !== "USD") {
-    throw new Error("Finanzas solo admite ARS o USD");
-  }
-
-  const montoNum = monto(fd, "monto");
-  if (montoNum === null || montoNum <= 0) throw new Error("Monto inválido");
-
-  const concepto = texto(fd, "concepto");
-  if (!concepto) throw new Error("Falta el concepto");
-
-  const estado = texto(fd, "estado");
-  if (!["pagado", "pendiente", "cobrado"].includes(estado)) {
-    throw new Error("Estado inválido");
-  }
-
-  const id = `${fecha_}-${slugify(concepto)}-${Date.now().toString(36)}`;
-
-  const { error: errMov } = await supabaseAdmin().from("movements").insert({
-    id,
-    fecha: fecha_,
-    ambito: "negocio",
-    tipo: "ingreso",
-    monto: montoNum,
-    moneda,
-    categoria: "servicio",
-    concepto,
-    unidad: "landing-pages",
-    cliente: opcional(fd, "cliente"),
-    estado,
-  });
-
-  if (errMov) throw new Error(`No se pudo registrar: ${errMov.message}`);
-
-  // Guardar el vínculo evita registrar dos veces el mismo cobro.
-  await supabaseAdmin()
-    .from("quotes")
-    .update({ movement_id: id, updated_at: new Date().toISOString() })
-    .eq("id", quoteId);
-
-  revalidatePath("/landing-pages/quotes");
-  revalidatePath("/finanzas/negocio");
 }
 
 export async function cambiarEtapaProyecto(id: string, etapa: string) {

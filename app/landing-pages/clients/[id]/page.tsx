@@ -262,9 +262,9 @@ export default async function ClienteDetalle({
                 </span>
                 <span className="flex shrink-0 items-center gap-2">
                   <span className="tnum text-sm text-text-2">
-                    {formatearMonto(q.amount, q.currency)}
+                    {formatearMonto(q.total_amount, q.currency)}
                   </span>
-                  <EstadoCotizacionPill estado={q.status} />
+                  <EstadoCotizacionPill estado={q.commercial_status} />
                 </span>
               </div>
             ))

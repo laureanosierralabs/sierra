@@ -1,4 +1,5 @@
 import {
+  cotizadoPorProyecto,
   listarClientes,
   listarProcesos,
   listarProyectos,
@@ -11,11 +12,12 @@ import { ToggleVista, VistaProyectos } from "@/components/landing/vista-proyecto
 export const dynamic = "force-dynamic";
 
 export default async function ProyectosPage() {
-  const [proyectos, miembros, clientes, procesos] = await Promise.all([
+  const [proyectos, miembros, clientes, procesos, cotizado] = await Promise.all([
     listarProyectos(),
     listarMiembros(),
     listarClientes(),
     listarProcesos(),
+    cotizadoPorProyecto(),
   ]);
 
   return (
@@ -39,6 +41,7 @@ export default async function ProyectosPage() {
         proyectos={proyectos}
         clientes={clientes}
         miembros={miembros}
+        cotizado={cotizado}
       />
     </>
   );

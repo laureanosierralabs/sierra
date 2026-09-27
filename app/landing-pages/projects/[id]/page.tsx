@@ -9,22 +9,29 @@ import {
   FileText,
   Flag,
   Globe,
+  Receipt,
   Target,
   UserRound,
   type LucideIcon,
 } from "lucide-react";
 import {
   listarClientes,
-  listarCotizaciones,
+  listarCotizacionesDeProyecto,
   listarProyectos,
   listarRecursos,
   listarTareasDeProyecto,
   obtenerProyecto,
 } from "@/lib/landing/datos";
 import { listarMiembros } from "@/lib/landing/auth";
-import { formatearMonto, nombreCliente } from "@/lib/landing/tipos";
+import {
+  codigoCotizacion,
+  formatearMonto,
+  nombreCliente,
+  pendienteDeCobro,
+} from "@/lib/landing/tipos";
 import {
   EstadoCotizacionPill,
+  EstadoPagoPill,
   PageHeader,
   Prioridad,
   SeccionTitulo,
@@ -78,7 +85,7 @@ export default async function ProyectoDetalle({
       listarMiembros(),
       listarClientes(),
       listarProyectos(),
-      listarCotizaciones(),
+      listarCotizacionesDeProyecto(id),
     ]);
 
   if (!proyecto) notFound();
@@ -92,9 +99,6 @@ export default async function ProyectoDetalle({
       .join(", ") || null;
 
   const enlaces = recursos.filter((r) => r.url);
-  const susCotizaciones = proyecto.client_id
-    ? cotizaciones.filter((q) => q.client_id === proyecto.client_id)
-    : cotizaciones.filter((q) => q.id === proyecto.quote_id);
 
   return (
     <>
@@ -163,6 +167,32 @@ export default async function ProyectoDetalle({
           <Propiedad icono={CalendarClock} label="Deadline">
             <Vencimiento fecha={proyecto.due_date} cerrado={proyecto.status === "entregado"} />
           </Propiedad>
+
+          {/* Un proyecto puede estar cubierto por más de una cotización:
+              la inicial y después una ampliación de alcance. */}
+          <Propiedad icono={Receipt} label="Cotización">
+            {cotizaciones.length === 0 ? (
+              <p className="text-sm text-text-3">—</p>
+            ) : (
+              <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                {cotizaciones.map((q) => (
+                  <Link
+                    key={q.id}
+                    href={`/landing-pages/quotes/${q.id}`}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-line bg-surface-2 px-2 py-1 text-xs transition-colors hover:border-line-strong"
+                  >
+                    <span className="tnum text-text-3">
+                      {codigoCotizacion(q.numero)}
+                    </span>
+                    <span className="tnum font-medium">
+                      {formatearMonto(q.total_amount, q.currency)}
+                    </span>
+                    <EstadoPagoPill estado={q.payment_status} />
+                  </Link>
+                ))}
+              </span>
+            )}
+          </Propiedad>
         </div>
 
         {/* Los links que se usan todo el día, sin scrollear hasta Recursos */}
@@ -206,46 +236,43 @@ export default async function ProyectoDetalle({
 
         <Recursos duenoId={proyecto.id} recursos={recursos} />
 
-        {susCotizaciones.length > 0 && (
+        {cotizaciones.length > 0 && (
           <section>
             <SeccionTitulo icono={FileText}>
               Cotizaciones y acuerdos
             </SeccionTitulo>
-            <div className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
-              {susCotizaciones.map((q) => (
-                <div
-                  key={q.id}
-                  className="flex items-center justify-between gap-3 px-4 py-2.5"
-                >
-                  <span className="flex min-w-0 items-center gap-2">
-                    <span className="truncate text-sm font-medium">
-                      {q.title}
-                    </span>
-                    {q.id === proyecto.quote_id && (
-                      <span className="shrink-0 text-[0.6875rem] text-text-3">
-                        origen
+            <div className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface shadow-e1">
+              {cotizaciones.map((q) => {
+                const pendiente = pendienteDeCobro(q);
+                return (
+                  <Link
+                    key={q.id}
+                    href={`/landing-pages/quotes/${q.id}`}
+                    className="fila-hover flex items-center justify-between gap-3 px-4 py-2.5"
+                  >
+                    <span className="flex min-w-0 flex-col">
+                      <span className="truncate text-sm font-medium">
+                        {q.title}
                       </span>
-                    )}
-                    {q.proposal_url && (
-                      <a
-                        href={q.proposal_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label="Abrir propuesta"
-                        className="shrink-0 text-text-3 transition-colors hover:text-text"
-                      >
-                        <ExternalLink className="size-3.5" />
-                      </a>
-                    )}
-                  </span>
-                  <span className="flex shrink-0 items-center gap-2">
-                    <span className="tnum text-sm text-text-2">
-                      {formatearMonto(q.amount, q.currency)}
+                      <span className="tnum text-xs text-text-3">
+                        {codigoCotizacion(q.numero)}
+                        {q.payment_terms && ` · ${q.payment_terms}`}
+                      </span>
                     </span>
-                    <EstadoCotizacionPill estado={q.status} />
-                  </span>
-                </div>
-              ))}
+                    <span className="flex shrink-0 items-center gap-2">
+                      {pendiente > 0 && (
+                        <span className="tnum text-xs text-warn">
+                          resta {formatearMonto(pendiente, q.currency)}
+                        </span>
+                      )}
+                      <span className="tnum text-sm font-medium">
+                        {formatearMonto(q.total_amount, q.currency)}
+                      </span>
+                      <EstadoCotizacionPill estado={q.commercial_status} />
+                    </span>
+                  </Link>
+                );
+              })}
             </div>
           </section>
         )}

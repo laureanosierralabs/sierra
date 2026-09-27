@@ -12,8 +12,10 @@ import { ProyectoForm } from "@/components/landing/proyecto-form";
 import { DuplicarProyecto } from "@/components/landing/duplicar-proyecto";
 import { BorrarProyecto } from "@/components/landing/borrar";
 import { PortadaPatron } from "@/components/landing/portada-patron";
+import type { ResumenCotizado } from "@/lib/landing/datos";
 import {
   LABEL_ETAPA,
+  formatearMonto,
   nombreCliente,
   type Cliente,
   type Miembro,
@@ -34,12 +36,14 @@ export function ProyectoCards({
   proyectos,
   clientePor,
   nombreMiembro,
+  cotizado,
   clientes,
   miembros,
 }: {
   proyectos: Proyecto[];
   clientePor: Map<string, string>;
   nombreMiembro: Map<string, string>;
+  cotizado: Map<string, ResumenCotizado>;
   clientes: Cliente[];
   miembros: Miembro[];
 }) {
@@ -58,6 +62,7 @@ export function ProyectoCards({
         const responsables = p.assignee_ids
           .map((id) => nombreMiembro.get(id))
           .filter((n): n is string => Boolean(n));
+        const cotizacion = cotizado.get(p.id);
 
         return (
           <div
@@ -108,12 +113,23 @@ export function ProyectoCards({
               )}
 
               <div className="mt-auto flex items-center justify-between gap-2 border-t border-line pt-2">
-                <span className="truncate text-xs text-text-3">
-                  {p.stage
-                    ? LABEL_ETAPA[p.stage]
-                    : responsables.length > 0
-                      ? responsables.join(", ")
-                      : "—"}
+                <span className="flex min-w-0 items-center gap-1.5">
+                  <span className="truncate text-xs text-text-3">
+                    {p.stage
+                      ? LABEL_ETAPA[p.stage]
+                      : responsables.length > 0
+                        ? responsables.join(", ")
+                        : "—"}
+                  </span>
+                  {/* Solo el monto: el detalle financiero vive en la cotización. */}
+                  {cotizacion && (
+                    <span
+                      title={`${cotizacion.cantidad} ${cotizacion.cantidad === 1 ? "cotización" : "cotizaciones"}`}
+                      className="tnum shrink-0 rounded border border-line bg-surface-2 px-1.5 py-0.5 text-[0.625rem] font-medium text-text-2"
+                    >
+                      {formatearMonto(cotizacion.total, cotizacion.currency)}
+                    </span>
+                  )}
                 </span>
                 <Vencimiento fecha={p.due_date} cerrado={p.status === "entregado"} />
               </div>

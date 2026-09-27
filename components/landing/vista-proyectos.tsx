@@ -4,6 +4,7 @@ import { useState, useSyncExternalStore } from "react";
 import { LayoutGrid, Table2 } from "lucide-react";
 import { ProyectoCards } from "@/components/landing/proyecto-cards";
 import { ProyectosTabla } from "@/components/landing/proyectos-tabla";
+import type { ResumenCotizado } from "@/lib/landing/datos";
 import {
   GRUPOS_PROYECTO,
   LABEL_TIPO_PAGINA,
@@ -81,10 +82,12 @@ export function VistaProyectos({
   proyectos,
   clientes,
   miembros,
+  cotizado,
 }: {
   proyectos: Proyecto[];
   clientes: Cliente[];
   miembros: Miembro[];
+  cotizado: Map<string, ResumenCotizado>;
 }) {
   const vista = useSyncExternalStore(suscribir, leerGuardada, () => "cards" as const);
   const [filtro, setFiltro] = useState<GrupoProyecto | "todos">("todos");
@@ -216,6 +219,7 @@ export function VistaProyectos({
                   proyectos={g.items}
                   clientePor={clientePor}
                   nombreMiembro={nombreMiembro}
+                  cotizado={cotizado}
                   clientes={clientes}
                   miembros={miembros}
                 />
@@ -226,6 +230,7 @@ export function VistaProyectos({
                   miembros={miembros}
                   clientePor={clientePor}
                   nombreMiembro={nombreMiembro}
+                  cotizado={cotizado}
                 />
               )}
             </section>
@@ -242,6 +247,7 @@ export function VistaProyectos({
           proyectos={visibles}
           clientePor={clientePor}
           nombreMiembro={nombreMiembro}
+                  cotizado={cotizado}
           clientes={clientes}
           miembros={miembros}
         />
@@ -252,6 +258,7 @@ export function VistaProyectos({
           miembros={miembros}
           clientePor={clientePor}
           nombreMiembro={nombreMiembro}
+                  cotizado={cotizado}
         />
       )}
     </>

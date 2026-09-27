@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import {
   LABEL_ESTADO_CLIENTE,
   LABEL_ESTADO_COTIZACION,
+  LABEL_ESTADO_PAGO,
   LABEL_ESTADO_PROYECTO,
   LABEL_ESTADO_TAREA,
   LABEL_PRIORIDAD,
@@ -10,6 +11,7 @@ import {
   TONO_TIPO_PAGINA,
   type EstadoCliente,
   type EstadoCotizacion,
+  type EstadoPago,
   type EstadoProyecto,
   type EstadoTarea,
   type PrioridadLanding,
@@ -131,12 +133,32 @@ const TONO_CLIENTE: Record<EstadoCliente, Tono> = {
 };
 
 const TONO_COTIZACION: Record<EstadoCotizacion, Tono> = {
-  borrador: NEUTRO,
-  enviada: IDLE,
-  seguimiento: WARN,
-  aprobada: OK,
-  rechazada: CRITICAL,
+  draft: NEUTRO,
+  sent: IDLE,
+  approved: OK,
+  rejected: CRITICAL,
+  cancelled: NEUTRO,
 };
+
+/** El pago no alarma salvo que esté pendiente: ahí sí hay algo que hacer. */
+const TONO_PAGO: Record<EstadoPago, Tono> = {
+  not_applicable: NEUTRO,
+  pending: WARN,
+  partial: IDLE,
+  paid: OK,
+};
+
+export function EstadoPagoPill({ estado }: { estado: EstadoPago }) {
+  if (estado === "not_applicable") {
+    return <span className="text-xs text-text-3">—</span>;
+  }
+  return (
+    <Pill
+      tono={TONO_PAGO[estado] ?? NEUTRO}
+      label={LABEL_ESTADO_PAGO[estado] ?? estado}
+    />
+  );
+}
 
 export function EstadoClientePill({ estado }: { estado: EstadoCliente }) {
   return (
@@ -150,7 +172,7 @@ export function EstadoClientePill({ estado }: { estado: EstadoCliente }) {
 export function EstadoCotizacionPill({ estado }: { estado: EstadoCotizacion }) {
   return (
     <Pill
-      tono={TONO_COTIZACION[estado] ?? TONO_COTIZACION.borrador}
+      tono={TONO_COTIZACION[estado] ?? TONO_COTIZACION.draft}
       label={LABEL_ESTADO_COTIZACION[estado] ?? estado}
     />
   );

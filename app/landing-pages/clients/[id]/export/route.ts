@@ -101,7 +101,7 @@ export async function GET(
     l.push("## Cotizaciones", "");
     for (const q of susCotizaciones) {
       l.push(
-        `- **${q.title}** — ${formatearMonto(q.amount, q.currency)} · ${LABEL_ESTADO_COTIZACION[q.status]}${q.sent_at ? ` · enviada ${q.sent_at}` : ""}`,
+        `- **${q.title}** — ${formatearMonto(q.total_amount, q.currency)} · ${LABEL_ESTADO_COTIZACION[q.commercial_status]}${q.sent_at ? ` · enviada ${q.sent_at}` : ""}`,
       );
     }
     l.push("");

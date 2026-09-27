@@ -4,6 +4,7 @@ import { supabaseAdmin } from "@/lib/landing/supabase";
 import type {
   Cliente,
   Cotizacion,
+  Moneda,
   NotaCliente,
   Proceso,
   Proyecto,
@@ -216,13 +217,102 @@ export async function obtenerCliente(id: string): Promise<Cliente | null> {
   return data;
 }
 
+/** Aplana el join de la tabla puente a un array de ids. */
+function conProyectos(
+  fila: Omit<Cotizacion, "project_ids"> & {
+    quote_projects?: { project_id: string }[] | null;
+  },
+): Cotizacion {
+  const { quote_projects, ...resto } = fila;
+  return {
+    ...resto,
+    project_ids: (quote_projects ?? []).map((q) => q.project_id),
+  };
+}
+
 export async function listarCotizaciones(): Promise<Cotizacion[]> {
   const { data, error } = await supabaseAdmin()
     .from("quotes")
-    .select("*")
-    .order("sent_at", { ascending: false, nullsFirst: false });
+    .select("*, quote_projects(project_id)")
+    .order("numero", { ascending: false });
 
   if (error)
     throw new Error(`No se pudieron leer las cotizaciones: ${error.message}`);
-  return data ?? [];
+  return (data ?? []).map(conProyectos);
+}
+
+export async function obtenerCotizacion(id: string): Promise<Cotizacion | null> {
+  const { data, error } = await supabaseAdmin()
+    .from("quotes")
+    .select("*, quote_projects(project_id)")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error)
+    throw new Error(`No se pudo leer la cotización: ${error.message}`);
+  return data ? conProyectos(data) : null;
+}
+
+/** Lo cotizado por proyecto, para el indicador de la lista. Un proyecto
+    cubierto por varias cotizaciones acumula el total de todas. */
+export interface ResumenCotizado {
+  total: number;
+  currency: Moneda;
+  cantidad: number;
+}
+
+export async function cotizadoPorProyecto(): Promise<
+  Map<string, ResumenCotizado>
+> {
+  const db = supabaseAdmin();
+  const { data, error } = await db
+    .from("quote_projects")
+    .select("project_id, quotes(total_amount, currency)");
+
+  if (error)
+    throw new Error(`No se pudo leer lo cotizado: ${error.message}`);
+
+  const mapa = new Map<string, ResumenCotizado>();
+  for (const fila of data ?? []) {
+    const q = fila.quotes as unknown as {
+      total_amount: number | null;
+      currency: Moneda;
+    } | null;
+    if (!q) continue;
+
+    const previo = mapa.get(fila.project_id);
+    mapa.set(fila.project_id, {
+      total: (previo?.total ?? 0) + (q.total_amount ?? 0),
+      currency: q.currency,
+      cantidad: (previo?.cantidad ?? 0) + 1,
+    });
+  }
+  return mapa;
+}
+
+/** Las cotizaciones que cubren un proyecto. Puede tener más de una. */
+export async function listarCotizacionesDeProyecto(
+  projectId: string,
+): Promise<Cotizacion[]> {
+  const db = supabaseAdmin();
+  const { data: vinculos, error } = await db
+    .from("quote_projects")
+    .select("quote_id")
+    .eq("project_id", projectId);
+
+  if (error)
+    throw new Error(`No se pudieron leer las cotizaciones: ${error.message}`);
+
+  const ids = (vinculos ?? []).map((v) => v.quote_id);
+  if (ids.length === 0) return [];
+
+  const { data, error: errQuotes } = await db
+    .from("quotes")
+    .select("*, quote_projects(project_id)")
+    .in("id", ids)
+    .order("numero", { ascending: false });
+
+  if (errQuotes)
+    throw new Error(`No se pudieron leer las cotizaciones: ${errQuotes.message}`);
+  return (data ?? []).map(conProyectos);
 }
