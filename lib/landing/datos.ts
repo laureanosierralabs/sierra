@@ -5,6 +5,7 @@ import type {
   AcuerdoEquipo,
   Cliente,
   Cotizacion,
+  GastoFijo,
   Moneda,
   PagoEquipo,
   NotaCliente,
@@ -299,6 +300,16 @@ export async function listarPagosEquipo(
     .order("paid_on", { ascending: false });
 
   if (error) throw new Error(`No se pudieron leer los pagos: ${error.message}`);
+  return data ?? [];
+}
+
+export async function listarGastosFijos(): Promise<GastoFijo[]> {
+  const { data, error } = await supabaseAdmin()
+    .from("fixed_expenses")
+    .select("*")
+    .order("name");
+
+  if (error) throw new Error(`No se pudieron leer los gastos: ${error.message}`);
   return data ?? [];
 }
 

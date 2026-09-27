@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   ArrowLeft,
+  CalendarClock,
   CreditCard,
   ExternalLink,
   FileText,
@@ -128,6 +129,12 @@ export default async function AcuerdoDetalle({
           <Propiedad icono={CreditCard} label="Condiciones">
             <p className="truncate text-sm text-text-2">
               {acuerdo.payment_terms ?? "—"}
+            </p>
+          </Propiedad>
+
+          <Propiedad icono={CalendarClock} label="Fecha del acuerdo">
+            <p className="tnum text-sm text-text-2">
+              {acuerdo.agreed_on ?? "—"}
             </p>
           </Propiedad>
         </div>

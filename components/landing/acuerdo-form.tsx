@@ -87,14 +87,24 @@ export function AcuerdoForm({
           </Select>
         </Campo>
 
-        <Campo label="Condiciones">
+        {/* Cuándo se acordó, no cuándo se carga el dato: el balance mensual
+            necesita la fecha real del hecho. */}
+        <Campo label="Fecha del acuerdo">
           <Input
-            name="payment_terms"
-            placeholder="2 pagos"
-            defaultValue={acuerdo?.payment_terms ?? ""}
+            type="date"
+            name="agreed_on"
+            defaultValue={acuerdo?.agreed_on ?? ""}
           />
         </Campo>
       </div>
+
+      <Campo label="Condiciones de pago">
+        <Input
+          name="payment_terms"
+          placeholder="2 pagos"
+          defaultValue={acuerdo?.payment_terms ?? ""}
+        />
+      </Campo>
 
       <Campo label="Notas">
         <Textarea name="notes" rows={2} defaultValue={acuerdo?.notes ?? ""} />

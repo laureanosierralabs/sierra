@@ -372,10 +372,63 @@ export interface AcuerdoEquipo {
   amount_paid: number;
   payment_status: Exclude<EstadoPago, "not_applicable">;
   payment_terms: string | null;
+  /** Cuándo se acordó. created_at es cuándo se cargó, que no es lo mismo. */
+  agreed_on: string | null;
   notes: string | null;
   project_ids: string[];
   created_at: string;
   updated_at: string;
+}
+
+export const PERIODOS_GASTO = ["monthly", "yearly"] as const;
+export type PeriodoGasto = (typeof PERIODOS_GASTO)[number];
+
+export const LABEL_PERIODO: Record<PeriodoGasto, string> = {
+  monthly: "Mensual",
+  yearly: "Anual",
+};
+
+export const CATEGORIAS_GASTO = [
+  "herramienta",
+  "suscripcion",
+  "infraestructura",
+  "impuesto",
+  "otro",
+] as const;
+export type CategoriaGasto = (typeof CATEGORIAS_GASTO)[number];
+
+export const LABEL_CATEGORIA_GASTO: Record<CategoriaGasto, string> = {
+  herramienta: "Herramienta",
+  suscripcion: "Suscripción",
+  infraestructura: "Infraestructura",
+  impuesto: "Impuesto",
+  otro: "Otro",
+};
+
+/** Gasto que se repite. No se carga uno por mes: se declara y se proyecta. */
+export interface GastoFijo {
+  id: string;
+  name: string;
+  amount: number;
+  currency: Moneda;
+  period: PeriodoGasto;
+  category: CategoriaGasto;
+  active_from: string;
+  active_until: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Cuánto pesa por mes: un gasto anual se prorratea. */
+export function costoMensual(g: GastoFijo): number {
+  return g.period === "yearly" ? g.amount / 12 : g.amount;
+}
+
+export function gastoVigente(g: GastoFijo, mes: string): boolean {
+  const desde = g.active_from.slice(0, 7);
+  const hasta = g.active_until?.slice(0, 7);
+  return desde <= mes && (!hasta || hasta >= mes);
 }
 
 export interface PagoEquipo {

@@ -9,6 +9,7 @@ import { cifrar, descifrar } from "@/lib/landing/cifrado";
 import { slugify } from "@/lib/escritura";
 import { plantillaDe } from "@/lib/landing/plantillas";
 import {
+  CATEGORIAS_GASTO,
   ESTADOS_CLIENTE,
   ESTADOS_COTIZACION,
   ESTADOS_PROYECTO,
@@ -16,13 +17,16 @@ import {
   estadoPagoSegun,
   ETAPAS,
   MONEDAS,
+  PERIODOS_GASTO,
   ORIGENES,
   PRIORIDADES,
   TIPOS_PAGINA,
   TIPOS_RECURSO,
+  type CategoriaGasto,
   type EstadoCliente,
   type EstadoCotizacion,
   type EstadoProyecto,
+  type PeriodoGasto,
   type EstadoTarea,
   type Etapa,
   type Moneda,
@@ -1045,6 +1049,7 @@ export async function guardarAcuerdo(fd: FormData) {
     total_amount: monto(fd, "total_amount"),
     currency: unaDe<Moneda>(texto(fd, "currency"), MONEDAS, "Moneda"),
     payment_terms: opcional(fd, "payment_terms"),
+    agreed_on: fecha(fd, "agreed_on"),
     notes: opcional(fd, "notes"),
     updated_at: new Date().toISOString(),
   };
@@ -1165,6 +1170,54 @@ export async function borrarPagoEquipo(id: string, agreementId: string) {
 
   if (error) throw new Error(`No se pudo borrar el pago: ${error.message}`);
   revalidarEquipo(agreementId);
+}
+
+export async function guardarGastoFijo(fd: FormData) {
+  await exigirOwner();
+
+  const nombre = texto(fd, "name");
+  if (!nombre) throw new Error("Falta el nombre del gasto");
+
+  const importe = monto(fd, "amount");
+  if (importe === null || importe <= 0)
+    throw new Error("El monto tiene que ser mayor a cero");
+
+  const fila = {
+    name: nombre,
+    amount: importe,
+    currency: unaDe<Moneda>(texto(fd, "currency"), MONEDAS, "Moneda"),
+    period: unaDe<PeriodoGasto>(texto(fd, "period"), PERIODOS_GASTO, "Periodo"),
+    category: unaDe<CategoriaGasto>(
+      texto(fd, "category"),
+      CATEGORIAS_GASTO,
+      "Categoría",
+    ),
+    active_from: fecha(fd, "active_from") ?? new Date().toISOString().slice(0, 10),
+    active_until: fecha(fd, "active_until"),
+    notes: opcional(fd, "notes"),
+    updated_at: new Date().toISOString(),
+  };
+
+  const id = opcional(fd, "id");
+  const db = supabaseAdmin();
+  const { error } = id
+    ? await db.from("fixed_expenses").update(fila).eq("id", id)
+    : await db.from("fixed_expenses").insert(fila);
+
+  if (error) throw new Error(`No se pudo guardar el gasto: ${error.message}`);
+  revalidatePath("/finanzas/negocio");
+}
+
+export async function borrarGastoFijo(id: string) {
+  await exigirOwner();
+
+  const { error } = await supabaseAdmin()
+    .from("fixed_expenses")
+    .delete()
+    .eq("id", id);
+
+  if (error) throw new Error(`No se pudo borrar el gasto: ${error.message}`);
+  revalidatePath("/finanzas/negocio");
 }
 
 export async function guardarAjuste(clave: string, valor: string) {

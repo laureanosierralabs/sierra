@@ -6,9 +6,20 @@ import {
   borrarAcuerdo,
   borrarCliente,
   borrarCotizacion,
+  borrarGastoFijo,
   borrarProyecto,
   borrarTarea,
 } from "@/app/landing-pages/acciones";
+
+export function BorrarGastoFijo({ id }: { id: string }) {
+  return (
+    <BorrarBoton
+      etiqueta="Borrar gasto"
+      advertencia="Si solo se dio de baja, conviene ponerle fecha de fin en vez de borrarlo."
+      onConfirmar={() => borrarGastoFijo(id)}
+    />
+  );
+}
 
 export function BorrarAcuerdo({
   id,

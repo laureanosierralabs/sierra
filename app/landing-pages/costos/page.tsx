@@ -26,6 +26,7 @@ const COLUMNAS = [
   "Acuerdo",
   "Para",
   "Proyectos",
+  "Fecha",
   "Monto",
   "Pagado",
   "Resta",
@@ -170,6 +171,10 @@ export default async function CostosPage() {
                         )}
                       </span>
                     )}
+                  </td>
+
+                  <td className="tnum px-4 py-3 text-text-2">
+                    {a.agreed_on ?? <span className="text-text-3">—</span>}
                   </td>
 
                   <td className="tnum px-4 py-3 font-medium">
