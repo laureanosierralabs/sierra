@@ -357,8 +357,32 @@ export interface Cotizacion {
   updated_at: string;
 }
 
+/** Un cobro concreto. amount_paid de la cotización es la suma de estos. */
+export interface PagoCotizacion {
+  id: string;
+  quote_id: string;
+  amount: number;
+  paid_on: string;
+  method: string | null;
+  notes: string | null;
+  created_at: string;
+}
+
 export function codigoCotizacion(numero: number): string {
   return `COT-${String(numero).padStart(4, "0")}`;
+}
+
+/**
+ * El estado de pago se deduce de cuánto entró: registrar un cobro y además
+ * elegir el estado a mano abre la puerta a que se contradigan.
+ */
+export function estadoPagoSegun(
+  total: number | null,
+  pagado: number,
+): EstadoPago {
+  if (pagado <= 0) return total && total > 0 ? "pending" : "not_applicable";
+  if (total !== null && pagado >= total) return "paid";
+  return "partial";
 }
 
 export function pendienteDeCobro(q: Cotizacion): number {

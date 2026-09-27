@@ -4,7 +4,7 @@ import {
   listarProcesos,
   listarProyectos,
 } from "@/lib/landing/datos";
-import { listarMiembros } from "@/lib/landing/auth";
+import { accesoActual, listarMiembros } from "@/lib/landing/auth";
 import { PageHeader } from "@/components/landing/ui";
 import { ProyectoForm } from "@/components/landing/proyecto-form";
 import { ToggleVista, VistaProyectos } from "@/components/landing/vista-proyectos";
@@ -12,13 +12,17 @@ import { ToggleVista, VistaProyectos } from "@/components/landing/vista-proyecto
 export const dynamic = "force-dynamic";
 
 export default async function ProyectosPage() {
-  const [proyectos, miembros, clientes, procesos, cotizado] = await Promise.all([
+  const [proyectos, miembros, clientes, procesos, acceso] = await Promise.all([
     listarProyectos(),
     listarMiembros(),
     listarClientes(),
     listarProcesos(),
-    cotizadoPorProyecto(),
+    accesoActual(),
   ]);
+
+  // Lo que se cobra es información del owner: un Builder ve el proyecto,
+  // no su precio. El dato ni siquiera se consulta si no corresponde.
+  const cotizado = acceso.esOwner ? await cotizadoPorProyecto() : new Map();
 
   return (
     <>
@@ -42,6 +46,7 @@ export default async function ProyectosPage() {
         clientes={clientes}
         miembros={miembros}
         cotizado={cotizado}
+        verCotizacion={acceso.esOwner}
       />
     </>
   );

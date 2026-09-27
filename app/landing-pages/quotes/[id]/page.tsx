@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import {
   listarClientes,
+  listarPagos,
   listarProyectos,
   obtenerCotizacion,
 } from "@/lib/landing/datos";
@@ -29,6 +30,7 @@ import {
   SeccionTitulo,
 } from "@/components/landing/ui";
 import { CotizacionForm } from "@/components/landing/cotizacion-form";
+import { Cobros } from "@/components/landing/cobros";
 import { BorrarCotizacion } from "@/components/landing/borrar";
 
 export const dynamic = "force-dynamic";
@@ -60,10 +62,11 @@ export default async function CotizacionDetalle({
 }) {
   const { id } = await params;
 
-  const [cotizacion, clientes, proyectos] = await Promise.all([
+  const [cotizacion, clientes, proyectos, pagos] = await Promise.all([
     obtenerCotizacion(id),
     listarClientes(),
     listarProyectos(),
+    listarPagos(id),
   ]);
 
   if (!cotizacion) notFound();
@@ -175,6 +178,16 @@ export default async function CotizacionDetalle({
           </div>
         )}
       </div>
+
+      <section className="mb-8">
+        <SeccionTitulo icono={Wallet}>
+          Cobros
+          <span className="tnum ml-2 text-xs font-normal text-text-3">
+            {pagos.length}
+          </span>
+        </SeccionTitulo>
+        <Cobros cotizacion={cotizacion} pagos={pagos} resta={pendiente} />
+      </section>
 
       <section className="mb-8">
         <SeccionTitulo icono={Layers}>

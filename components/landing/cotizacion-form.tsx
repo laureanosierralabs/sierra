@@ -12,9 +12,7 @@ import { SelectorProyectos } from "@/components/landing/selector-proyectos";
 import { guardarCotizacion } from "@/app/landing-pages/acciones";
 import {
   ESTADOS_COTIZACION,
-  ESTADOS_PAGO,
   LABEL_ESTADO_COTIZACION,
-  LABEL_ESTADO_PAGO,
   MONEDAS,
   type Cliente,
   type Cotizacion,
@@ -96,16 +94,6 @@ export function CotizacionForm({
           </Select>
         </Campo>
 
-        <Campo label="Monto pagado">
-          <Input
-            name="amount_paid"
-            inputMode="decimal"
-            defaultValue={cotizacion?.amount_paid?.toString() ?? "0"}
-          />
-        </Campo>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
         <Campo label="Estado comercial">
           <Select
             name="commercial_status"
@@ -118,20 +106,10 @@ export function CotizacionForm({
             ))}
           </Select>
         </Campo>
-
-        <Campo label="Estado de pago">
-          <Select
-            name="payment_status"
-            defaultValue={cotizacion?.payment_status ?? "not_applicable"}
-          >
-            {ESTADOS_PAGO.map((e) => (
-              <option key={e} value={e}>
-                {e === "not_applicable" ? "No aplica" : LABEL_ESTADO_PAGO[e]}
-              </option>
-            ))}
-          </Select>
-        </Campo>
       </div>
+
+      {/* Lo cobrado no se escribe acá: sale de los cobros registrados en el
+          detalle, cada uno con su fecha. */}
 
       <div className="grid grid-cols-2 gap-4">
         <Campo label="Condiciones de pago">

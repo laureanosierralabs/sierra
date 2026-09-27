@@ -83,11 +83,14 @@ export function VistaProyectos({
   clientes,
   miembros,
   cotizado,
+  verCotizacion,
 }: {
   proyectos: Proyecto[];
   clientes: Cliente[];
   miembros: Miembro[];
   cotizado: Map<string, ResumenCotizado>;
+  /** Los montos son del owner: un Builder ve el proyecto, no su precio. */
+  verCotizacion: boolean;
 }) {
   const vista = useSyncExternalStore(suscribir, leerGuardada, () => "cards" as const);
   const [filtro, setFiltro] = useState<GrupoProyecto | "todos">("todos");
@@ -220,6 +223,7 @@ export function VistaProyectos({
                   clientePor={clientePor}
                   nombreMiembro={nombreMiembro}
                   cotizado={cotizado}
+                  verCotizacion={verCotizacion}
                   clientes={clientes}
                   miembros={miembros}
                 />
@@ -231,6 +235,7 @@ export function VistaProyectos({
                   clientePor={clientePor}
                   nombreMiembro={nombreMiembro}
                   cotizado={cotizado}
+                  verCotizacion={verCotizacion}
                 />
               )}
             </section>
@@ -248,6 +253,7 @@ export function VistaProyectos({
           clientePor={clientePor}
           nombreMiembro={nombreMiembro}
                   cotizado={cotizado}
+                  verCotizacion={verCotizacion}
           clientes={clientes}
           miembros={miembros}
         />
@@ -259,6 +265,7 @@ export function VistaProyectos({
           clientePor={clientePor}
           nombreMiembro={nombreMiembro}
                   cotizado={cotizado}
+                  verCotizacion={verCotizacion}
         />
       )}
     </>

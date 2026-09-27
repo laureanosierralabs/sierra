@@ -22,7 +22,7 @@ import {
   listarTareasDeProyecto,
   obtenerProyecto,
 } from "@/lib/landing/datos";
-import { listarMiembros } from "@/lib/landing/auth";
+import { accesoActual, listarMiembros } from "@/lib/landing/auth";
 import {
   codigoCotizacion,
   formatearMonto,
@@ -77,7 +77,7 @@ export default async function ProyectoDetalle({
 }) {
   const { id } = await params;
 
-  const [proyecto, tareas, recursos, miembros, clientes, proyectos, cotizaciones] =
+  const [proyecto, tareas, recursos, miembros, clientes, proyectos, acceso] =
     await Promise.all([
       obtenerProyecto(id),
       listarTareasDeProyecto(id),
@@ -85,10 +85,15 @@ export default async function ProyectoDetalle({
       listarMiembros(),
       listarClientes(),
       listarProyectos(),
-      listarCotizacionesDeProyecto(id),
+      accesoActual(),
     ]);
 
   if (!proyecto) notFound();
+
+  // Lo cotizado es información del owner: ni se consulta para un Builder.
+  const cotizaciones = acceso.esOwner
+    ? await listarCotizacionesDeProyecto(id)
+    : [];
 
   const clientePor = new Map(clientes.map((c) => [c.id, c.name]));
   const nombreMiembro = new Map(miembros.map((m) => [m.id, m.nombre]));
@@ -170,6 +175,7 @@ export default async function ProyectoDetalle({
 
           {/* Un proyecto puede estar cubierto por más de una cotización:
               la inicial y después una ampliación de alcance. */}
+          {acceso.esOwner && (
           <Propiedad icono={Receipt} label="Cotización">
             {cotizaciones.length === 0 ? (
               <p className="text-sm text-text-3">—</p>
@@ -193,6 +199,7 @@ export default async function ProyectoDetalle({
               </span>
             )}
           </Propiedad>
+          )}
         </div>
 
         {/* Los links que se usan todo el día, sin scrollear hasta Recursos */}

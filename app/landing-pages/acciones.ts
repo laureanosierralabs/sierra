@@ -4,15 +4,16 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/landing/supabase";
+import { accesoActual } from "@/lib/landing/auth";
 import { cifrar, descifrar } from "@/lib/landing/cifrado";
 import { slugify } from "@/lib/escritura";
 import { plantillaDe } from "@/lib/landing/plantillas";
 import {
   ESTADOS_CLIENTE,
   ESTADOS_COTIZACION,
-  ESTADOS_PAGO,
   ESTADOS_PROYECTO,
   ESTADOS_TAREA,
+  estadoPagoSegun,
   ETAPAS,
   MONEDAS,
   ORIGENES,
@@ -21,7 +22,6 @@ import {
   TIPOS_RECURSO,
   type EstadoCliente,
   type EstadoCotizacion,
-  type EstadoPago,
   type EstadoProyecto,
   type EstadoTarea,
   type Etapa,
@@ -37,6 +37,17 @@ import {
 async function exigirSesion() {
   const { userId } = await auth();
   if (!userId) throw new Error("No autorizado");
+  return userId;
+}
+
+/**
+ * Lo comercial es del owner. Ocultar la sección no alcanza: un member podría
+ * invocar la Server Action igual, así que el permiso se verifica acá.
+ */
+async function exigirOwner() {
+  const userId = await exigirSesion();
+  const { esOwner } = await accesoActual();
+  if (!esOwner) throw new Error("Solo el owner puede gestionar cotizaciones");
   return userId;
 }
 
@@ -357,18 +368,12 @@ async function sincronizarProyectosCotizacion(
 }
 
 export async function guardarCotizacion(fd: FormData) {
-  await exigirSesion();
+  await exigirOwner();
 
   const titulo = texto(fd, "title");
   if (!titulo) throw new Error("Falta el título de la cotización");
 
   const total = monto(fd, "total_amount");
-  const pagado = monto(fd, "amount_paid") ?? 0;
-
-  if (total !== null && pagado > total) {
-    throw new Error("El monto pagado no puede superar el total");
-  }
-
   const proyectos = varios(fd, "project_ids");
 
   const fila = {
@@ -382,12 +387,8 @@ export async function guardarCotizacion(fd: FormData) {
       ESTADOS_COTIZACION,
       "Estado comercial",
     ),
-    payment_status: unaDe<EstadoPago>(
-      texto(fd, "payment_status"),
-      ESTADOS_PAGO,
-      "Estado de pago",
-    ),
-    amount_paid: pagado,
+    // amount_paid y payment_status son derivados de quote_payments: el form
+    // no los toca, los mantiene el registro de cobros.
     payment_terms: opcional(fd, "payment_terms"),
     proposal_url: url(fd, "proposal_url"),
     sent_at: fecha(fd, "sent_at"),
@@ -403,6 +404,8 @@ export async function guardarCotizacion(fd: FormData) {
     if (error)
       throw new Error(`No se pudo guardar la cotización: ${error.message}`);
     await sincronizarProyectosCotizacion(id, proyectos);
+    // Cambiar el total cambia si lo cobrado ya alcanza o no.
+    await sincronizarEstadoPago(id);
     revalidar();
     revalidatePath(`/landing-pages/quotes/${id}`);
     return;
@@ -928,12 +931,101 @@ export async function borrarCliente(id: string) {
 }
 
 export async function borrarCotizacion(id: string) {
-  await exigirSesion();
+  await exigirOwner();
 
   const { error } = await supabaseAdmin().from("quotes").delete().eq("id", id);
 
   if (error) throw new Error(`No se pudo borrar la cotización: ${error.message}`);
   revalidar();
+}
+
+/**
+ * Registra un cobro. amount_paid de la cotización lo recalcula un trigger
+ * sumando los pagos, así que acá no se toca: si se escribieran los dos, el
+ * acumulado y el historial podrían quedar en desacuerdo.
+ */
+export async function registrarPago(fd: FormData) {
+  await exigirOwner();
+
+  const quoteId = texto(fd, "quote_id");
+  if (!quoteId) throw new Error("Falta la cotización");
+
+  const importe = monto(fd, "amount");
+  if (importe === null || importe <= 0)
+    throw new Error("El monto del cobro tiene que ser mayor a cero");
+
+  const db = supabaseAdmin();
+
+  const { data: cotizacion, error: errLeer } = await db
+    .from("quotes")
+    .select("total_amount, amount_paid")
+    .eq("id", quoteId)
+    .maybeSingle();
+
+  if (errLeer || !cotizacion)
+    throw new Error("No se pudo leer la cotización");
+
+  const total = cotizacion.total_amount as number | null;
+  const yaPagado = Number(cotizacion.amount_paid ?? 0);
+
+  if (total !== null && yaPagado + importe > total) {
+    const resta = total - yaPagado;
+    throw new Error(
+      `Se pasa del total: quedan ${resta} por cobrar de ${total}`,
+    );
+  }
+
+  const { error } = await db.from("quote_payments").insert({
+    quote_id: quoteId,
+    amount: importe,
+    paid_on: fecha(fd, "paid_on") ?? new Date().toISOString().slice(0, 10),
+    method: opcional(fd, "method"),
+    notes: opcional(fd, "notes"),
+  });
+
+  if (error) throw new Error(`No se pudo registrar el cobro: ${error.message}`);
+
+  await sincronizarEstadoPago(quoteId);
+  revalidar();
+  revalidatePath(`/landing-pages/quotes/${quoteId}`);
+}
+
+export async function borrarPago(id: string, quoteId: string) {
+  await exigirOwner();
+
+  const { error } = await supabaseAdmin()
+    .from("quote_payments")
+    .delete()
+    .eq("id", id);
+
+  if (error) throw new Error(`No se pudo borrar el cobro: ${error.message}`);
+
+  await sincronizarEstadoPago(quoteId);
+  revalidar();
+  revalidatePath(`/landing-pages/quotes/${quoteId}`);
+}
+
+/** El estado se deduce de lo cobrado, para que no se contradigan. */
+async function sincronizarEstadoPago(quoteId: string) {
+  const db = supabaseAdmin();
+  const { data } = await db
+    .from("quotes")
+    .select("total_amount, amount_paid")
+    .eq("id", quoteId)
+    .maybeSingle();
+
+  if (!data) return;
+
+  await db
+    .from("quotes")
+    .update({
+      payment_status: estadoPagoSegun(
+        data.total_amount as number | null,
+        Number(data.amount_paid ?? 0),
+      ),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", quoteId);
 }
 
 export async function guardarAjuste(clave: string, valor: string) {

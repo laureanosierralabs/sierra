@@ -37,6 +37,7 @@ export function ProyectoCards({
   clientePor,
   nombreMiembro,
   cotizado,
+  verCotizacion,
   clientes,
   miembros,
 }: {
@@ -44,6 +45,7 @@ export function ProyectoCards({
   clientePor: Map<string, string>;
   nombreMiembro: Map<string, string>;
   cotizado: Map<string, ResumenCotizado>;
+  verCotizacion: boolean;
   clientes: Cliente[];
   miembros: Miembro[];
 }) {
@@ -62,7 +64,7 @@ export function ProyectoCards({
         const responsables = p.assignee_ids
           .map((id) => nombreMiembro.get(id))
           .filter((n): n is string => Boolean(n));
-        const cotizacion = cotizado.get(p.id);
+        const cotizacion = verCotizacion ? cotizado.get(p.id) : undefined;
 
         return (
           <div

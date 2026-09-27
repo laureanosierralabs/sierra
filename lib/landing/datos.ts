@@ -6,6 +6,7 @@ import type {
   Cotizacion,
   Moneda,
   NotaCliente,
+  PagoCotizacion,
   Proceso,
   Proyecto,
   Recurso,
@@ -251,6 +252,18 @@ export async function obtenerCotizacion(id: string): Promise<Cotizacion | null> 
   if (error)
     throw new Error(`No se pudo leer la cotización: ${error.message}`);
   return data ? conProyectos(data) : null;
+}
+
+/** Cobros de una cotización, del más reciente al más viejo. */
+export async function listarPagos(quoteId: string): Promise<PagoCotizacion[]> {
+  const { data, error } = await supabaseAdmin()
+    .from("quote_payments")
+    .select("*")
+    .eq("quote_id", quoteId)
+    .order("paid_on", { ascending: false });
+
+  if (error) throw new Error(`No se pudieron leer los cobros: ${error.message}`);
+  return data ?? [];
 }
 
 /** Lo cotizado por proyecto, para el indicador de la lista. Un proyecto

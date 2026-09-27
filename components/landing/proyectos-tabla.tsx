@@ -20,17 +20,20 @@ import {
   type Proyecto,
 } from "@/lib/landing/tipos";
 
-const COLUMNAS = [
-  "Proyecto",
-  "Cliente",
-  "Tipo",
-  "Estado",
-  "Responsable",
-  "Cotización",
-  "Deadline",
-  "Prioridad",
-  "",
-];
+/** La columna de cotización solo existe para el owner. */
+function columnas(verCotizacion: boolean) {
+  return [
+    "Proyecto",
+    "Cliente",
+    "Tipo",
+    "Estado",
+    "Responsable",
+    ...(verCotizacion ? ["Cotización"] : []),
+    "Deadline",
+    "Prioridad",
+    "",
+  ];
+}
 
 export function ProyectosTabla({
   proyectos,
@@ -39,6 +42,7 @@ export function ProyectosTabla({
   clientePor,
   nombreMiembro,
   cotizado,
+  verCotizacion,
 }: {
   proyectos: Proyecto[];
   clientes: Cliente[];
@@ -46,7 +50,9 @@ export function ProyectosTabla({
   clientePor: Map<string, string>;
   nombreMiembro: Map<string, string>;
   cotizado: Map<string, ResumenCotizado>;
+  verCotizacion: boolean;
 }) {
+  const COLUMNAS = columnas(verCotizacion);
   return (
     <div className="overflow-hidden rounded-xl border border-line bg-surface shadow-e1">
       <table className="w-full text-sm">
@@ -102,12 +108,14 @@ export function ProyectosTabla({
                   .filter((n): n is string => Boolean(n))
                   .join(", ") || "—"}
               </td>
-              <td className="tnum px-4 py-3 text-text-2">
-                {(() => {
-                  const c = cotizado.get(p.id);
-                  return c ? formatearMonto(c.total, c.currency) : "—";
-                })()}
-              </td>
+              {verCotizacion && (
+                <td className="tnum px-4 py-3 text-text-2">
+                  {(() => {
+                    const c = cotizado.get(p.id);
+                    return c ? formatearMonto(c.total, c.currency) : "—";
+                  })()}
+                </td>
+              )}
               <td className="px-4 py-3">
                 <Vencimiento fecha={p.due_date} cerrado={p.status === "entregado"} />
               </td>
