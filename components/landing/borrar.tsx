@@ -3,11 +3,33 @@
 import { useRouter } from "next/navigation";
 import { BorrarBoton } from "@/components/landing/borrar-boton";
 import {
+  borrarAcuerdo,
   borrarCliente,
   borrarCotizacion,
   borrarProyecto,
   borrarTarea,
 } from "@/app/landing-pages/acciones";
+
+export function BorrarAcuerdo({
+  id,
+  redirigirA,
+}: {
+  id: string;
+  redirigirA?: string;
+}) {
+  const router = useRouter();
+
+  return (
+    <BorrarBoton
+      etiqueta="Borrar acuerdo"
+      advertencia="Borra también su historial de pagos."
+      onConfirmar={async () => {
+        await borrarAcuerdo(id);
+        if (redirigirA) router.push(redirigirA);
+      }}
+    />
+  );
+}
 
 export function BorrarProyecto({
   id,

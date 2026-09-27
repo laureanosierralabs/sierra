@@ -357,6 +357,45 @@ export interface Cotizacion {
   updated_at: string;
 }
 
+/**
+ * Lo que se le paga a quien ejecuta. Espejo de Cotizacion: puede cubrir
+ * varios proyectos y pagarse en partes. Sin proyectos vinculados es trabajo
+ * por horas (mantenimiento, cambios sueltos).
+ */
+export interface AcuerdoEquipo {
+  id: string;
+  numero: number;
+  member_name: string;
+  title: string;
+  total_amount: number | null;
+  currency: Moneda;
+  amount_paid: number;
+  payment_status: Exclude<EstadoPago, "not_applicable">;
+  payment_terms: string | null;
+  notes: string | null;
+  project_ids: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PagoEquipo {
+  id: string;
+  agreement_id: string;
+  amount: number;
+  paid_on: string;
+  method: string | null;
+  notes: string | null;
+  created_at: string;
+}
+
+export function codigoAcuerdo(numero: number): string {
+  return `PAG-${String(numero).padStart(4, "0")}`;
+}
+
+export function pendienteDePago(a: AcuerdoEquipo): number {
+  return Math.max((a.total_amount ?? 0) - a.amount_paid, 0);
+}
+
 /** Un cobro concreto. amount_paid de la cotización es la suma de estos. */
 export interface PagoCotizacion {
   id: string;

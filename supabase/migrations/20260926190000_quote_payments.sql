@@ -25,11 +25,17 @@ alter table quote_payments enable row level security;
 -- Migra el acumulado que ya estaba cargado. La fecha real de esos cobros no
 -- se conoce, así que se usa la de creación de la cotización: es lo más
 -- cercano a la verdad sin inventar un dato.
+--
+-- El `not exists` hace falta porque la PK es un uuid generado: un `on
+-- conflict do nothing` no detecta nada y correr esto dos veces duplicaría
+-- cada cobro.
 insert into quote_payments (quote_id, amount, paid_on, notes)
-select id, amount_paid, created_at::date, 'Cobro registrado antes del historial'
-from quotes
-where amount_paid > 0
-on conflict do nothing;
+select q.id, q.amount_paid, q.created_at::date, 'Cobro registrado antes del historial'
+from quotes q
+where q.amount_paid > 0
+  and not exists (
+    select 1 from quote_payments p where p.quote_id = q.id
+  );
 
 -- amount_paid queda como espejo de la suma de pagos.
 create or replace function recalcular_amount_paid()

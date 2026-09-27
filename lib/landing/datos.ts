@@ -2,9 +2,11 @@ import "server-only";
 
 import { supabaseAdmin } from "@/lib/landing/supabase";
 import type {
+  AcuerdoEquipo,
   Cliente,
   Cotizacion,
   Moneda,
+  PagoEquipo,
   NotaCliente,
   PagoCotizacion,
   Proceso,
@@ -252,6 +254,74 @@ export async function obtenerCotizacion(id: string): Promise<Cotizacion | null> 
   if (error)
     throw new Error(`No se pudo leer la cotización: ${error.message}`);
   return data ? conProyectos(data) : null;
+}
+
+function conProyectosAcuerdo(
+  fila: Omit<AcuerdoEquipo, "project_ids"> & {
+    agreement_projects?: { project_id: string }[] | null;
+  },
+): AcuerdoEquipo {
+  const { agreement_projects, ...resto } = fila;
+  return {
+    ...resto,
+    project_ids: (agreement_projects ?? []).map((a) => a.project_id),
+  };
+}
+
+export async function listarAcuerdos(): Promise<AcuerdoEquipo[]> {
+  const { data, error } = await supabaseAdmin()
+    .from("team_agreements")
+    .select("*, agreement_projects(project_id)")
+    .order("numero", { ascending: false });
+
+  if (error) throw new Error(`No se pudieron leer los acuerdos: ${error.message}`);
+  return (data ?? []).map(conProyectosAcuerdo);
+}
+
+export async function obtenerAcuerdo(id: string): Promise<AcuerdoEquipo | null> {
+  const { data, error } = await supabaseAdmin()
+    .from("team_agreements")
+    .select("*, agreement_projects(project_id)")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) throw new Error(`No se pudo leer el acuerdo: ${error.message}`);
+  return data ? conProyectosAcuerdo(data) : null;
+}
+
+export async function listarPagosEquipo(
+  agreementId: string,
+): Promise<PagoEquipo[]> {
+  const { data, error } = await supabaseAdmin()
+    .from("team_payments")
+    .select("*")
+    .eq("agreement_id", agreementId)
+    .order("paid_on", { ascending: false });
+
+  if (error) throw new Error(`No se pudieron leer los pagos: ${error.message}`);
+  return data ?? [];
+}
+
+/** Lo comprometido con el equipo por proyecto, para calcular margen. */
+export async function costoPorProyecto(): Promise<Map<string, number>> {
+  const { data, error } = await supabaseAdmin()
+    .from("agreement_projects")
+    .select("project_id, team_agreements(total_amount)");
+
+  if (error) throw new Error(`No se pudo leer el costo: ${error.message}`);
+
+  const mapa = new Map<string, number>();
+  for (const fila of data ?? []) {
+    const a = fila.team_agreements as unknown as {
+      total_amount: number | null;
+    } | null;
+    if (!a) continue;
+    mapa.set(
+      fila.project_id,
+      (mapa.get(fila.project_id) ?? 0) + (a.total_amount ?? 0),
+    );
+  }
+  return mapa;
 }
 
 /** Cobros de una cotización, del más reciente al más viejo. */

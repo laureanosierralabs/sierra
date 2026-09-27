@@ -1028,6 +1028,145 @@ async function sincronizarEstadoPago(quoteId: string) {
     .eq("id", quoteId);
 }
 
+export async function guardarAcuerdo(fd: FormData) {
+  await exigirOwner();
+
+  const titulo = texto(fd, "title");
+  if (!titulo) throw new Error("Falta el título del acuerdo");
+
+  const miembro = texto(fd, "member_name");
+  if (!miembro) throw new Error("Falta a quién se le paga");
+
+  const proyectos = varios(fd, "project_ids");
+
+  const fila = {
+    member_name: miembro,
+    title: titulo,
+    total_amount: monto(fd, "total_amount"),
+    currency: unaDe<Moneda>(texto(fd, "currency"), MONEDAS, "Moneda"),
+    payment_terms: opcional(fd, "payment_terms"),
+    notes: opcional(fd, "notes"),
+    updated_at: new Date().toISOString(),
+  };
+
+  const id = opcional(fd, "id");
+  const db = supabaseAdmin();
+
+  if (id) {
+    const { error } = await db.from("team_agreements").update(fila).eq("id", id);
+    if (error) throw new Error(`No se pudo guardar el acuerdo: ${error.message}`);
+    await sincronizarProyectosAcuerdo(id, proyectos);
+    revalidarEquipo(id);
+    return;
+  }
+
+  const { data: creado, error } = await db
+    .from("team_agreements")
+    .insert(fila)
+    .select("id")
+    .single();
+
+  if (error || !creado)
+    throw new Error(`No se pudo guardar el acuerdo: ${error?.message ?? ""}`);
+
+  await sincronizarProyectosAcuerdo(creado.id, proyectos);
+  revalidarEquipo();
+}
+
+async function sincronizarProyectosAcuerdo(
+  agreementId: string,
+  projectIds: string[],
+) {
+  const db = supabaseAdmin();
+  const { error: errBorrar } = await db
+    .from("agreement_projects")
+    .delete()
+    .eq("agreement_id", agreementId);
+  if (errBorrar)
+    throw new Error(`No se pudieron vincular los proyectos: ${errBorrar.message}`);
+
+  if (projectIds.length === 0) return;
+
+  const { error } = await db
+    .from("agreement_projects")
+    .insert(
+      projectIds.map((project_id) => ({ agreement_id: agreementId, project_id })),
+    );
+  if (error)
+    throw new Error(`No se pudieron vincular los proyectos: ${error.message}`);
+}
+
+function revalidarEquipo(id?: string) {
+  revalidatePath("/landing-pages/costos");
+  revalidatePath("/finanzas/negocio");
+  if (id) revalidatePath(`/landing-pages/costos/${id}`);
+}
+
+export async function borrarAcuerdo(id: string) {
+  await exigirOwner();
+
+  const { error } = await supabaseAdmin()
+    .from("team_agreements")
+    .delete()
+    .eq("id", id);
+
+  if (error) throw new Error(`No se pudo borrar el acuerdo: ${error.message}`);
+  revalidarEquipo();
+}
+
+export async function registrarPagoEquipo(fd: FormData) {
+  await exigirOwner();
+
+  const agreementId = texto(fd, "agreement_id");
+  if (!agreementId) throw new Error("Falta el acuerdo");
+
+  const importe = monto(fd, "amount");
+  if (importe === null || importe <= 0)
+    throw new Error("El monto del pago tiene que ser mayor a cero");
+
+  const db = supabaseAdmin();
+
+  const { data: acuerdo } = await db
+    .from("team_agreements")
+    .select("total_amount, amount_paid")
+    .eq("id", agreementId)
+    .maybeSingle();
+
+  if (!acuerdo) throw new Error("No se pudo leer el acuerdo");
+
+  const total = acuerdo.total_amount as number | null;
+  const yaPagado = Number(acuerdo.amount_paid ?? 0);
+
+  if (total !== null && yaPagado + importe > total) {
+    throw new Error(
+      `Se pasa del total: quedan ${total - yaPagado} por pagar de ${total}`,
+    );
+  }
+
+  const { error } = await db.from("team_payments").insert({
+    agreement_id: agreementId,
+    amount: importe,
+    paid_on: fecha(fd, "paid_on") ?? new Date().toISOString().slice(0, 10),
+    method: opcional(fd, "method"),
+    notes: opcional(fd, "notes"),
+  });
+
+  if (error) throw new Error(`No se pudo registrar el pago: ${error.message}`);
+  revalidarEquipo(agreementId);
+}
+
+export async function borrarPagoEquipo(id: string, agreementId: string) {
+  await exigirOwner();
+
+  const { error } = await supabaseAdmin()
+    .from("team_payments")
+    .delete()
+    .eq("id", id);
+
+  if (error) throw new Error(`No se pudo borrar el pago: ${error.message}`);
+  revalidarEquipo(agreementId);
+}
+
 export async function guardarAjuste(clave: string, valor: string) {
   await exigirSesion();
 

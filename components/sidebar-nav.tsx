@@ -17,6 +17,7 @@ import {
   UserCircle,
   UserCog,
   Users,
+  Wallet,
   type LucideIcon,
 } from "lucide-react";
 import { NavFinanzas } from "@/components/nav-finanzas";
@@ -29,6 +30,7 @@ const ICONOS: Record<string, LucideIcon> = {
   Users,
   FileText,
   UserCog,
+  Wallet,
 };
 
 const ICONO_UNIDAD: Record<Unidad, LucideIcon> = {
