@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import {
   listarProyectos,
   obtenerProyecto,
+  listarAdjuntos,
   obtenerTarea,
 } from "@/lib/landing/datos";
 import { listarMiembros } from "@/lib/landing/auth";
@@ -24,10 +25,11 @@ export default async function TareaDetalle({
   const tarea = await obtenerTarea(id);
   if (!tarea) notFound();
 
-  const [proyecto, miembros, proyectos] = await Promise.all([
+  const [proyecto, miembros, proyectos, adjuntos] = await Promise.all([
     tarea.project_id ? obtenerProyecto(tarea.project_id) : null,
     listarMiembros(),
     listarProyectos(),
+    listarAdjuntos(id),
   ]);
 
   const volverA = proyecto
@@ -62,6 +64,7 @@ export default async function TareaDetalle({
         tarea={tarea}
         proyecto={proyecto}
         miembros={miembros}
+        adjuntos={adjuntos}
       />
     </>
   );

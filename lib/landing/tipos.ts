@@ -290,6 +290,33 @@ export interface TareaProceso {
   updated_at: string;
 }
 
+/**
+ * Adjunto de una tarea: o es un link, o es un archivo subido, nunca ambos.
+ * El brief, el Fathom de la reunión, el Figma del diseño.
+ */
+export interface Adjunto {
+  id: string;
+  task_id: string;
+  name: string;
+  url: string | null;
+  storage_path: string | null;
+  mime_type: string | null;
+  size_bytes: number | null;
+  created_at: string;
+}
+
+export function esArchivo(a: Adjunto): boolean {
+  return a.storage_path !== null;
+}
+
+/** Peso legible. Un "2458621" en la UI no le dice nada a nadie. */
+export function tamanoLegible(bytes: number | null): string | null {
+  if (bytes === null) return null;
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 export interface NotaCliente {
   id: string;
   client_id: string;

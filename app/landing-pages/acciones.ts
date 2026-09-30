@@ -1267,6 +1267,123 @@ export async function borrarGastoFijo(id: string) {
   revalidatePath("/landing-pages/finanzas");
 }
 
+const BUCKET_ADJUNTOS = "adjuntos";
+const MAX_ADJUNTO = 20 * 1024 * 1024;
+
+export async function agregarLinkTarea(fd: FormData) {
+  await exigirSesion();
+
+  const taskId = texto(fd, "task_id");
+  if (!taskId) throw new Error("Falta la tarea");
+
+  const enlace = url(fd, "url");
+  if (!enlace) throw new Error("Falta el link");
+
+  // Sin nombre se usa el dominio: mejor "drive.google.com" que una URL cruda.
+  const nombre = texto(fd, "name") || new URL(enlace).hostname;
+
+  const { error } = await supabaseAdmin().from("task_attachments").insert({
+    task_id: taskId,
+    name: nombre,
+    url: enlace,
+  });
+
+  if (error) throw new Error(`No se pudo guardar el link: ${error.message}`);
+  revalidarTarea(taskId);
+}
+
+export async function subirArchivoTarea(fd: FormData) {
+  await exigirSesion();
+
+  const taskId = texto(fd, "task_id");
+  if (!taskId) throw new Error("Falta la tarea");
+
+  const archivo = fd.get("archivo");
+  if (!(archivo instanceof File) || archivo.size === 0) {
+    throw new Error("No llegó ningún archivo");
+  }
+  if (archivo.size > MAX_ADJUNTO) {
+    throw new Error("El archivo supera los 20 MB");
+  }
+
+  const db = supabaseAdmin();
+  const punto = archivo.name.lastIndexOf(".");
+  const ext = punto > 0 ? archivo.name.slice(punto + 1).toLowerCase() : "bin";
+  const base = punto > 0 ? archivo.name.slice(0, punto) : archivo.name;
+  const ruta = `${taskId}/${Date.now()}-${slugify(base)}.${ext}`;
+
+  const { error: errSubida } = await db.storage
+    .from(BUCKET_ADJUNTOS)
+    .upload(ruta, archivo, {
+      contentType: archivo.type || "application/octet-stream",
+      upsert: false,
+    });
+
+  if (errSubida)
+    throw new Error(`No se pudo subir el archivo: ${errSubida.message}`);
+
+  const { error } = await db.from("task_attachments").insert({
+    task_id: taskId,
+    name: archivo.name,
+    storage_path: ruta,
+    mime_type: archivo.type || null,
+    size_bytes: archivo.size,
+  });
+
+  if (error) {
+    // Si falla la fila, el archivo quedaría huérfano en el bucket.
+    await db.storage.from(BUCKET_ADJUNTOS).remove([ruta]);
+    throw new Error(`No se pudo guardar el adjunto: ${error.message}`);
+  }
+
+  revalidarTarea(taskId);
+}
+
+export async function borrarAdjunto(id: string, taskId: string) {
+  await exigirSesion();
+  const db = supabaseAdmin();
+
+  const { data } = await db
+    .from("task_attachments")
+    .select("storage_path")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (data?.storage_path) {
+    await db.storage.from(BUCKET_ADJUNTOS).remove([data.storage_path]);
+  }
+
+  const { error } = await db.from("task_attachments").delete().eq("id", id);
+  if (error) throw new Error(`No se pudo borrar: ${error.message}`);
+
+  revalidarTarea(taskId);
+}
+
+/** El bucket es privado: el archivo se sirve con una URL firmada y corta. */
+export async function urlAdjunto(id: string): Promise<string | null> {
+  await exigirSesion();
+  const db = supabaseAdmin();
+
+  const { data } = await db
+    .from("task_attachments")
+    .select("storage_path")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (!data?.storage_path) return null;
+
+  const { data: firmada } = await db.storage
+    .from(BUCKET_ADJUNTOS)
+    .createSignedUrl(data.storage_path, 60 * 5);
+
+  return firmada?.signedUrl ?? null;
+}
+
+function revalidarTarea(taskId: string) {
+  revalidatePath(`/landing-pages/tasks/${taskId}`);
+  revalidatePath("/landing-pages/tasks");
+}
+
 export async function guardarAjuste(clave: string, valor: string) {
   await exigirSesion();
 

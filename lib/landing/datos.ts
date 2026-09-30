@@ -3,6 +3,7 @@ import "server-only";
 import { supabaseAdmin } from "@/lib/landing/supabase";
 import type {
   AcuerdoEquipo,
+  Adjunto,
   Cliente,
   Cotizacion,
   GastoFijo,
@@ -345,6 +346,19 @@ export async function costoPorProyecto(): Promise<Map<string, number>> {
     );
   }
   return mapa;
+}
+
+/** Links y archivos de una tarea, del más viejo al más nuevo. */
+export async function listarAdjuntos(taskId: string): Promise<Adjunto[]> {
+  const { data, error } = await supabaseAdmin()
+    .from("task_attachments")
+    .select("*")
+    .eq("task_id", taskId)
+    .order("created_at", { ascending: true });
+
+  if (error)
+    throw new Error(`No se pudieron leer los adjuntos: ${error.message}`);
+  return data ?? [];
 }
 
 /** Cobros de una cotización, del más reciente al más viejo. */

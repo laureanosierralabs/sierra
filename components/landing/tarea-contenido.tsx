@@ -4,14 +4,16 @@ import {
   CircleDashed,
   Flag,
   FolderKanban,
+  Paperclip,
   UserRound,
   type LucideIcon,
 } from "lucide-react";
 import { plantillaDe } from "@/lib/landing/plantillas";
-import { Prioridad, Vencimiento } from "@/components/landing/ui";
+import { Prioridad, SeccionTitulo, Vencimiento } from "@/components/landing/ui";
 import { EstadoSelect } from "@/components/landing/estado-select";
 import { FormularioTarea } from "@/components/landing/formulario-tarea";
-import type { Miembro, Proyecto, Tarea } from "@/lib/landing/tipos";
+import { Adjuntos } from "@/components/landing/adjuntos";
+import type { Adjunto, Miembro, Proyecto, Tarea } from "@/lib/landing/tipos";
 
 function Propiedad({
   icono: Icono,
@@ -41,11 +43,13 @@ export function TareaContenido({
   tarea,
   proyecto,
   miembros,
+  adjuntos,
   columnas = 2,
 }: {
   tarea: Tarea;
   proyecto: Proyecto | null;
   miembros: Miembro[];
+  adjuntos: Adjunto[];
   columnas?: 1 | 2;
 }) {
   const nombreMiembro = new Map(miembros.map((m) => [m.id, m.nombre]));
@@ -110,6 +114,11 @@ export function TareaContenido({
           columnas={columnas}
         />
       )}
+
+      <section className="mt-6">
+        <SeccionTitulo icono={Paperclip}>Adjuntos</SeccionTitulo>
+        <Adjuntos taskId={tarea.id} adjuntos={adjuntos} />
+      </section>
     </>
   );
 }

@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import {
   listarProyectos,
   obtenerProyecto,
+  listarAdjuntos,
   obtenerTarea,
 } from "@/lib/landing/datos";
 import { listarMiembros } from "@/lib/landing/auth";
@@ -22,10 +23,11 @@ export default async function PanelTarea({
   const tarea = await obtenerTarea(id);
   if (!tarea) notFound();
 
-  const [proyecto, miembros, proyectos] = await Promise.all([
+  const [proyecto, miembros, proyectos, adjuntos] = await Promise.all([
     tarea.project_id ? obtenerProyecto(tarea.project_id) : null,
     listarMiembros(),
     listarProyectos(),
+    listarAdjuntos(id),
   ]);
 
   return (
@@ -46,6 +48,7 @@ export default async function PanelTarea({
         tarea={tarea}
         proyecto={proyecto}
         miembros={miembros}
+        adjuntos={adjuntos}
         columnas={1}
       />
     </PanelLateral>
