@@ -37,12 +37,12 @@ const TONO: Record<string, string> = {
   prospecto: "var(--idle)",
   cliente: "var(--ok)",
   inactivo: "var(--text-3)",
-  // Cotización
-  borrador: "var(--text-3)",
-  enviada: "var(--idle)",
-  seguimiento: "var(--warn)",
-  aprobada: "var(--ok)",
-  rechazada: "var(--critical)",
+  // Cotización — en inglés desde que se separó estado comercial de pago.
+  draft: "var(--text-3)",
+  sent: "var(--idle)",
+  approved: "var(--ok)",
+  rejected: "var(--critical)",
+  cancelled: "var(--text-3)",
 };
 
 const CONFIG: Record<

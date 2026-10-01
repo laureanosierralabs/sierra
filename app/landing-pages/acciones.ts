@@ -670,16 +670,22 @@ export async function urlDocumento(quoteId: string): Promise<string | null> {
 }
 
 export async function cambiarEstadoCotizacion(id: string, estado: string) {
-  await exigirSesion();
-  const status = unaDe<EstadoCotizacion>(estado, ESTADOS_COTIZACION, "Estado");
+  await exigirOwner();
+  const commercial_status = unaDe<EstadoCotizacion>(
+    estado,
+    ESTADOS_COTIZACION,
+    "Estado",
+  );
 
   const { error } = await supabaseAdmin()
     .from("quotes")
-    .update({ status, updated_at: new Date().toISOString() })
+    .update({ commercial_status, updated_at: new Date().toISOString() })
     .eq("id", id);
 
   if (error) throw new Error(`No se pudo cambiar el estado: ${error.message}`);
+
   revalidar();
+  revalidatePath(`/landing-pages/quotes/${id}`);
 }
 
 /**

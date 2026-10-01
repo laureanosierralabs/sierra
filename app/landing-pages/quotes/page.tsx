@@ -12,11 +12,11 @@ import {
   pendienteDeCobro,
 } from "@/lib/landing/tipos";
 import {
-  EstadoCotizacionPill,
   EstadoPagoPill,
   PageHeader,
   VacioTabla,
 } from "@/components/landing/ui";
+import { EstadoSelect } from "@/components/landing/estado-select";
 import { CotizacionForm } from "@/components/landing/cotizacion-form";
 import { BorrarCotizacion } from "@/components/landing/borrar";
 import { PlantillaCotizacion } from "@/components/landing/plantilla-cotizacion";
@@ -124,9 +124,16 @@ export default async function CotizacionesPage() {
                   </td>
 
                   <td className="px-4 py-3">
-                    <EstadoCotizacionPill estado={q.commercial_status} />
+                    <EstadoSelect
+                      id={q.id}
+                      valor={q.commercial_status}
+                      tipo="cotizacion"
+                    />
                   </td>
 
+                  {/* El pago no se edita acá: sale de los cobros
+                      registrados, y tocarlo a mano lo pondría en
+                      desacuerdo con el historial. */}
                   <td className="px-4 py-3">
                     <EstadoPagoPill estado={q.payment_status} />
                   </td>
