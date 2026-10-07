@@ -43,6 +43,19 @@ export interface TeamProject {
   status: string;
 }
 
+export function emptyTeamMember(id = ""): TeamMember {
+  return {
+    id, name: "", role: "", status: null,
+    responsibilities: "", autonomous_decisions: "", approval_required: "",
+    project_ids: [], context_project_slugs: [],
+    does: "", delegates: "", approves: "", monitors: "",
+  };
+}
+
+export function isTeamMemberId(id: unknown): id is string {
+  return typeof id === "string" && /^[a-z0-9][a-z0-9-]{0,79}$/i.test(id);
+}
+
 export function projectHref(project: TeamProject): string {
   return project.source === "projects"
     ? `/landing-pages/projects/${encodeURIComponent(project.id)}`

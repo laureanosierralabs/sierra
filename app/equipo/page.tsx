@@ -23,6 +23,7 @@ export default async function TeamPage() {
         <p className="eyebrow">Organización</p>
         <h1 className="mt-2 text-3xl font-extrabold tracking-tight">Equipo</h1>
         <p className="mt-2 text-sm text-text-2">Roles, decisiones y proyectos en un solo lugar. Abre una persona para editar su perfil.</p>
+        <Link href="/equipo/nuevo" className="mt-4 inline-flex rounded-lg bg-text px-4 py-2 text-sm font-semibold text-ground hover:opacity-90">Nueva persona</Link>
       </header>
       {error ? <Card className="p-5"><p role="alert" className="text-sm text-critical">{error}</p></Card> : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -48,7 +49,7 @@ export default async function TeamPage() {
               </Card>
             );
           })}
-          {!members.length && <Empty>No hay perfiles cargados. Revisa que se haya aplicado la migración de Equipo.</Empty>}
+          {!members.length && <Empty>No hay personas en el equipo. Usa «Nueva persona» para crear el primer perfil.</Empty>}
         </div>
       )}
     </div>

@@ -19,7 +19,7 @@ export default async function TeamMemberPage({ params }: { params: Promise<{ id:
   }
   if (!error && !member) notFound();
   return (
-    <div className="mx-auto w-full max-w-5xl px-6 py-10 md:px-10">
+    <div className="w-full px-6 py-10 md:px-10">
       <Link href="/equipo" className="text-sm text-text-2 hover:text-text">← Volver al equipo</Link>
       <header className="mb-8 mt-5">
         <p className="eyebrow">Equipo</p>
