@@ -225,6 +225,13 @@ export function SidebarNav({
             Inicio
           </Link>
           <NavFinanzas />
+          <Link
+            href="/equipo"
+            className={`${FILA} ${pathname === "/equipo" || pathname.startsWith("/equipo/") ? "bg-surface-2 text-text" : "text-text-2"}`}
+          >
+            <Users className="size-4" />
+            Equipo
+          </Link>
         </>
       )}
 

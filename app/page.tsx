@@ -4,6 +4,7 @@ import { getUnidades } from "@/lib/contexto";
 import { diasHasta, type Proyecto } from "@/lib/types";
 import { Card, Deadline, Empty } from "@/components/ui";
 import { ProyectoCard } from "@/components/proyecto-card";
+import { TeamSummary } from "@/components/team-summary";
 
 export const dynamic = "force-dynamic";
 
@@ -64,6 +65,8 @@ export default async function Inicio() {
             : "Nada urgente hoy."}
         </p>
       </header>
+
+      <TeamSummary />
 
       <section className="mb-12 grid grid-cols-3 gap-3">
         <Metric
