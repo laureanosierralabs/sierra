@@ -28,17 +28,18 @@ function form(values = {}) {
   return fd;
 }
 
-test("updates all editable fields together and clears nullable status and project links", () => {
+test("updates editable text together and clears nullable status without writing project links", () => {
   const update = parseTeamUpdate(form({
     name: " Lau ", role: " Producto ", responsibilities: "Ventas\nProducto",
     autonomous_decisions: "Pricing", approval_required: "", status: "",
     does: "Producto", delegates: "QA", approves: "Lanzamientos", monitors: "Margen",
-  }), { ...member, status: "bloqueado", project_ids: ["web-1"] }, projects);
+  }), { ...member, status: "bloqueado", project_ids: ["web-1"] });
   assert.equal(update.name, "Lau");
   assert.equal(update.role, "Producto");
   assert.equal(update.responsibilities, "Ventas\nProducto");
   assert.equal(update.status, null);
-  assert.deepEqual(update.project_ids, []);
+  assert.equal("project_ids" in update, false);
+  assert.equal("context_project_slugs" in update, false);
   assert.equal(update.does, "Producto");
   assert.equal(update.delegates, "QA");
   assert.equal(update.approves, "Lanzamientos");
@@ -47,27 +48,29 @@ test("updates all editable fields together and clears nullable status and projec
 });
 
 test("Laureano categories follow stable identity even after rename", () => {
-  assert.equal(parseTeamUpdate(form({ does: "Ventas" }), { ...member, name: "Lau" }, projects).does, "Ventas");
-  assert.equal(parseTeamUpdate(form({ does: "Injected" }), { ...member, id: "bruno" }, projects).does, "Ventas");
+  assert.equal(parseTeamUpdate(form({ does: "Ventas" }), { ...member, name: "Lau" }).does, "Ventas");
+  assert.equal(parseTeamUpdate(form({ does: "Injected" }), { ...member, id: "bruno" }).does, "Ventas");
 });
 
 test("validates required fields, bounds and optional status", () => {
-  assert.throws(() => parseTeamUpdate(form({ name: " " }), member, projects), /nombre y el rol/);
-  assert.throws(() => parseTeamUpdate(form({ role: "" }), member, projects), /nombre y el rol/);
-  assert.throws(() => parseTeamUpdate(form({ name: "x".repeat(121) }), member, projects), /máximo/);
-  assert.throws(() => parseTeamUpdate(form({ responsibilities: "x".repeat(10001) }), member, projects), /máximo/);
+  assert.throws(() => parseTeamUpdate(form({ name: " " }), member), /nombre y el rol/);
+  assert.throws(() => parseTeamUpdate(form({ role: "" }), member), /nombre y el rol/);
+  assert.throws(() => parseTeamUpdate(form({ name: "x".repeat(121) }), member), /máximo/);
+  assert.throws(() => parseTeamUpdate(form({ responsibilities: "x".repeat(10001) }), member), /máximo/);
   for (const status of ["disponible", "trabajando", "bloqueado", "esperando-aprobacion"]) {
-    assert.equal(parseTeamUpdate(form({ status }), member, projects).status, status);
+    assert.equal(parseTeamUpdate(form({ status }), member).status, status);
   }
-  assert.throws(() => parseTeamUpdate(form({ status: "__proto__" }), member, projects), /estado no es válido/);
+  assert.throws(() => parseTeamUpdate(form({ status: "__proto__" }), member), /estado no es válido/);
 });
 
-test("checks project references against the correct catalog, rejects deleted projects and deduplicates", () => {
-  const update = parseTeamUpdate(form({ project_ids: ["web-1", "web-1"], context_project_slugs: ["context-1"] }), member, projects);
-  assert.deepEqual(update.project_ids, ["web-1"]);
-  assert.deepEqual(update.context_project_slugs, ["context-1"]);
-  assert.throws(() => parseTeamUpdate(form({ project_ids: ["context-1"] }), member, projects), /ya no existe/);
-  assert.throws(() => parseTeamUpdate(form({ context_project_slugs: ["deleted"] }), member, projects), /ya no existe/);
+test("project reference fields are ignored even when forged or legacy projects are unavailable", () => {
+  const legacy = { ...member, project_ids: ["deleted-project"], context_project_slugs: ["deleted-context"] };
+  const update = parseTeamUpdate(form({ project_ids: ["forged"], context_project_slugs: ["not-a-project"], role: "New role" }), legacy);
+  assert.equal(update.role, "New role");
+  assert.equal("project_ids" in update, false);
+  assert.equal("context_project_slugs" in update, false);
+  assert.deepEqual(legacy.project_ids, ["deleted-project"]);
+  assert.deepEqual(legacy.context_project_slugs, ["deleted-context"]);
 });
 
 test("unknown metrics stay hidden; shared active projects count once", () => {
@@ -105,7 +108,7 @@ registerHooks({ resolve(specifier, context, nextResolve) {
 } });
 const { createTeamMember, updateTeamMember, deleteTeamMember } = await import("../app/equipo/actions.ts");
 
-function actionFixture({ owner = true, databaseError = null, catalogError = false } = {}) {
+function actionFixture({ owner = true, databaseError = null } = {}) {
   const rows = new Map([[member.id, structuredClone(member)]]);
   const reads = [];
   const writes = [];
@@ -113,7 +116,7 @@ function actionFixture({ owner = true, databaseError = null, catalogError = fals
   globalThis.teamActionMocks = {
     requireTeamOwner: async () => owner,
     getTeamMember: async (id) => { reads.push(id); return rows.get(id) ?? null; },
-    getTeamProjects: async () => { reads.push("projects"); if (catalogError) throw new Error("offline"); return projects; },
+    getTeamProjects: async () => { reads.push("projects"); throw new Error("Profile actions must not query the catalog"); },
     teamLoadError: () => "Error de conexión.",
     revalidatePath: (path) => invalidated.push(path),
     supabaseAdmin: () => ({ from(table) {
@@ -130,7 +133,7 @@ function actionFixture({ owner = true, databaseError = null, catalogError = fals
           if (databaseError) return { data: null, error: databaseError };
           if (operation === "insert") {
             assert.equal(rows.has(values.id), false, "insert must not replace an existing profile");
-            rows.set(values.id, structuredClone(values));
+            rows.set(values.id, { project_ids: [], context_project_slugs: [], ...structuredClone(values) });
             return { data: { id: values.id }, error: null };
           }
           if (!rows.has(id)) return { data: null, error: null };
@@ -164,21 +167,22 @@ test("create uses independent server UUIDs, accepts duplicate names, and persist
   assert.equal(fixture.rows.get(first.id).does, "");
   assert.equal(fixture.rows.get(first.id).responsibilities, "Operaciones");
   assert.equal(fixture.rows.get(first.id).status, "trabajando");
-  assert.deepEqual(fixture.rows.get(first.id).project_ids, ["web-1"]);
-  assert.deepEqual(fixture.rows.get(first.id).context_project_slugs, ["context-1"]);
+  assert.deepEqual(fixture.rows.get(first.id).project_ids, []);
+  assert.deepEqual(fixture.rows.get(first.id).context_project_slugs, []);
+  assert.equal("project_ids" in fixture.writes[0].values, false);
+  assert.equal("context_project_slugs" in fixture.writes[0].values, false);
+  assert.deepEqual(fixture.reads, []);
   assert.equal(fixture.rows.get("laureano").does, "Ventas");
   assert.deepEqual(fixture.invalidated.slice(0, 3), ["/equipo", `/equipo/${first.id}`, "/"]);
 });
 
-test("create validation and catalog failures do not write or invalidate", async () => {
-  let fixture = actionFixture();
+test("create validation failures do not write or invalidate and never require a project catalog", async () => {
+  const fixture = actionFixture();
   assert.match((await createTeamMember(form({ role: "" }))).error, /nombre y el rol/);
-  assert.match((await createTeamMember(form({ project_ids: ["deleted"] }))).error, /ya no existe/);
+  assert.match((await createTeamMember(form({ status: "invalid", project_ids: ["deleted"] }))).error, /estado no es válido/);
   assert.deepEqual(fixture.writes, []);
   assert.deepEqual(fixture.invalidated, []);
-  fixture = actionFixture({ catalogError: true });
-  assert.match((await createTeamMember(form())).error, /No se creó/);
-  assert.deepEqual(fixture.writes, []);
+  assert.deepEqual(fixture.reads, []);
 });
 
 test("update persists edits and stable Laureano categories in one row", async () => {
@@ -187,7 +191,25 @@ test("update persists edits and stable Laureano categories in one row", async ()
   assert.equal(fixture.rows.get("laureano").name, "Lau");
   assert.equal(fixture.rows.get("laureano").does, "Producto");
   assert.equal(fixture.writes.length, 1);
+  assert.deepEqual(fixture.reads, ["laureano"]);
   assert.deepEqual(fixture.invalidated, ["/equipo", "/equipo/laureano", "/"]);
+});
+
+test("update preserves concurrent and unavailable project references without including snapshots in the write", async () => {
+  const fixture = actionFixture();
+  fixture.rows.set("laureano", { ...member, project_ids: ["legacy"], context_project_slugs: ["missing"] });
+  globalThis.teamActionMocks.getTeamMember = async (id) => {
+    const snapshot = structuredClone(fixture.rows.get(id));
+    fixture.rows.set(id, { ...snapshot, project_ids: ["concurrent-project"], context_project_slugs: ["concurrent-context"] });
+    return snapshot;
+  };
+  assert.deepEqual(await updateTeamMember("laureano", form({ role: "Product", project_ids: ["injected"], context_project_slugs: ["injected"] })), {});
+  const updated = fixture.rows.get("laureano");
+  assert.equal(updated.role, "Product");
+  assert.deepEqual(updated.project_ids, ["concurrent-project"]);
+  assert.deepEqual(updated.context_project_slugs, ["concurrent-context"]);
+  assert.equal("project_ids" in fixture.writes[0].values, false);
+  assert.equal("context_project_slugs" in fixture.writes[0].values, false);
 });
 
 test("delete affects only selected profile and rejects missing or invalid IDs", async () => {
@@ -223,4 +245,14 @@ test("overview, detail and create retain the same full-width page container", ()
     assert.doesNotMatch(source, /max-w-5xl/);
   }
   assert.equal(emptyTeamMember().id, "");
+});
+
+test("profile forms remove project controls and catalog reads while providing expandable text fields", () => {
+  const formSource = readFileSync(new URL("../components/team-member-form.tsx", import.meta.url), "utf8");
+  assert.doesNotMatch(formSource, /Proyectos actuales|project_ids|context_project_slugs|TeamProject/);
+  for (const feature of ["rows={9}", "min-h-[200px]", "overflow-hidden", "resize-none", "element.scrollHeight + borders", "ResizeObserver", "nextWidth !== width", "document.fonts.ready", "observer?.disconnect()", "sm:col-span-2"]) assert.ok(formSource.includes(feature), feature);
+  for (const path of ["../app/equipo/actions.ts", "../app/equipo/[id]/page.tsx", "../app/equipo/nuevo/page.tsx"]) {
+    const source = readFileSync(new URL(path, import.meta.url), "utf8");
+    assert.doesNotMatch(source, /getTeamProjects/);
+  }
 });

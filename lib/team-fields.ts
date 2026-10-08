@@ -86,8 +86,8 @@ export function teamMetrics(members: TeamMember[], projects: TeamProject[]) {
   };
 }
 
-/** Accept only editable fields; identity and server metadata cannot be changed. */
-export function parseTeamUpdate(fd: FormData, member: TeamMember, projects: TeamProject[]) {
+/** Project links are not editable here and must never be included in a write. */
+export function parseTeamUpdate(fd: FormData, member: TeamMember) {
   const text = (key: string, limit: number) => {
     const raw = fd.get(key);
     if (raw !== null && typeof raw !== "string") throw new Error("El formulario contiene un valor inválido.");
@@ -100,21 +100,12 @@ export function parseTeamUpdate(fd: FormData, member: TeamMember, projects: Team
   if (!name || !role) throw new Error("Es necesario completar el nombre y el rol.");
   const status = text("status", 40);
   if (status && !Object.hasOwn(TEAM_STATUSES, status)) throw new Error("El estado no es válido.");
-  const references = (key: string, source: TeamProject["source"]) => {
-    const values = fd.getAll(key);
-    if (values.length > 500 || values.some((v) => typeof v !== "string" || !projects.some((p) => p.source === source && p.id === v))) {
-      throw new Error("Algún proyecto ya no existe. Revisa la selección y guarda nuevamente.");
-    }
-    return [...new Set(values as string[])];
-  };
-  const update: Omit<TeamMember, "id"> = {
+  const update: Omit<TeamMember, "id" | "project_ids" | "context_project_slugs"> = {
     name, role,
     status: (status || null) as TeamMember["status"],
     responsibilities: text("responsibilities", 10000),
     autonomous_decisions: text("autonomous_decisions", 10000),
     approval_required: text("approval_required", 10000),
-    project_ids: references("project_ids", "projects"),
-    context_project_slugs: references("context_project_slugs", "context_projects"),
     does: member.does, delegates: member.delegates,
     approves: member.approves, monitors: member.monitors,
   };

@@ -1,17 +1,49 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
+import { useLayoutEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui";
 import { createTeamMember, deleteTeamMember, updateTeamMember } from "@/app/equipo/actions";
-import { LEADERSHIP_FIELDS, TEAM_STATUSES, TEAM_TEXT_FIELDS, projectHref, type TeamMember, type TeamProject } from "@/lib/team-fields";
-import { LABEL_ESTADO_PROYECTO } from "@/lib/landing/tipos";
+import { LEADERSHIP_FIELDS, TEAM_STATUSES, TEAM_TEXT_FIELDS, type TeamMember } from "@/lib/team-fields";
 
 const inputClass = "w-full min-w-0 rounded-lg border border-line bg-ground px-3 py-2 text-sm text-text outline-none transition-colors focus:border-line-strong";
-const contextLabels: Record<string, string> = { activo: "Activo", bloqueado: "Bloqueado", "por-empezar": "Por empezar", pausado: "Pausado", terminado: "Terminado" };
 
-export function TeamMemberForm({ member, projects, mode = "edit" }: { member: TeamMember; projects: TeamProject[]; mode?: "create" | "edit" }) {
+function resizeTeamTextarea(element: HTMLTextAreaElement) {
+  element.style.height = "auto";
+  const style = window.getComputedStyle(element);
+  const borders = parseFloat(style.borderTopWidth) + parseFloat(style.borderBottomWidth);
+  element.style.height = `${Math.ceil(element.scrollHeight + borders)}px`;
+}
+
+function TeamTextarea({ name, value, onChange }: { name: string; value: string; onChange: (value: string) => void }) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  useLayoutEffect(() => {
+    if (ref.current) resizeTeamTextarea(ref.current);
+  }, [value]);
+  useLayoutEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+    let active = true;
+    let width = element.getBoundingClientRect().width;
+    const measure = () => { if (active) resizeTeamTextarea(element); };
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(() => {
+      const nextWidth = element.getBoundingClientRect().width;
+      // Height changes are ours; observing them would create a resize loop.
+      if (nextWidth !== width) { width = nextWidth; measure(); }
+    });
+    observer?.observe(element);
+    window.addEventListener("resize", measure);
+    if (document.fonts) void document.fonts.ready.then(measure);
+    return () => {
+      active = false;
+      observer?.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, []);
+  return <textarea ref={ref} name={name} value={value} onChange={(event) => onChange(event.target.value)} rows={9} maxLength={10000} className={`${inputClass} min-h-[200px] resize-none overflow-hidden`} placeholder="Una idea por línea" />;
+}
+
+export function TeamMemberForm({ member, mode = "edit" }: { member: TeamMember; mode?: "create" | "edit" }) {
   const [values, setValues] = useState(member);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -22,7 +54,7 @@ export function TeamMemberForm({ member, projects, mode = "edit" }: { member: Te
   const [navigating, setNavigating] = useState(false);
   const busy = saving || deleting || navigating;
   const router = useRouter();
-  const edit = (key: keyof TeamMember, value: string | string[] | null) => {
+  const edit = (key: keyof TeamMember, value: string | null) => {
     setValues((previous) => ({ ...previous, [key]: value }));
     setSaved(false);
   };
@@ -60,34 +92,11 @@ export function TeamMemberForm({ member, projects, mode = "edit" }: { member: Te
           </div>
         </Card>
         <div className="grid gap-5 sm:grid-cols-2">
-          {textFields.map(({ key, label }) => <Card key={key} className="min-w-0 p-5"><label className="block">
+          {textFields.map(({ key, label }) => <Card key={key} className={`min-w-0 p-5 ${key === "responsibilities" ? "sm:col-span-2" : ""}`}><label className="block">
             <span className="mb-2 block text-sm font-bold">{label}</span>
-            <textarea name={key} value={values[key]} onChange={(e) => edit(key, e.target.value)} rows={5} maxLength={10000} className={inputClass} placeholder="Una idea por línea" />
+            <TeamTextarea name={key} value={values[key]} onChange={(value) => edit(key, value)} />
           </label></Card>)}
         </div>
-        <Card className="p-5">
-          <h2 className="text-sm font-bold">Proyectos actuales</h2>
-          <p className="mt-1 text-xs text-text-3">Vincula proyectos existentes. Esto no cambia sus responsables ni crea proyectos nuevos.</p>
-          {(["projects", "context_projects"] as const).map((source) => {
-            const field = source === "projects" ? "project_ids" : "context_project_slugs";
-            const options = projects.filter((p) => p.source === source);
-            const missing = values[field].filter((id) => !options.some((p) => p.id === id));
-            return <fieldset key={source} className="mt-5 min-w-0">
-              <legend className="mb-2 text-xs font-semibold text-text-2">{source === "projects" ? "Proyectos Web" : "Proyectos de contexto"}</legend>
-              <div className="grid gap-2 sm:grid-cols-2">
-                {options.map((project) => <div key={project.id} className="flex min-w-0 items-start gap-2 rounded-lg border border-line p-3">
-                  <label className="flex min-w-0 flex-1 items-start gap-2">
-                    <input type="checkbox" name={field} value={project.id} checked={values[field].includes(project.id)} onChange={(e) => edit(field, e.target.checked ? [...values[field], project.id] : values[field].filter((id) => id !== project.id))} className="mt-0.5 shrink-0 accent-text" />
-                    <span className="min-w-0 break-words text-sm">{project.name}<span className="mt-0.5 block text-xs text-text-3">{source === "projects" ? LABEL_ESTADO_PROYECTO[project.status as keyof typeof LABEL_ESTADO_PROYECTO] ?? project.status : contextLabels[project.status] ?? project.status}</span></span>
-                  </label>
-                  <Link href={projectHref(project)} className="shrink-0 rounded p-1 text-xs text-text-2 hover:underline" aria-label={`Ver proyecto ${project.name}`}>Ver →</Link>
-                </div>)}
-                {missing.map((id) => <label key={id} className="flex items-start gap-2 text-xs text-warn"><input type="checkbox" name={field} value={id} checked onChange={() => edit(field, values[field].filter((value) => value !== id))} />Proyecto no disponible. Desmárcalo para guardar.</label>)}
-              </div>
-              {!options.length && !missing.length && <p className="text-xs text-text-3">No hay proyectos en este catálogo.</p>}
-            </fieldset>;
-          })}
-        </Card>
       </fieldset>
       <div aria-live="polite">
         {error && <p role="alert" className="text-sm text-critical">{error}</p>}

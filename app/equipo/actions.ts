@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { randomUUID } from "node:crypto";
 import { supabaseAdmin } from "@/lib/landing/supabase";
-import { getTeamMember, getTeamProjects, requireTeamOwner, teamLoadError } from "@/lib/team";
+import { getTeamMember, requireTeamOwner, teamLoadError } from "@/lib/team";
 import { emptyTeamMember, isTeamMemberId, parseTeamUpdate } from "@/lib/team-fields";
 
 function refreshTeam(id: string) {
@@ -16,10 +16,9 @@ export async function createTeamMember(fd: FormData): Promise<{ error?: string; 
   if (!(await requireTeamOwner())) return { error: "Sin acceso para editar el equipo." };
   const id = randomUUID();
   try {
-    const projects = await getTeamProjects();
     let profile;
     try {
-      profile = parseTeamUpdate(fd, emptyTeamMember(id), projects);
+      profile = parseTeamUpdate(fd, emptyTeamMember(id));
     } catch (error) {
       return { error: error instanceof Error ? error.message : "Revisa los datos del formulario." };
     }
@@ -54,14 +53,14 @@ export async function updateTeamMember(id: string, fd: FormData): Promise<{ erro
   if (!isTeamMemberId(id)) return { error: "El identificador de la persona no es válido." };
   let update;
   try {
-    const [member, projects] = await Promise.all([getTeamMember(id), getTeamProjects()]);
+    const member = await getTeamMember(id);
     if (!member) return { error: "Esta persona ya no existe en el equipo." };
     try {
-      update = parseTeamUpdate(fd, member, projects);
+      update = parseTeamUpdate(fd, member);
     } catch (error) {
       return { error: error instanceof Error ? error.message : "Revisa los datos del formulario." };
     }
-    // One update persists profile, categories and all project links together.
+    // Existing project links are intentionally excluded from profile edits.
     const { data, error } = await supabaseAdmin().from("team_members")
       .update({ ...update, updated_at: new Date().toISOString() }).eq("id", id).select("id").maybeSingle();
     if (error) throw error;
