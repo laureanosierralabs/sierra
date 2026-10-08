@@ -1,10 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Check, Copy, Eye, EyeOff } from "lucide-react";
+import { Check, Copy1, Eye, EyeDisabled } from "@tailgrids/icons";
+import { BOTON_ICONO } from "@/components/landing/boton-icono";
 import { revelarCredencial } from "@/app/landing-pages/acciones";
-
-const BOTON = "text-text-3 transition-colors hover:text-text disabled:opacity-50";
 
 export function Copiar({ texto }: { texto: string }) {
   const [copiado, setCopiado] = useState(false);
@@ -23,12 +22,12 @@ export function Copiar({ texto }: { texto: string }) {
           // Sin permiso de portapapeles: no hay nada que hacer acá.
         }
       }}
-      className={BOTON}
+      className={BOTON_ICONO}
     >
       {copiado ? (
-        <Check className="size-3.5 text-ok" />
+        <Check className="text-success-500" />
       ) : (
-        <Copy className="size-3.5" />
+        <Copy1 />
       )}
     </button>
   );
@@ -52,7 +51,7 @@ export function Credencial({
   if (valor === null) {
     return (
       <span className="flex items-center gap-2">
-        <span className="tnum text-sm text-text-3">••••••••</span>
+        <span className="text-sm tabular-nums text-text-tertiary">••••••••</span>
         <button
           type="button"
           disabled={pendiente}
@@ -68,12 +67,12 @@ export function Credencial({
               }
             })
           }
-          className={BOTON}
+          className={BOTON_ICONO}
         >
-          <Eye className="size-3.5" />
+          <Eye />
         </button>
         {error && (
-          <span className="text-xs text-critical">No se pudo descifrar</span>
+          <span className="text-xs text-input-error">No se pudo descifrar</span>
         )}
       </span>
     );
@@ -88,9 +87,9 @@ export function Credencial({
         aria-label="Ocultar credencial"
         title="Ocultar"
         onClick={() => setValor(null)}
-        className={BOTON}
+        className={BOTON_ICONO}
       >
-        <EyeOff className="size-3.5" />
+        <EyeDisabled />
       </button>
     </span>
   );

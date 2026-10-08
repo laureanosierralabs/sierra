@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
-import { ImagePlus, Pencil } from "lucide-react";
+import { Gallery, Pencil1 } from "@tailgrids/icons";
 import { subirPortada } from "@/app/landing-pages/acciones";
 
 /**
@@ -64,14 +64,14 @@ export function SubirPortada({
           e.stopPropagation();
           inputRef.current?.click();
         }}
-        className={`rounded-md bg-ground/90 p-1.5 backdrop-blur transition-colors disabled:opacity-50 ${
-          error ? "text-critical" : "text-text-2 hover:text-text"
+        className={`rounded-md bg-card-background/90 p-1.5 backdrop-blur transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary-500 disabled:opacity-50 [&>svg]:size-4 ${
+          error ? "text-input-error" : "text-text-secondary hover:text-text-primary"
         }`}
       >
         {tienePortada ? (
-          <Pencil className="size-3.5" />
+          <Pencil1 />
         ) : (
-          <ImagePlus className="size-3.5" />
+          <Gallery />
         )}
       </button>
     </>

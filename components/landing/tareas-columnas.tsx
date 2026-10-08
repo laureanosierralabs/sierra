@@ -20,10 +20,16 @@ function ordenPor<T extends string>(valores: readonly T[], clave: (t: Tarea) => 
     valores.indexOf(clave(a.original)) - valores.indexOf(clave(b.original));
 }
 
+interface OpcionesColumnas {
+  /** Dentro de un proyecto la columna Proyecto sobra, y borrar revalida ese proyecto. */
+  proyectoActual?: string;
+}
+
 /** Mismas columnas que la tabla anterior: Tarea, Proyecto, Responsable, Estado, Prioridad, Deadline. */
 export function crearColumnasTareas(
-  proyectos: Proyecto[],
+  proyectos: Pick<Proyecto, "id" | "name">[],
   miembros: Miembro[],
+  { proyectoActual }: OpcionesColumnas = {},
 ): ColumnDef<Tarea>[] {
   const nombrePor = new Map(miembros.map((m) => [m.id, m.nombre]));
   const proyectoPor = new Map(proyectos.map((p) => [p.id, p.name]));
@@ -42,12 +48,18 @@ export function crearColumnasTareas(
         </Link>
       ),
     },
-    {
-      id: "project",
-      header: "Proyecto",
-      accessorFn: (t) => (t.project_id ? (proyectoPor.get(t.project_id) ?? "") : ""),
-      cell: ({ getValue }) => getValue<string>() || SIN_DATO,
-    },
+    ...(proyectoActual
+      ? []
+      : [
+          {
+            id: "project",
+            header: "Proyecto",
+            accessorFn: (t: Tarea) =>
+              t.project_id ? (proyectoPor.get(t.project_id) ?? "") : "",
+            cell: ({ getValue }: { getValue: () => unknown }) =>
+              (getValue() as string) || SIN_DATO,
+          } satisfies ColumnDef<Tarea>,
+        ]),
     {
       id: "assignee",
       header: "Responsable",
@@ -93,7 +105,7 @@ export function crearColumnasTareas(
       cell: ({ row }) => (
         <span className="flex items-center justify-end gap-3">
           <TareaForm miembros={miembros} proyectos={proyectos} tarea={row.original} />
-          <BorrarTarea id={row.original.id} />
+          <BorrarTarea id={row.original.id} projectId={proyectoActual} />
         </span>
       ),
     },

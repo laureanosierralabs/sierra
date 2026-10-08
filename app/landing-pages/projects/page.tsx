@@ -7,7 +7,8 @@ import {
 import { accesoActual, listarMiembros } from "@/lib/landing/auth";
 import { PageHeader } from "@/components/landing/ui";
 import { ProyectoForm } from "@/components/landing/proyecto-form";
-import { ToggleVista, VistaProyectos } from "@/components/landing/vista-proyectos";
+import { ToggleVista } from "@/components/landing/toggle-vista";
+import { VistaProyectos } from "@/components/landing/vista-proyectos";
 
 export const dynamic = "force-dynamic";
 

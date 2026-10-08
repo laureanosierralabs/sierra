@@ -1,19 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import {
-  ArrowLeft,
-  Building2,
-  CalendarClock,
-  CircleDashed,
-  ExternalLink,
-  FileText,
-  Flag,
-  Globe,
-  Receipt,
-  Target,
-  UserRound,
-  type LucideIcon,
-} from "lucide-react";
+import { ArrowLeft } from "@tailgrids/icons";
 import {
   listarClientes,
   listarCotizacionesDeProyecto,
@@ -23,52 +10,17 @@ import {
   obtenerProyecto,
 } from "@/lib/landing/datos";
 import { accesoActual, listarMiembros } from "@/lib/landing/auth";
-import {
-  codigoCotizacion,
-  formatearMonto,
-  nombreCliente,
-  pendienteDeCobro,
-} from "@/lib/landing/tipos";
-import {
-  EstadoCotizacionPill,
-  EstadoPagoPill,
-  PageHeader,
-  Prioridad,
-  SeccionTitulo,
-  Vencimiento,
-} from "@/components/landing/ui";
-import { EstadoSelect } from "@/components/landing/estado-select";
-import { EtapaSelect } from "@/components/landing/etapa-select";
+import { PageHeader } from "@/components/landing/ui";
 import { ProyectoForm } from "@/components/landing/proyecto-form";
 import { DuplicarProyecto } from "@/components/landing/duplicar-proyecto";
-import { PortadaPatron } from "@/components/landing/portada-patron";
 import { BorrarProyecto } from "@/components/landing/borrar";
 import { GestionProyecto } from "@/components/landing/gestion-proyecto";
+import { ProyectoCotizaciones } from "@/components/landing/proyecto-cotizaciones";
+import { ProyectoPropiedades } from "@/components/landing/proyecto-propiedades";
 import { Recursos } from "@/components/landing/recursos";
 import { Anotaciones } from "@/components/landing/anotaciones";
 
 export const dynamic = "force-dynamic";
-
-/** Fila del header: ícono + etiqueta a la izquierda, valor a la derecha. */
-function Propiedad({
-  icono: Icono,
-  label,
-  children,
-}: {
-  icono: LucideIcon;
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-center gap-3 py-1.5">
-      <span className="flex w-36 shrink-0 items-center gap-2 text-xs text-text-3">
-        <Icono className="size-3.5" />
-        {label}
-      </span>
-      <div className="min-w-0 flex-1">{children}</div>
-    </div>
-  );
-}
 
 export default async function ProyectoDetalle({
   params,
@@ -103,15 +55,13 @@ export default async function ProyectoDetalle({
       .filter((n): n is string => Boolean(n))
       .join(", ") || null;
 
-  const enlaces = recursos.filter((r) => r.url);
-
   return (
     <>
       <Link
         href="/landing-pages/projects"
-        className="mb-4 inline-flex items-center gap-1.5 text-sm text-text-3 transition-colors hover:text-text"
+        className="mb-4 inline-flex items-center gap-1.5 text-sm text-text-tertiary transition-colors hover:text-text-primary"
       >
-        <ArrowLeft className="size-3.5" />
+        <ArrowLeft className="size-4" />
         Proyectos
       </Link>
 
@@ -130,114 +80,14 @@ export default async function ProyectoDetalle({
         }
       />
 
-      <div className="mb-8 overflow-hidden rounded-xl border border-line bg-surface">
-        <PortadaPatron titulo={proyecto.name} alto="h-36" />
-
-        <div className="grid gap-x-10 px-4 py-3 md:grid-cols-2">
-          <Propiedad icono={CircleDashed} label="Estado">
-            <EstadoSelect
-              id={proyecto.id}
-              valor={proyecto.status}
-              tipo="proyecto"
-            />
-          </Propiedad>
-
-          <Propiedad icono={Target} label="Etapa">
-            <EtapaSelect id={proyecto.id} valor={proyecto.stage} />
-          </Propiedad>
-
-          <Propiedad icono={UserRound} label="Responsables">
-            <p className="truncate text-sm">{responsables ?? "—"}</p>
-          </Propiedad>
-
-          <Propiedad icono={Building2} label="Cliente">
-            {proyecto.client_id ? (
-              <Link
-                href={`/landing-pages/clients/${proyecto.client_id}`}
-                className="truncate text-sm font-medium hover:underline"
-              >
-                {nombreCliente(proyecto, clientePor) ?? "—"}
-              </Link>
-            ) : (
-              <p className="truncate text-sm">
-                {nombreCliente(proyecto, clientePor) ?? "—"}
-              </p>
-            )}
-          </Propiedad>
-
-          <Propiedad icono={Flag} label="Prioridad">
-            <Prioridad prioridad={proyecto.priority} />
-          </Propiedad>
-
-          <Propiedad icono={CalendarClock} label="Inicio">
-            <p className="tnum text-sm text-text-2">
-              {proyecto.start_date ?? "—"}
-            </p>
-          </Propiedad>
-
-          <Propiedad icono={CalendarClock} label="Entrega">
-            <Vencimiento fecha={proyecto.due_date} cerrado={proyecto.status === "entregado"} />
-          </Propiedad>
-
-          {/* Un proyecto puede estar cubierto por más de una cotización:
-              la inicial y después una ampliación de alcance. */}
-          {acceso.esOwner && (
-          <Propiedad icono={Receipt} label="Cotización">
-            {cotizaciones.length === 0 ? (
-              <p className="text-sm text-text-3">—</p>
-            ) : (
-              <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                {cotizaciones.map((q) => (
-                  <Link
-                    key={q.id}
-                    href={`/landing-pages/quotes/${q.id}`}
-                    className="inline-flex items-center gap-1.5 rounded-md border border-line bg-surface-2 px-2 py-1 text-xs transition-colors hover:border-line-strong"
-                  >
-                    <span className="tnum text-text-3">
-                      {codigoCotizacion(q.numero)}
-                    </span>
-                    <span className="tnum font-medium">
-                      {formatearMonto(q.total_amount, q.currency)}
-                    </span>
-                    <EstadoPagoPill estado={q.payment_status} />
-                  </Link>
-                ))}
-              </span>
-            )}
-          </Propiedad>
-          )}
-        </div>
-
-        {/* Los links que se usan todo el día, sin scrollear hasta Recursos */}
-        {(proyecto.site_url || enlaces.length > 0) && (
-          <div className="flex flex-wrap items-center gap-2 border-t border-line px-4 py-3">
-            {proyecto.site_url && (
-              <a
-                href={proyecto.site_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group inline-flex items-center gap-2 rounded-lg border border-ok/30 bg-ok-dim px-3 py-2 text-sm font-medium text-ok transition-colors hover:border-ok/50"
-              >
-                <Globe className="size-3.5" />
-                Ver sitio
-                <ExternalLink className="size-3.5 opacity-60" />
-              </a>
-            )}
-            {enlaces.map((r) => (
-              <a
-                key={r.id}
-                href={r.url!}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group inline-flex items-center gap-2 rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm font-medium text-text-2 transition-colors hover:border-line-strong hover:bg-surface hover:text-text"
-              >
-                {r.name}
-                <ExternalLink className="size-3.5 text-text-3 transition-colors group-hover:text-text-2" />
-              </a>
-            ))}
-          </div>
-        )}
-      </div>
+      <ProyectoPropiedades
+        proyecto={proyecto}
+        responsables={responsables}
+        clientePor={clientePor}
+        cotizaciones={cotizaciones}
+        verCotizacion={acceso.esOwner}
+        recursos={recursos}
+      />
 
       <div className="flex flex-col gap-8">
         <GestionProyecto
@@ -249,46 +99,7 @@ export default async function ProyectoDetalle({
 
         <Recursos duenoId={proyecto.id} recursos={recursos} />
 
-        {cotizaciones.length > 0 && (
-          <section>
-            <SeccionTitulo icono={FileText}>
-              Cotizaciones y acuerdos
-            </SeccionTitulo>
-            <div className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface shadow-e1">
-              {cotizaciones.map((q) => {
-                const pendiente = pendienteDeCobro(q);
-                return (
-                  <Link
-                    key={q.id}
-                    href={`/landing-pages/quotes/${q.id}`}
-                    className="fila-hover flex items-center justify-between gap-3 px-4 py-2.5"
-                  >
-                    <span className="flex min-w-0 flex-col">
-                      <span className="truncate text-sm font-medium">
-                        {q.title}
-                      </span>
-                      <span className="tnum text-xs text-text-3">
-                        {codigoCotizacion(q.numero)}
-                        {q.payment_terms && ` · ${q.payment_terms}`}
-                      </span>
-                    </span>
-                    <span className="flex shrink-0 items-center gap-2">
-                      {pendiente > 0 && (
-                        <span className="tnum text-xs text-warn">
-                          resta {formatearMonto(pendiente, q.currency)}
-                        </span>
-                      )}
-                      <span className="tnum text-sm font-medium">
-                        {formatearMonto(q.total_amount, q.currency)}
-                      </span>
-                      <EstadoCotizacionPill estado={q.commercial_status} />
-                    </span>
-                  </Link>
-                );
-              })}
-            </div>
-          </section>
-        )}
+        {cotizaciones.length > 0 && <ProyectoCotizaciones cotizaciones={cotizaciones} />}
 
         <Anotaciones
           projectId={proyecto.id}

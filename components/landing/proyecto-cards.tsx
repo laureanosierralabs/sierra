@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Globe } from "lucide-react";
+import { Globe2 } from "@tailgrids/icons";
+import { EmptyState } from "@/components/common/empty-state";
 import {
   EstadoProyectoPill,
   Prioridad,
@@ -12,6 +13,8 @@ import { ProyectoForm } from "@/components/landing/proyecto-form";
 import { DuplicarProyecto } from "@/components/landing/duplicar-proyecto";
 import { BorrarProyecto } from "@/components/landing/borrar";
 import { PortadaPatron } from "@/components/landing/portada-patron";
+import { Badge } from "@/components/tailgrids/core/badge";
+import { Card } from "@/components/tailgrids/core/card";
 import type { ResumenCotizado } from "@/lib/landing/datos";
 import {
   LABEL_ETAPA,
@@ -21,16 +24,6 @@ import {
   type Miembro,
   type Proyecto,
 } from "@/lib/landing/tipos";
-
-/**
- * Portada del proyecto. Patrón compartido por todos: la subida de imagen
- * propia quedó en el código (SubirPortada, cover_url) pero no se ofrece, para
- * que la lista se lea como un sistema y no como portadas sueltas.
- */
-function Portada({ proyecto }: { proyecto: Proyecto }) {
-  // El nombre del proyecto: el cliente ya se lee abajo, repetirlo no informa.
-  return <PortadaPatron titulo={proyecto.name} />;
-}
 
 export function ProyectoCards({
   proyectos,
@@ -50,15 +43,11 @@ export function ProyectoCards({
   miembros: Miembro[];
 }) {
   if (proyectos.length === 0) {
-    return (
-      <p className="rounded-xl border border-line bg-surface px-4 py-10 text-center text-sm text-text-3">
-        Todavía no hay proyectos.
-      </p>
-    );
+    return <EmptyState title="Todavía no hay proyectos" />;
   }
 
   return (
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {proyectos.map((p) => {
         const cliente = nombreCliente(p, clientePor);
         const responsables = p.assignee_ids
@@ -67,31 +56,30 @@ export function ProyectoCards({
         const cotizacion = verCotizacion ? cotizado.get(p.id) : undefined;
 
         return (
-          <div
+          <Card
             key={p.id}
-            className="card-interactiva group/card flex flex-col overflow-hidden rounded-xl border border-line bg-surface shadow-e1"
+            className="flex flex-col overflow-hidden p-0 transition-colors hover:border-primary-300"
           >
-            {/* Ya no hay botón de subir portada, así que puede ser un link:
-                la zona grande de la card lleva al proyecto. */}
+            {/* La portada es el patrón común (la subida de imagen propia no se
+                ofrece): la zona grande de la card lleva al proyecto. */}
             <Link
               href={`/landing-pages/projects/${p.id}`}
+              aria-label={`Abrir ${p.name}`}
               className="group/cover relative block"
             >
-              <Portada proyecto={p} />
-              <span className="pointer-events-none absolute inset-0 bg-black/0 transition-colors group-hover/cover:bg-black/20" />
+              <PortadaPatron titulo={p.name} />
+              <span className="pointer-events-none absolute inset-0 bg-primary-950/0 transition-colors group-hover/cover:bg-primary-950/30" />
             </Link>
 
-            <div className="flex flex-1 flex-col gap-2 p-3">
+            <div className="flex flex-1 flex-col gap-2 p-4">
               <div>
                 <Link
                   href={`/landing-pages/projects/${p.id}`}
-                  className="block truncate font-display text-sm font-bold hover:underline"
+                  className="block truncate text-sm font-semibold text-text-primary hover:underline"
                 >
                   {p.name}
                 </Link>
-                {cliente && (
-                  <p className="truncate text-xs text-text-3">{cliente}</p>
-                )}
+                {cliente && <p className="truncate text-xs text-text-tertiary">{cliente}</p>}
               </div>
 
               <div className="flex flex-wrap items-center gap-1.5">
@@ -105,18 +93,18 @@ export function ProyectoCards({
                   href={p.site_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex min-w-0 items-center gap-1 text-xs text-text-3 transition-colors hover:text-text"
+                  className="inline-flex min-w-0 items-center gap-1 text-xs text-text-tertiary transition-colors hover:text-text-primary"
                 >
-                  <Globe className="size-3 shrink-0" />
+                  <Globe2 className="size-3 shrink-0" />
                   <span className="truncate">
                     {p.site_url.replace(/^https?:\/\/(www\.)?/, "")}
                   </span>
                 </a>
               )}
 
-              <div className="mt-auto flex items-center justify-between gap-2 border-t border-line pt-2">
+              <div className="mt-auto flex items-center justify-between gap-2 border-t border-card-border pt-2">
                 <span className="flex min-w-0 items-center gap-1.5">
-                  <span className="truncate text-xs text-text-3">
+                  <span className="truncate text-xs text-text-tertiary">
                     {p.stage
                       ? LABEL_ETAPA[p.stage]
                       : responsables.length > 0
@@ -125,31 +113,27 @@ export function ProyectoCards({
                   </span>
                   {/* Solo el monto: el detalle financiero vive en la cotización. */}
                   {cotizacion && (
-                    <span
+                    <Badge
+                      color="gray"
+                      size="sm"
                       title={`${cotizacion.cantidad} ${cotizacion.cantidad === 1 ? "cotización" : "cotizaciones"}`}
-                      className="tnum shrink-0 rounded border border-line bg-surface-2 px-1.5 py-0.5 text-[0.625rem] font-medium text-text-2"
+                      className="shrink-0 rounded-md tabular-nums"
                     >
                       {formatearMonto(cotizacion.total, cotizacion.currency)}
-                    </span>
+                    </Badge>
                   )}
                 </span>
                 <Vencimiento fecha={p.due_date} cerrado={p.status === "entregado"} />
               </div>
 
-              {/* Acciones al pie: la card ya no es un Link entero, así que
-                  estos botones no compiten con la navegación. Siempre
-                  visibles — en touch no hay hover que las revele. */}
-              <div className="flex items-center justify-end gap-3 border-t border-line pt-2">
-                <ProyectoForm
-                  miembros={miembros}
-                  clientes={clientes}
-                  proyecto={p}
-                />
+              {/* Acciones al pie, siempre visibles: en touch no hay hover. */}
+              <div className="flex items-center justify-end gap-3 border-t border-card-border pt-2">
+                <ProyectoForm miembros={miembros} clientes={clientes} proyecto={p} />
                 <DuplicarProyecto id={p.id} />
                 <BorrarProyecto id={p.id} />
               </div>
             </div>
-          </div>
+          </Card>
         );
       })}
     </div>

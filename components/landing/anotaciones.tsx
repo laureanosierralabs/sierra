@@ -1,9 +1,10 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
-import { StickyNote } from "lucide-react";
+import { PenToSquare } from "@tailgrids/icons";
 import { guardarAnotaciones } from "@/app/landing-pages/acciones";
 import { SeccionTitulo } from "@/components/landing/ui";
+import { TextArea } from "@/components/tailgrids/core/text-area";
 
 /** Textarea que persiste al salir del foco. Alcanza para V1. */
 export function Anotaciones({
@@ -35,9 +36,9 @@ export function Anotaciones({
   return (
     <section>
       <SeccionTitulo
-        icono={StickyNote}
+        icono={PenToSquare}
         accion={
-          <span className="text-xs text-text-3">
+          <span className="text-xs text-text-tertiary" role="status">
             {pendiente
               ? "Guardando…"
               : estado === "guardado"
@@ -51,12 +52,13 @@ export function Anotaciones({
         Anotaciones importantes
       </SeccionTitulo>
 
-      <textarea
+      <TextArea
+        aria-label="Anotaciones importantes"
         defaultValue={valor ?? ""}
         onBlur={alSalir}
         rows={4}
         placeholder="Lo que no se puede olvidar de este proyecto…"
-        className="w-full rounded-xl border border-line bg-surface p-4 text-sm leading-relaxed text-text outline-none transition-colors focus:border-line-strong"
+        className="leading-relaxed"
       />
     </section>
   );

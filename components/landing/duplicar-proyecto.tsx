@@ -1,7 +1,10 @@
 "use client";
 
 import { useTransition } from "react";
-import { Copy } from "lucide-react";
+import { unstable_rethrow } from "next/navigation";
+import { Copy1 } from "@tailgrids/icons";
+import { toast } from "sonner";
+import { BOTON_ICONO } from "@/components/landing/boton-icono";
 import { duplicarProyecto } from "@/app/landing-pages/acciones";
 
 /** Duplica el proyecto con su checklist y abre la copia. */
@@ -16,12 +19,18 @@ export function DuplicarProyecto({ id }: { id: string }) {
       title="Duplicar con sus tareas y recursos"
       onClick={() =>
         iniciar(async () => {
-          await duplicarProyecto(id);
+          try {
+            await duplicarProyecto(id);
+          } catch (e) {
+            // La action redirige a la copia: esa "excepción" no es un error.
+            unstable_rethrow(e);
+            toast.error(e instanceof Error ? e.message : "No se pudo duplicar el proyecto");
+          }
         })
       }
-      className="text-text-3 transition-colors hover:text-text disabled:opacity-50"
+      className={BOTON_ICONO}
     >
-      <Copy className="size-3.5" />
+      <Copy1 />
     </button>
   );
 }

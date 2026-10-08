@@ -1,8 +1,20 @@
 "use client";
 
 import { useTransition } from "react";
+import { toast } from "sonner";
 import { cambiarEtapaProyecto } from "@/app/landing-pages/acciones";
+import {
+  Select,
+  SelectContent,
+  SelectIndicator,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/tailgrids/core/select";
 import { ETAPAS, LABEL_ETAPA, type Etapa } from "@/lib/landing/tipos";
+
+/** El Select de React Aria no admite una opción de valor vacío: se usa este centinela. */
+const SIN_ETAPA = "__sin-etapa__";
 
 export function EtapaSelect({
   id,
@@ -14,30 +26,39 @@ export function EtapaSelect({
   const [pendiente, iniciar] = useTransition();
 
   return (
-    <select
-      value={valor ?? ""}
-      disabled={pendiente}
+    <Select
       aria-label="Cambiar etapa"
-      onChange={(e) => {
-        const nueva = e.target.value;
+      value={valor ?? SIN_ETAPA}
+      isDisabled={pendiente}
+      onChange={(key) => {
+        const clave = String(key);
+        // La action espera cadena vacía para "sin etapa".
+        const nueva = clave === SIN_ETAPA ? "" : clave;
+        if (nueva === (valor ?? "")) return;
         iniciar(async () => {
-          await cambiarEtapaProyecto(id, nueva);
+          try {
+            await cambiarEtapaProyecto(id, nueva);
+          } catch (e) {
+            toast.error(e instanceof Error ? e.message : "No se pudo cambiar la etapa");
+          }
         });
       }}
-      style={
-        {
-          // La etapa avanza en el mismo carril: un solo tono, sin semáforo.
-          "--tono": valor ? "var(--idle)" : "var(--text-3)",
-        } as React.CSSProperties
-      }
-      className="select-glass cursor-pointer rounded-md px-2 py-1 text-xs font-medium outline-none disabled:opacity-50"
+      className="w-40"
     >
-      <option value="">Sin etapa</option>
-      {ETAPAS.map((e) => (
-        <option key={e} value={e}>
-          {LABEL_ETAPA[e]}
-        </option>
-      ))}
-    </select>
+      <SelectTrigger size="xs" className="gap-2 px-2.5 font-medium">
+        <SelectValue className="flex-1 text-left" />
+        <SelectIndicator />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem id={SIN_ETAPA} textValue="Sin etapa">
+          Sin etapa
+        </SelectItem>
+        {ETAPAS.map((e) => (
+          <SelectItem key={e} id={e} textValue={LABEL_ETAPA[e]}>
+            {LABEL_ETAPA[e]}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }

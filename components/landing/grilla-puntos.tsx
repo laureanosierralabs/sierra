@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
+import { useTheme } from "next-themes";
 
 /**
  * Grilla de puntos donde algunos se encienden y apagan con brillo propio.
@@ -16,15 +17,14 @@ export function GrillaPuntos({
   gap = 12,
   radius = 1.2,
   density = 0.4,
-  glowColor = "#96c0ff",
 }: {
   gap?: number;
   radius?: number;
   density?: number;
-  glowColor?: string;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [tema, setTema] = useState(0);
+  // The glow color comes from a theme token: redraw when the theme changes.
+  const { resolvedTheme } = useTheme();
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -33,8 +33,13 @@ export function GrillaPuntos({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const claro = document.documentElement.dataset.theme === "light";
-    const apagado = claro ? "rgba(15,23,42,0.10)" : "rgba(255,255,255,0.08)";
+    // Colores de los tokens del tema. La portada es siempre oscura (gradiente
+    // primary-950), así que los puntos apagados van en blanco con poca opacidad
+    // y los encendidos en el primary claro, que el className del canvas aporta.
+    const glowColor = getComputedStyle(canvas).color;
+    const apagado =
+      getComputedStyle(document.documentElement).getPropertyValue("--color-white-100").trim() ||
+      glowColor;
 
     const reducido = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     let raf = 0;
@@ -87,7 +92,7 @@ export function GrillaPuntos({
             ctx.shadowBlur = 0;
           }
         } else {
-          ctx.globalAlpha = 1;
+          ctx.globalAlpha = 0.1;
           ctx.fillStyle = apagado;
           ctx.shadowBlur = 0;
         }
@@ -114,26 +119,17 @@ export function GrillaPuntos({
     });
     ro.observe(parent);
 
-    // El canvas se pinta con un color fijo al montar; cambiar de tema no lo
-    // redibuja solo, así que se observa el atributo y se fuerza el remonte.
-    const obs = new MutationObserver(() => setTema((n) => n + 1));
-    obs.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["data-theme"],
-    });
-
     return () => {
       cancelAnimationFrame(raf);
       ro.disconnect();
-      obs.disconnect();
     };
-  }, [gap, radius, density, glowColor, tema]);
+  }, [gap, radius, density, resolvedTheme]);
 
   return (
     <canvas
       ref={canvasRef}
       aria-hidden
-      className="pointer-events-none absolute inset-0 h-full w-full"
+      className="pointer-events-none absolute inset-0 h-full w-full text-primary-300"
     />
   );
 }

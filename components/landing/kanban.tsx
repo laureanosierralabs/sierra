@@ -31,6 +31,16 @@ import {
   type Tarea,
 } from "@/lib/landing/tipos";
 import { Vencimiento } from "@/components/landing/ui";
+import { Badge } from "@/components/tailgrids/core/badge";
+import { cn } from "@/utils/cn";
+
+/* Tono de cada columna (fondo teñido y punto), con los tokens del template.
+   Los de COLUMNAS_KANBAN en lib/ siguen siendo los tokens viejos. */
+const TONO_COLUMNA: Record<ColumnaKanban, { fondo: string; punto: string }> = {
+  pendiente: { fondo: "bg-badge-blue-background/30", punto: "bg-badge-blue-icon-color" },
+  "en-progreso": { fondo: "bg-badge-warning-background/30", punto: "bg-badge-warning-icon-color" },
+  completada: { fondo: "bg-badge-success-background/30", punto: "bg-badge-success-icon-color" },
+};
 
 /** Contenido visual, sin lógica de arrastre: lo reusa el DragOverlay. */
 function ContenidoTarjeta({
@@ -47,22 +57,20 @@ function ContenidoTarjeta({
 
   return (
     <>
-      <p className="text-sm font-medium leading-snug">{tarea.title}</p>
+      <p className="text-sm leading-snug font-medium text-text-primary">{tarea.title}</p>
       <div className="mt-2 flex flex-wrap items-center gap-2">
         {/* El estado real sigue visible aunque la columna agrupe */}
         {(tarea.status === "en-revision" || tarea.status === "bloqueada") && (
-          <span
-            className={`rounded px-1.5 py-0.5 text-[0.625rem] font-semibold uppercase tracking-wide ${
-              tarea.status === "bloqueada"
-                ? "bg-critical-dim text-critical"
-                : "bg-warn-dim text-warn"
-            }`}
+          <Badge
+            color={tarea.status === "bloqueada" ? "error" : "warning"}
+            size="sm"
+            className="rounded-md text-[0.625rem] font-semibold tracking-wide uppercase"
           >
             {LABEL_ESTADO_TAREA[tarea.status]}
-          </span>
+          </Badge>
         )}
         {responsables && (
-          <span className="text-[0.6875rem] text-text-3">{responsables}</span>
+          <span className="text-[0.6875rem] text-text-tertiary">{responsables}</span>
         )}
         {tarea.due_date && (
           <Vencimiento
@@ -93,10 +101,11 @@ function Tarjeta({
       {...attributes}
       {...listeners}
       onClick={() => router.push(`/landing-pages/tasks/${tarea.id}`)}
-      className={`cursor-grab rounded-lg border border-line bg-ground p-2.5 shadow-e1 transition-[border-color,box-shadow] hover:border-line-strong hover:shadow-e2 active:cursor-grabbing ${
+      className={cn(
+        "cursor-grab rounded-lg border-[0.5px] border-card-border bg-card-background p-2.5 shadow-sm transition-[border-color,box-shadow] hover:border-primary-300 hover:shadow-md active:cursor-grabbing",
         // El hueco queda marcado pero apagado: se ve de dónde salió la tarjeta.
-        isDragging ? "opacity-30" : ""
-      }`}
+        isDragging && "opacity-30",
+      )}
     >
       <ContenidoTarjeta tarea={tarea} nombreMiembro={nombreMiembro} />
     </div>
@@ -106,37 +115,35 @@ function Tarjeta({
 function Columna({
   id,
   label,
-  fondo,
-  punto,
   tareas,
   nombreMiembro,
 }: {
   id: ColumnaKanban;
   label: string;
-  fondo: string;
-  punto: string;
   tareas: Tarea[];
   nombreMiembro: Map<string, string>;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: `col-${id}` });
+  const { fondo, punto } = TONO_COLUMNA[id];
 
   return (
     <div className="flex min-w-55 flex-1 flex-col">
       <div className="mb-2 flex items-center gap-2 px-1">
-        <span className={`size-1.5 rounded-full ${punto}`} />
-        <h3 className="eyebrow">{label}</h3>
-        <span className="tnum ml-auto text-xs text-text-3">
+        <span aria-hidden="true" className={cn("size-1.5 rounded-full", punto)} />
+        <h3 className="text-xs font-semibold tracking-wide text-text-secondary uppercase">{label}</h3>
+        <span className="ml-auto text-xs tabular-nums text-text-tertiary">
           {tareas.length}
         </span>
       </div>
 
       <div
         ref={setNodeRef}
-        className={`flex min-h-30 flex-col gap-2 rounded-xl border p-2 transition-all duration-150 ${
+        className={cn(
+          "flex min-h-30 flex-col gap-2 rounded-xl border p-2 transition-all duration-150",
           isOver
-            ? "border-dashed border-text-3 bg-surface-2 ring-2 ring-text-3/10"
-            : `border-line ${fondo}`
-        }`}
+            ? "border-dashed border-primary-300 bg-background-gray-secondary ring-2 ring-primary-300/20"
+            : cn("border-card-border", fondo),
+        )}
       >
         <SortableContext
           items={tareas.map((t) => t.id)}
@@ -148,7 +155,7 @@ function Columna({
         </SortableContext>
 
         {tareas.length === 0 && (
-          <p className="px-1 py-3 text-xs text-text-3">Sin tareas</p>
+          <p className="px-1 py-3 text-xs text-text-tertiary">Sin tareas</p>
         )}
       </div>
     </div>
@@ -255,8 +262,6 @@ export function Kanban({
             key={c.id}
             id={c.id}
             label={c.label}
-            fondo={c.fondo}
-            punto={c.punto}
             tareas={enColumna(c.id)}
             nombreMiembro={nombreMiembro}
           />
@@ -267,7 +272,7 @@ export function Kanban({
           que es lo que vuelve legible hacia dónde la estás llevando. */}
       <DragOverlay dropAnimation={{ duration: 180, easing: "cubic-bezier(0.2, 0, 0, 1)" }}>
         {arrastrandoTarea && (
-          <div className="rotate-2 cursor-grabbing rounded-lg border border-line-strong bg-surface p-2.5 shadow-e3">
+          <div className="rotate-2 cursor-grabbing rounded-lg border border-primary-300 bg-card-background p-2.5 shadow-lg">
             <ContenidoTarjeta
               tarea={arrastrandoTarea}
               nombreMiembro={nombreMiembro}
