@@ -160,12 +160,8 @@ export async function mutateFinance(
 }
 export async function seedFinance(): Promise<{ ok: boolean; error?: string }> {
   try {
+    // Only the owner reaches this (requireFinanceOwner); the RPC seeds that owner.
     const owner = await requireFinanceOwner();
-    const expected =
-      process.env.FINANCE_INITIAL_OWNER_ID ??
-      "user_3Jhi2ofDzdnN0wrxodZ3KGFja8S";
-    if (owner !== expected)
-      throw new Error("La carga inicial corresponde solamente a Laureano.");
     const { error } = await supabaseAdmin().rpc("finance_seed_initial", {
       p_owner: owner,
     });
