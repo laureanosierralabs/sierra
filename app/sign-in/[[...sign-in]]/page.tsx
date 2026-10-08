@@ -20,7 +20,7 @@ const AUTH_APPEARANCE = {
     colorInputText: "#dadff5",
     colorDanger: "#ff9a9a",
     borderRadius: "10px",
-    fontFamily: "var(--font-jakarta), ui-sans-serif, system-ui, sans-serif",
+    fontFamily: "var(--font-inter), ui-sans-serif, system-ui, sans-serif",
   },
   elements: {
     // White-label: el footer "Secured by Clerk" y el card propio se ocultan

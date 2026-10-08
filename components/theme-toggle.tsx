@@ -1,45 +1,24 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { useTheme } from "next-themes";
 import { Moon, Sun } from "lucide-react";
 
-type Tema = "light" | "dark";
-
-function leerTema(): Tema {
-  const guardado = localStorage.getItem("tema") as Tema | null;
-  return (
-    guardado ??
-    (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
-  );
-}
-
-const oyentes = new Set<() => void>();
-
-function suscribir(cb: () => void) {
-  oyentes.add(cb);
-  return () => {
-    oyentes.delete(cb);
-  };
-}
+const noopSubscribe = () => () => {};
 
 export function ThemeToggle() {
-  // El tema ya se aplicó antes del paint (script en layout.tsx). Leerlo desde
-  // el DOM evita el render en cascada de setState dentro de un efecto.
-  const tema = useSyncExternalStore(
-    suscribir,
-    leerTema,
-    () => "dark" as Tema,
+  const { resolvedTheme, setTheme } = useTheme();
+  // resolvedTheme es undefined en el servidor: hasta hidratar se asume oscuro,
+  // igual que antes, para que el markup del primer render coincida.
+  const montado = useSyncExternalStore(
+    noopSubscribe,
+    () => true,
+    () => false,
   );
-
-  function setTema(valor: Tema) {
-    document.documentElement.dataset.theme = valor;
-    oyentes.forEach((cb) => cb());
-  }
+  const tema = montado && resolvedTheme === "light" ? "light" : "dark";
 
   function alternar() {
-    const siguiente: Tema = tema === "dark" ? "light" : "dark";
-    localStorage.setItem("tema", siguiente);
-    setTema(siguiente);
+    setTheme(tema === "dark" ? "light" : "dark");
   }
 
   return (

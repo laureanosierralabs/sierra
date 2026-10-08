@@ -1,6 +1,2 @@
-import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
-
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
+// Única implementación de `cn` vive en utils/cn (la usan las primitivas TailGrids).
+export { cn } from "@/utils/cn";
