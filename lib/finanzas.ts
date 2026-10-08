@@ -1,6 +1,7 @@
 import "server-only";
 
 import { supabaseAdmin } from "@/lib/landing/supabase";
+import { requireFinanceOwner } from "@/lib/personal-finance-server";
 
 export type Ambito = "negocio" | "personal";
 export type TipoMov = "ingreso" | "egreso";
@@ -26,9 +27,11 @@ export interface Movimiento {
 }
 
 export async function getMovimientos(): Promise<Movimiento[]> {
+  await requireFinanceOwner();
   const { data, error } = await supabaseAdmin()
     .from("movements")
     .select("*")
+    .eq("ambito", "negocio")
     .order("fecha", { ascending: false });
 
   if (error) {
@@ -62,6 +65,7 @@ export async function resumenPorMes(
   const porMes = new Map<string, ResumenMensual>();
 
   for (const m of movs) {
+    if (m.estado === "pendiente") continue;
     const mes = m.fecha.slice(0, 7);
     if (!porMes.has(mes)) {
       porMes.set(mes, {
@@ -89,6 +93,7 @@ export async function egresosPorCategoria(
     (m) =>
       m.ambito === ambito &&
       m.tipo === "egreso" &&
+      m.estado !== "pendiente" &&
       (!mes || m.fecha.startsWith(mes)),
   );
   const porCat = new Map<string, TotalMoneda>();

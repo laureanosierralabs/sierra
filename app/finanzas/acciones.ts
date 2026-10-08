@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { hoyISO, slugify } from "@/lib/escritura";
 import { supabaseAdmin } from "@/lib/landing/supabase";
 import type { Movimiento } from "@/lib/finanzas";
+import { requireFinanceOwner } from "@/lib/personal-finance-server";
+import { parseMoney } from "@/lib/personal-finance";
 
 const MONEDAS = ["ARS", "USD"];
 const TIPOS = ["ingreso", "egreso"];
@@ -33,7 +35,7 @@ function parsear(fd: FormData): Movimiento {
   const moneda = texto(fd, "moneda");
   if (!MONEDAS.includes(moneda)) throw new Error("Moneda inválida");
 
-  const monto = Number(texto(fd, "monto").replace(/[.,]/g, ""));
+  const monto = parseMoney(texto(fd, "monto"));
   if (!Number.isFinite(monto) || monto <= 0) throw new Error("Monto inválido");
 
   const concepto = texto(fd, "concepto");
@@ -66,7 +68,13 @@ function parsear(fd: FormData): Movimiento {
 }
 
 export async function guardarMovimiento(fd: FormData) {
+  await requireFinanceOwner();
   const mov = parsear(fd);
+  if (mov.ambito !== "negocio") throw new Error("Usar el nuevo formulario de finanzas personales.");
+  if (texto(fd, "id")) {
+    const { data, error } = await supabaseAdmin().from("movements").select("id").eq("id", mov.id).eq("ambito", "negocio").maybeSingle();
+    if (error || !data) throw new Error("Movimiento del negocio no encontrado.");
+  }
 
   const { error } = await supabaseAdmin().from("movements").upsert(mov);
   if (error) throw new Error(`No se pudo guardar: ${error.message}`);
@@ -75,10 +83,12 @@ export async function guardarMovimiento(fd: FormData) {
 }
 
 export async function borrarMovimiento(id: string, ambito: string) {
+  await requireFinanceOwner();
+  if (ambito !== "negocio") throw new Error("Usar el nuevo formulario de finanzas personales.");
   const { error } = await supabaseAdmin()
     .from("movements")
     .delete()
-    .eq("id", id);
+    .eq("id", id).eq("ambito", "negocio");
 
   if (error) throw new Error(`No se pudo borrar: ${error.message}`);
   revalidatePath(`/finanzas/${ambito}`);
