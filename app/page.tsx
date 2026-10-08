@@ -1,10 +1,14 @@
-import Link from "next/link";
-import { AlertTriangle, CalendarClock, CircleDot } from "lucide-react";
+import { CalendarTime, CheckCircle1, InfoTriangle } from "@tailgrids/icons";
+import { EmptyState } from "@/components/common/empty-state";
+import { KpiCard } from "@/components/common/kpi-card";
+import { PageContainer } from "@/components/common/page-container";
+import { PageHeader } from "@/components/common/page-header";
+import { InicioAtencion } from "@/components/inicio-atencion";
+import { InicioGrilla } from "@/components/inicio-grilla";
+import { SeccionTitulo } from "@/components/landing/ui";
+import { TeamSummary } from "@/components/team-summary";
 import { getUnidades } from "@/lib/contexto";
 import { diasHasta, type Proyecto } from "@/lib/types";
-import { Card, Deadline, Empty } from "@/components/ui";
-import { ProyectoCard } from "@/components/proyecto-card";
-import { TeamSummary } from "@/components/team-summary";
 
 export const dynamic = "force-dynamic";
 
@@ -53,151 +57,74 @@ export default async function Inicio() {
   });
 
   return (
-    <div className="w-full px-6 py-10 md:px-10">
-      <header className="mb-10">
-        <p className="eyebrow">{hoy}</p>
-        <h1 className="mt-2 text-3xl font-extrabold tracking-tight">
-          {saludo()}, Laureano
-        </h1>
-        <p className="mt-2 text-sm text-text-2">
-          {atencion.length > 0
+    <PageContainer>
+      <PageHeader
+        title={`${saludo()}, Laureano`}
+        description={`${hoy[0].toUpperCase()}${hoy.slice(1)}. ${
+          atencion.length > 0
             ? `${atencion.length} ${atencion.length === 1 ? "proyecto necesita" : "proyectos necesitan"} tu atención.`
-            : "Nada urgente hoy."}
-        </p>
-      </header>
+            : "Nada urgente hoy."
+        }`}
+      />
 
       <TeamSummary />
 
-      <section className="mb-12 grid grid-cols-3 gap-3">
-        <Metric
+      <section className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <KpiCard
           label="Activos"
-          valor={todos.filter((p) => p.estado === "activo").length}
-          icon={<CircleDot className="size-4 text-ok" />}
+          value={todos.filter((p) => p.estado === "activo").length}
+          icon={<CheckCircle1 />}
+          tone="success"
         />
-        <Metric
+        <KpiCard
           label="Con entrega"
-          valor={conEntrega}
-          detalle="Fechas que vos me diste"
-          icon={<CalendarClock className="size-4 text-warn" />}
+          value={conEntrega}
+          hint="Fechas que vos me diste"
+          icon={<CalendarTime />}
+          tone="warning"
         />
-        <Metric
+        <KpiCard
           label="Esperando a otros"
-          valor={bloqueados}
-          detalle="Dependés de alguien para avanzar"
-          icon={<AlertTriangle className="size-4 text-critical" />}
+          value={bloqueados}
+          hint="Dependés de alguien para avanzar"
+          icon={<InfoTriangle />}
+          tone="error"
         />
       </section>
 
       {atencion.length > 0 && (
-        <section className="mb-12">
-          <SectionTitle>Necesita atención</SectionTitle>
+        <section className="mb-8">
+          <SeccionTitulo icono={InfoTriangle}>Necesita atención</SeccionTitulo>
           <div className="flex flex-col gap-3">
             {atencion.map((p) => (
-              <AtencionRow key={p.slug} p={p} />
+              <InicioAtencion key={p.slug} p={p} />
             ))}
           </div>
         </section>
       )}
 
-      <section className="mb-12">
-        <SectionTitle>Activos</SectionTitle>
+      <section className="mb-8">
+        <SeccionTitulo icono={CheckCircle1}>Activos</SeccionTitulo>
         {activos.length === 0 ? (
-          <Empty>Todos los activos están arriba, en atención.</Empty>
+          <EmptyState title="Todos los activos están arriba, en atención." />
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {activos.map((p) => (
-              <ProyectoCard key={p.slug} p={p} />
-            ))}
-          </div>
+          <InicioGrilla proyectos={activos} />
         )}
       </section>
 
       {porEmpezar.length > 0 && (
-        <section className="mb-12">
-          <SectionTitle>Por empezar</SectionTitle>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {porEmpezar.map((p) => (
-              <ProyectoCard key={p.slug} p={p} />
-            ))}
-          </div>
+        <section className="mb-8">
+          <SeccionTitulo icono={CalendarTime}>Por empezar</SeccionTitulo>
+          <InicioGrilla proyectos={porEmpezar} />
         </section>
       )}
 
       {pausados.length > 0 && (
         <section>
-          <SectionTitle>Pausados</SectionTitle>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {pausados.map((p) => (
-              <ProyectoCard key={p.slug} p={p} />
-            ))}
-          </div>
+          <SeccionTitulo icono={CalendarTime}>Pausados</SeccionTitulo>
+          <InicioGrilla proyectos={pausados} />
         </section>
       )}
-    </div>
-  );
-}
-
-function SectionTitle({ children }: { children: React.ReactNode }) {
-  return (
-    <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-text-2">
-      {children}
-    </h2>
-  );
-}
-
-function Metric({
-  label,
-  valor,
-  detalle,
-  icon,
-}: {
-  label: string;
-  valor: number;
-  detalle?: string;
-  icon: React.ReactNode;
-}) {
-  return (
-    <Card className="p-4">
-      <div className="flex items-center justify-between">
-        <p className="text-xs text-text-3">{label}</p>
-        {icon}
-      </div>
-      <p className="tnum mt-2 font-display text-2xl font-bold">{valor}</p>
-      {detalle && <p className="mt-1 text-[0.6875rem] text-text-3">{detalle}</p>}
-    </Card>
-  );
-}
-
-function AtencionRow({ p }: { p: Proyecto }) {
-  const dias = diasHasta(p.entrega);
-  const urgente = dias !== null && dias <= 10;
-
-  return (
-    <Link href={`/proyecto/${p.slug}`} className="group block">
-      <Card
-        className={`p-5 transition-colors hover:border-line-strong ${
-          urgente ? "border-l-2 border-l-warn" : ""
-        }`}
-      >
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2.5">
-              <h3 className="font-display text-base font-bold">{p.nombre}</h3>
-              <span className="text-xs text-text-3">{p.cliente}</span>
-            </div>
-            {p.proximoPaso && (
-              <p className="mt-2 text-sm text-text-2">{p.proximoPaso}</p>
-            )}
-            {p.bloqueos.length > 0 && (
-              <div className="mt-3 flex items-start gap-2">
-                <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-critical" />
-                <p className="text-xs text-critical">{p.bloqueos.join(" · ")}</p>
-              </div>
-            )}
-          </div>
-          {dias !== null && <Deadline dias={dias} />}
-        </div>
-      </Card>
-    </Link>
+    </PageContainer>
   );
 }

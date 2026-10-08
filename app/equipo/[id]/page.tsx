@@ -1,6 +1,7 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { Card } from "@/components/ui";
+import { ErrorState } from "@/components/common/error-state";
+import { PageContainer } from "@/components/common/page-container";
+import { PageHeader } from "@/components/common/page-header";
 import { TeamMemberForm } from "@/components/team-member-form";
 import { getTeamMember, requireTeamOwner, teamLoadError } from "@/lib/team";
 
@@ -18,15 +19,16 @@ export default async function TeamMemberPage({ params }: { params: Promise<{ id:
   }
   if (!error && !member) notFound();
   return (
-    <div className="w-full px-6 py-10 md:px-10">
-      <Link href="/equipo" className="text-sm text-text-2 hover:text-text">← Volver al equipo</Link>
-      <header className="mb-8 mt-5">
-        <p className="eyebrow">Equipo</p>
-        <h1 className="mt-2 break-words text-3xl font-extrabold tracking-tight">{member?.name ?? "Perfil de persona"}</h1>
-        <p className="mt-2 text-sm text-text-2">Edita el rol, las responsabilidades y las decisiones de esta persona.</p>
-      </header>
-      {error ? <Card className="p-5"><p role="alert" className="text-sm text-critical">{error}</p></Card>
-        : member && <TeamMemberForm key={member.id} member={member} />}
-    </div>
+    <PageContainer>
+      <PageHeader
+        title={member?.name ?? "Perfil de persona"}
+        description="Edita el rol, las responsabilidades y las decisiones de esta persona."
+      />
+      {error ? (
+        <ErrorState title="No se pudo cargar el perfil" description={error} />
+      ) : (
+        member && <TeamMemberForm key={member.id} member={member} />
+      )}
+    </PageContainer>
   );
 }

@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { Users } from "lucide-react";
-import { Card } from "@/components/ui";
+import { UserMultiple1 } from "@tailgrids/icons";
+import { Card } from "@/components/tailgrids/core/card";
 import { getTeamMembers, getTeamProjects, requireTeamOwner } from "@/lib/team";
 import { teamMetrics } from "@/lib/team-fields";
 
@@ -17,21 +17,29 @@ export async function TeamSummary() {
     // An unapplied migration must not take down the existing dashboard.
   }
   return (
-    <Card className="mb-8 p-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="min-w-0">
-          <h2 className="flex items-center gap-2 text-sm font-bold"><Users className="size-4 text-text-2" />Equipo</h2>
-          {metrics ? (
-            <p className="mt-1 text-xs text-text-2">
-              {metrics.people} personas
-              {metrics.activeProjects !== null && ` · ${metrics.activeProjects} proyectos activos`}
-              {metrics.blocked !== null && ` · ${metrics.blocked} bloqueadas`}
-              {metrics.awaitingApproval !== null && ` · ${metrics.awaitingApproval} esperando aprobación`}
-            </p>
-          ) : <p className="mt-1 text-xs text-text-3">Información del equipo no disponible.</p>}
-        </div>
-        <Link href="/equipo" className="shrink-0 rounded-lg border border-line px-3 py-2 text-xs font-semibold hover:bg-surface-2">Ver equipo →</Link>
+    <Card className="mb-6 flex flex-wrap items-center justify-between gap-3">
+      <div className="min-w-0">
+        <h2 className="flex items-center gap-2 text-sm font-semibold text-title-50">
+          <UserMultiple1 aria-hidden="true" className="size-4 text-text-tertiary" />
+          Equipo
+        </h2>
+        {metrics ? (
+          <p className="mt-1 text-xs text-text-secondary">
+            {metrics.people} personas
+            {metrics.activeProjects !== null && ` · ${metrics.activeProjects} proyectos activos`}
+            {metrics.blocked !== null && ` · ${metrics.blocked} bloqueadas`}
+            {metrics.awaitingApproval !== null && ` · ${metrics.awaitingApproval} esperando aprobación`}
+          </p>
+        ) : (
+          <p className="mt-1 text-xs text-text-tertiary">Información del equipo no disponible.</p>
+        )}
       </div>
+      <Link
+        href="/equipo"
+        className="shrink-0 rounded-lg border border-card-border px-3 py-2 text-xs font-medium text-text-secondary transition-colors outline-none hover:bg-background-gray-secondary hover:text-text-primary focus-visible:ring-2 focus-visible:ring-primary-500"
+      >
+        Ver equipo →
+      </Link>
     </Card>
   );
 }

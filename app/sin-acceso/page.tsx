@@ -1,13 +1,15 @@
+import { Locked3 } from "@tailgrids/icons";
+import { EmptyState } from "@/components/common/empty-state";
+
 export default function SinAcceso() {
   return (
     <div className="flex min-h-full items-center justify-center p-6">
-      <div className="max-w-sm text-center">
-        <h1 className="font-display text-lg font-bold">Sin unidades asignadas</h1>
-        <p className="mt-2 text-sm text-text-2">
-          Tu cuenta todavía no tiene acceso a ninguna unidad. Pedile a Laureano
-          que te asigne una.
-        </p>
-      </div>
+      <EmptyState
+        icon={<Locked3 />}
+        title="Sin unidades asignadas"
+        description="Tu cuenta todavía no tiene acceso a ninguna unidad. Pedile a Laureano que te asigne una."
+        className="max-w-md"
+      />
     </div>
   );
 }

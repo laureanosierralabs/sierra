@@ -1,23 +1,17 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import {
-  AlertTriangle,
-  ArrowLeft,
-  ExternalLink,
-  GitBranch,
-  History,
-  Scale,
-} from "lucide-react";
+import { ClockThree, InfoTriangle, Link1AngularRight, ScaleSquare } from "@tailgrids/icons";
+import { EmptyState } from "@/components/common/empty-state";
+import { PageContainer } from "@/components/common/page-container";
+import { PageHeader } from "@/components/common/page-header";
+import { EditarProyecto } from "@/components/editar-proyecto";
+import { ProyectoBloque, ProyectoLinea } from "@/components/proyecto-bloque";
+import { RecursosLista } from "@/components/recursos-lista";
+import { Badge } from "@/components/tailgrids/core/badge";
+import { Deadline, EstadoPill, PrioridadTag } from "@/components/ui";
 import { getProyecto } from "@/lib/contexto";
 import { diasHasta } from "@/lib/types";
-import { Card, Deadline, Empty, EstadoPill, PrioridadTag } from "@/components/ui";
-import { EditarProyecto } from "@/components/editar-proyecto";
 
 export const dynamic = "force-dynamic";
-
-function esUrl(v: string) {
-  return /^https?:\/\//.test(v);
-}
 
 export default async function ProyectoPage({
   params,
@@ -32,166 +26,98 @@ export default async function ProyectoPage({
   const dias = diasHasta(p.entrega);
 
   return (
-    <div className="w-full px-6 py-10 md:px-10">
-      <Link
-        href="/"
-        className="mb-8 inline-flex items-center gap-1.5 text-sm text-text-3 transition-colors hover:text-text"
-      >
-        <ArrowLeft className="size-3.5" />
-        Inicio
-      </Link>
+    <PageContainer>
+      <PageHeader title={p.nombre} description={p.cliente} actions={<EditarProyecto p={p} />} />
 
-      <header className="mb-8 flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="eyebrow">{p.cliente}</p>
-          <h1 className="mt-2 text-3xl font-extrabold tracking-tight">
-            {p.nombre}
-          </h1>
-          <div className="mt-4 flex flex-wrap items-center gap-2">
-            <EstadoPill estado={p.estado} />
-            <PrioridadTag prioridad={p.prioridad} />
-            {dias !== null && <Deadline dias={dias} />}
-            {p.actualizado && (
-              <span className="tnum text-xs text-text-3">
-                Actualizado {p.actualizado}
-              </span>
-            )}
-          </div>
-        </div>
-        <EditarProyecto p={p} />
-      </header>
+      <div className="-mt-3 mb-6 flex flex-wrap items-center gap-2">
+        <EstadoPill estado={p.estado} />
+        <PrioridadTag prioridad={p.prioridad} />
+        {dias !== null && <Deadline dias={dias} />}
+        {p.actualizado && (
+          <span className="text-xs text-text-tertiary tabular-nums">
+            Actualizado {p.actualizado}
+          </span>
+        )}
+      </div>
 
       <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
         <div className="flex flex-col gap-4">
-          <Card className="p-6">
-            <p className="eyebrow mb-2">Próximo paso</p>
+          <ProyectoBloque titulo="Próximo paso">
             {p.proximoPaso ? (
-              <p className="text-lg leading-snug">{p.proximoPaso}</p>
+              <p className="text-lg leading-snug text-text-primary">{p.proximoPaso}</p>
             ) : (
-              <Empty>Sin definir. Contámelo por la terminal.</Empty>
+              <EmptyState variant="inline">Sin definir. Contámelo por la terminal.</EmptyState>
             )}
-          </Card>
+          </ProyectoBloque>
 
           {p.bloqueos.length > 0 && (
-            <Card className="border-critical/30 bg-critical-dim/40 p-6">
-              <p className="eyebrow mb-3 text-critical">Bloqueos</p>
+            <ProyectoBloque
+              titulo="Bloqueos"
+              icono={InfoTriangle}
+              className="border-error-500/30 bg-badge-error-background"
+              tituloClassName="text-badge-error-text"
+            >
               <ul className="flex flex-col gap-2">
                 {p.bloqueos.map((b, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm">
-                    <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-critical" />
-                    <span>{b}</span>
-                  </li>
-                ))}
-              </ul>
-            </Card>
-          )}
-
-          {p.estadoActual && (
-            <Card className="p-6">
-              <p className="eyebrow mb-2">Estado actual</p>
-              <p className="whitespace-pre-line text-sm leading-relaxed text-text-2">
-                {p.estadoActual}
-              </p>
-            </Card>
-          )}
-
-          <Card className="p-6">
-            <div className="mb-3 flex items-center gap-2">
-              <Scale className="size-3.5 text-text-3" />
-              <p className="eyebrow">Decisiones</p>
-            </div>
-            {p.decisiones.length === 0 ? (
-              <Empty>Todavía no hay decisiones registradas.</Empty>
-            ) : (
-              <ul className="flex flex-col gap-3">
-                {p.decisiones.map((d, i) => (
-                  <li key={i} className="border-l-2 border-line pl-3 text-sm text-text-2">
-                    {d}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Card>
-
-          <Card className="p-6">
-            <div className="mb-3 flex items-center gap-2">
-              <History className="size-3.5 text-text-3" />
-              <p className="eyebrow">Bitácora</p>
-            </div>
-            {p.bitacora.length === 0 ? (
-              <Empty>Sin movimientos registrados.</Empty>
-            ) : (
-              <ul className="flex flex-col gap-3">
-                {p.bitacora.map((b, i) => (
-                  <li key={i} className="border-l-2 border-line pl-3 text-sm text-text-2">
+                  <li key={i} className="text-sm text-text-primary">
                     {b}
                   </li>
                 ))}
               </ul>
+            </ProyectoBloque>
+          )}
+
+          {p.estadoActual && (
+            <ProyectoBloque titulo="Estado actual">
+              <p className="text-sm leading-relaxed whitespace-pre-line text-text-secondary">
+                {p.estadoActual}
+              </p>
+            </ProyectoBloque>
+          )}
+
+          <ProyectoBloque titulo="Decisiones" icono={ScaleSquare}>
+            {p.decisiones.length === 0 ? (
+              <EmptyState variant="inline">Todavía no hay decisiones registradas.</EmptyState>
+            ) : (
+              <ProyectoLinea items={p.decisiones} />
             )}
-          </Card>
+          </ProyectoBloque>
+
+          <ProyectoBloque titulo="Bitácora" icono={ClockThree}>
+            {p.bitacora.length === 0 ? (
+              <EmptyState variant="inline">Sin movimientos registrados.</EmptyState>
+            ) : (
+              <ProyectoLinea items={p.bitacora} />
+            )}
+          </ProyectoBloque>
         </div>
 
         <div className="flex flex-col gap-4">
-          <Card className="p-6">
-            <div className="mb-4 flex items-center gap-2">
-              <GitBranch className="size-3.5 text-text-3" />
-              <p className="eyebrow">Recursos</p>
-            </div>
-            {p.recursos.length === 0 ? (
-              <Empty>Sin recursos cargados.</Empty>
-            ) : (
-              <ul className="flex flex-col gap-3">
-                {p.recursos.map((r, i) => (
-                  <li key={i} className="flex flex-col gap-1">
-                    <span className="text-xs text-text-3">{r.que}</span>
-                    {esUrl(r.donde) ? (
-                      <a
-                        href={r.donde}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1.5 break-all text-sm text-text transition-colors hover:underline"
-                      >
-                        {r.donde.replace(/^https?:\/\//, "")}
-                        <ExternalLink className="size-3 shrink-0" />
-                      </a>
-                    ) : (
-                      <code className="break-all rounded bg-surface-2 px-2 py-1 text-xs text-text-2">
-                        {r.donde.replace(/`/g, "")}
-                      </code>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Card>
+          <ProyectoBloque titulo="Recursos" icono={Link1AngularRight}>
+            <RecursosLista recursos={p.recursos} vacio="Sin recursos cargados." />
+          </ProyectoBloque>
 
           {p.responsables.length > 0 && (
-            <Card className="p-6">
-              <p className="eyebrow mb-3">Responsables</p>
+            <ProyectoBloque titulo="Responsables">
               <div className="flex flex-wrap gap-2">
                 {p.responsables.map((r) => (
-                  <span
-                    key={r}
-                    className="rounded-full border border-line bg-surface-2 px-2.5 py-1 text-xs text-text-2"
-                  >
+                  <Badge key={r} color="gray">
                     {r}
-                  </span>
+                  </Badge>
                 ))}
               </div>
-            </Card>
+            </ProyectoBloque>
           )}
 
           {p.notas && (
-            <Card className="p-6">
-              <p className="eyebrow mb-2">Notas</p>
-              <p className="whitespace-pre-line text-sm leading-relaxed text-text-2">
+            <ProyectoBloque titulo="Notas">
+              <p className="text-sm leading-relaxed whitespace-pre-line text-text-secondary">
                 {p.notas}
               </p>
-            </Card>
+            </ProyectoBloque>
           )}
         </div>
       </div>
-    </div>
+    </PageContainer>
   );
 }
