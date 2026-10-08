@@ -1,12 +1,21 @@
 "use client";
 
 import { useTransition } from "react";
+import { toast } from "sonner";
 import {
   cambiarEstadoCliente,
   cambiarEstadoCotizacion,
   cambiarEstadoProyecto,
   cambiarEstadoTarea,
 } from "@/app/landing-pages/acciones";
+import {
+  Select,
+  SelectContent,
+  SelectIndicator,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/tailgrids/core/select";
 import {
   ESTADOS_CLIENTE,
   ESTADOS_COTIZACION,
@@ -20,29 +29,36 @@ import {
 
 type Tipo = "proyecto" | "tarea" | "cliente" | "cotizacion";
 
-/** Color por estado. El select lo toma con --tono; el CSS hace el vidrio. */
+/* Misma familia de color que los badges de estado (components/landing/ui.tsx). */
+const OK = "text-badge-success-text";
+const WARN = "text-badge-warning-text";
+const CRITICAL = "text-badge-error-text";
+const IDLE = "text-badge-blue-text";
+const NEUTRO = "text-badge-neutral-text";
+
+/** Color del punto por estado: señaliza, el texto confirma. */
 const TONO: Record<string, string> = {
   // Proyecto
-  "por-iniciar": "var(--idle)",
-  "en-progreso": "var(--ok)",
-  "en-revision": "var(--warn)",
-  "esperando-cliente": "var(--critical)",
-  "stand-by": "var(--text-3)",
-  entregado: "var(--ok)",
+  "por-iniciar": IDLE,
+  "en-progreso": OK,
+  "en-revision": WARN,
+  "esperando-cliente": CRITICAL,
+  "stand-by": NEUTRO,
+  entregado: OK,
   // Tarea
-  pendiente: "var(--idle)",
-  bloqueada: "var(--critical)",
-  completada: "var(--ok)",
+  pendiente: IDLE,
+  bloqueada: CRITICAL,
+  completada: NEUTRO,
   // Cliente
-  prospecto: "var(--idle)",
-  cliente: "var(--ok)",
-  inactivo: "var(--text-3)",
+  prospecto: IDLE,
+  cliente: OK,
+  inactivo: NEUTRO,
   // Cotización — en inglés desde que se separó estado comercial de pago.
-  draft: "var(--text-3)",
-  sent: "var(--idle)",
-  approved: "var(--ok)",
-  rejected: "var(--critical)",
-  cancelled: "var(--text-3)",
+  draft: NEUTRO,
+  sent: IDLE,
+  approved: OK,
+  rejected: CRITICAL,
+  cancelled: NEUTRO,
 };
 
 const CONFIG: Record<
@@ -75,6 +91,15 @@ const CONFIG: Record<
   },
 };
 
+function Punto({ estado }: { estado: string }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`size-2 shrink-0 rounded-full bg-current ${TONO[estado] ?? NEUTRO}`}
+    />
+  );
+}
+
 /** Cambio de estado en un paso desde la tabla, sin abrir el formulario. */
 export function EstadoSelect({
   id,
@@ -89,24 +114,36 @@ export function EstadoSelect({
   const { opciones, labels, accion } = CONFIG[tipo];
 
   return (
-    <select
-      value={valor}
-      disabled={pendiente}
+    <Select
       aria-label="Cambiar estado"
-      onChange={(e) => {
-        const nuevo = e.target.value;
+      value={valor}
+      isDisabled={pendiente}
+      onChange={(key) => {
+        const nuevo = String(key);
+        if (nuevo === valor) return;
         iniciar(async () => {
-          await accion(id, nuevo);
+          try {
+            await accion(id, nuevo);
+          } catch (e) {
+            toast.error(e instanceof Error ? e.message : "No se pudo cambiar el estado");
+          }
         });
       }}
-      style={{ "--tono": TONO[valor] ?? "var(--text-2)" } as React.CSSProperties}
-      className="select-glass cursor-pointer rounded-md px-2 py-1 text-xs font-medium outline-none disabled:opacity-50"
+      className="w-40"
     >
-      {opciones.map((e) => (
-        <option key={e} value={e}>
-          {labels[e]}
-        </option>
-      ))}
-    </select>
+      <SelectTrigger size="xs" className="gap-2 px-2.5 font-medium">
+        <Punto estado={valor} />
+        <SelectValue className="flex-1 text-left" />
+        <SelectIndicator />
+      </SelectTrigger>
+      <SelectContent>
+        {opciones.map((e) => (
+          <SelectItem key={e} id={e} textValue={labels[e]}>
+            <Punto estado={e} />
+            {labels[e]}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }

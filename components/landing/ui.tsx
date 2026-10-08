@@ -1,9 +1,9 @@
-import type { LucideIcon } from "lucide-react";
 import { EmptyState } from "@/components/common/empty-state";
 import { PageHeader as PageHeaderBase } from "@/components/common/page-header";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { cn } from "@/utils/cn";
 import {
+
   LABEL_ESTADO_CLIENTE,
   LABEL_ESTADO_COTIZACION,
   LABEL_ESTADO_PAGO,
@@ -19,6 +19,9 @@ import {
   type PrioridadLanding,
   type TipoPagina,
 } from "@/lib/landing/tipos";
+
+/** Cualquier componente de ícono que acepte `className` (@tailgrids/icons o Lucide). */
+type IconoComponent = React.ComponentType<{ className?: string }>;
 
 /**
  * Un solo sistema de badges: el `Badge` del template. Cada estado elige una
@@ -241,7 +244,7 @@ export function SeccionTitulo({
   children,
   accion,
 }: {
-  icono: LucideIcon;
+  icono: IconoComponent;
   children: React.ReactNode;
   accion?: React.ReactNode;
 }) {

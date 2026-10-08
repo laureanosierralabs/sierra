@@ -2,9 +2,7 @@
 
 import { useState } from "react";
 import type { Miembro } from "@/lib/landing/tipos";
-
-const CHIP =
-  "rounded-md border px-2.5 py-1 text-xs font-medium transition-colors";
+import { cn } from "@/utils/cn";
 
 /**
  * Reemplaza al <select> de un solo responsable: puede haber más de una
@@ -32,11 +30,13 @@ export function SelectorMiembros({
   }
 
   if (miembros.length === 0) {
-    return <p className="text-xs text-text-3">Todavía no hay miembros en el equipo.</p>;
+    return (
+      <p className="text-xs text-text-tertiary">Todavía no hay miembros en el equipo.</p>
+    );
   }
 
   return (
-    <div className="flex flex-wrap gap-1.5">
+    <div role="group" className="flex flex-wrap gap-1.5">
       {miembros.map((m) => {
         const activo = elegidos.has(m.id);
         return (
@@ -50,11 +50,12 @@ export function SelectorMiembros({
               className="peer sr-only"
             />
             <span
-              className={`${CHIP} ${
+              className={cn(
+                "inline-block rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-primary-500",
                 activo
-                  ? "border-line-strong bg-surface-2 text-text"
-                  : "border-line text-text-2 hover:text-text"
-              }`}
+                  ? "border-primary-500 bg-background-gray-secondary text-text-primary"
+                  : "border-card-border text-text-secondary hover:text-text-primary",
+              )}
             >
               {m.nombre}
             </span>

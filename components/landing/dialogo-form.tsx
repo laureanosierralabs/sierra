@@ -15,6 +15,9 @@ import {
 import { Input as TgInput } from "@/components/tailgrids/core/input";
 import { Backdrop, OverlayWrapper } from "@/components/tailgrids/core/overlay";
 import { TextArea } from "@/components/tailgrids/core/text-area";
+import type { ZodType } from "zod";
+
+export type ZodFormApi = ReturnType<typeof useZodForm>;
 
 /* Mismo aspecto que el `Input` del template, para el <select> nativo. Se usa
    nativo (y no el Select de React Aria) porque los formularios pasan <option>
@@ -60,6 +63,7 @@ export function DialogoForm({
   titulo,
   etiquetaAbrir,
   action,
+  schema,
   children,
   disparador,
   abiertoExterno,
@@ -68,7 +72,10 @@ export function DialogoForm({
   titulo: string;
   etiquetaAbrir?: string;
   action: (fd: FormData) => Promise<void>;
-  children: React.ReactNode;
+  /** Validación opcional del lado cliente (feedback inmediato; el server sigue validando). */
+  schema?: ZodType;
+  /** Con `schema`, conviene la forma función para pintar `form.fieldProps(...)`. */
+  children: React.ReactNode | ((form: ZodFormApi) => React.ReactNode);
   disparador?: React.ReactNode;
   /** Modo controlado: el diálogo se abre desde afuera y no renderiza botón. */
   abiertoExterno?: boolean;
@@ -83,7 +90,7 @@ export function DialogoForm({
     else setAbiertoInterno(false);
   }, [controlado, onCerrar]);
 
-  const form = useZodForm({ action, onSuccess: cerrar });
+  const form = useZodForm({ schema, action, onSuccess: cerrar });
 
   function cambiarApertura(v: boolean) {
     if (v) {
@@ -104,7 +111,7 @@ export function DialogoForm({
             type="button"
             onClick={() => cambiarApertura(true)}
             aria-label={etiquetaAbrir ?? titulo}
-            className="rounded text-text-tertiary transition-colors outline-none hover:text-text-primary focus-visible:ring-2 focus-visible:ring-primary-500"
+            className="rounded text-text-tertiary transition-colors outline-none hover:text-text-primary focus-visible:ring-2 focus-visible:ring-primary-500 [&>svg]:size-4"
           >
             {disparador}
           </button>
@@ -128,7 +135,7 @@ export function DialogoForm({
             </DialogHeader>
 
             <form onSubmit={form.onSubmit} className="flex flex-col gap-4 p-5">
-              {children}
+              {typeof children === "function" ? children(form) : children}
 
               <FormError message={form.formError} />
 

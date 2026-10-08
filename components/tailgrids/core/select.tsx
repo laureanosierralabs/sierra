@@ -132,12 +132,16 @@ export function Select<T extends object>({ className, children, ...props }: Sele
     );
   }
 
+  // react-aria-components >=1.13 also accepts `value`/`onChange` on Select: spreading
+  // them alongside selectedKey/onSelectionChange fires the callback twice per pick.
+  const { value, onChange, ...ariaProps } = props;
+
   return (
     <AriaSelect
-      {...(props as any)}
+      {...(ariaProps as any)}
       className={cn("group flex w-full flex-col gap-2", className)}
-      selectedKey={props.value as Key}
-      onSelectionChange={props.onChange}
+      selectedKey={value as Key}
+      onSelectionChange={onChange}
     >
       {children}
     </AriaSelect>

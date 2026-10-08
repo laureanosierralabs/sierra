@@ -1,33 +1,36 @@
 import Link from "next/link";
 import {
-  CalendarClock,
-  CircleDashed,
-  Flag,
-  FolderKanban,
-  Paperclip,
-  UserRound,
-  type LucideIcon,
-} from "lucide-react";
+  Bookmark1,
+  CalendarTime,
+  CheckCircle1,
+  Folder1,
+  Paperclip2,
+  User2,
+} from "@tailgrids/icons";
 import { plantillaDe } from "@/lib/landing/plantillas";
 import { Prioridad, SeccionTitulo, Vencimiento } from "@/components/landing/ui";
 import { EstadoSelect } from "@/components/landing/estado-select";
 import { FormularioTarea } from "@/components/landing/formulario-tarea";
 import { Adjuntos } from "@/components/landing/adjuntos";
+import { Card } from "@/components/tailgrids/core/card";
+import { cn } from "@/utils/cn";
 import type { Adjunto, Miembro, Proyecto, Tarea } from "@/lib/landing/tipos";
+
+type IconoComponent = React.ComponentType<{ className?: string }>;
 
 function Propiedad({
   icono: Icono,
   label,
   children,
 }: {
-  icono: LucideIcon;
+  icono: IconoComponent;
   label: string;
   children: React.ReactNode;
 }) {
   return (
     <div className="flex items-center gap-3 py-1.5">
-      <span className="flex w-28 shrink-0 items-center gap-2 text-xs text-text-3">
-        <Icono className="size-3.5" />
+      <span className="flex w-28 shrink-0 items-center gap-2 text-xs text-text-tertiary">
+        <Icono className="size-4" />
         {label}
       </span>
       <div className="min-w-0 flex-1">{children}</div>
@@ -63,45 +66,45 @@ export function TareaContenido({
 
   return (
     <>
-      <div
-        className={`mb-6 grid gap-x-10 rounded-xl border border-line bg-surface px-4 py-3 ${
-          columnas === 2 ? "md:grid-cols-2" : ""
-        }`}
+      <Card
+        className={cn("mb-6 grid gap-x-10 px-4 py-3", columnas === 2 && "md:grid-cols-2")}
       >
-        <Propiedad icono={CircleDashed} label="Estado">
+        <Propiedad icono={CheckCircle1} label="Estado">
           <EstadoSelect id={tarea.id} valor={tarea.status} tipo="tarea" />
         </Propiedad>
 
-        <Propiedad icono={FolderKanban} label="Proyecto">
+        <Propiedad icono={Folder1} label="Proyecto">
           {proyecto ? (
             <Link
               href={`/landing-pages/projects/${proyecto.id}`}
-              className="truncate text-sm font-medium hover:underline"
+              className="truncate text-sm font-medium text-text-primary hover:underline"
             >
               {proyecto.name}
             </Link>
           ) : (
-            <p className="text-sm">—</p>
+            <p className="text-sm text-text-tertiary">—</p>
           )}
         </Propiedad>
 
-        <Propiedad icono={UserRound} label="Responsable">
-          <p className="truncate text-sm">{responsable ?? "—"}</p>
+        <Propiedad icono={User2} label="Responsable">
+          <p className="truncate text-sm text-text-primary">{responsable ?? "—"}</p>
         </Propiedad>
 
-        <Propiedad icono={Flag} label="Prioridad">
+        <Propiedad icono={Bookmark1} label="Prioridad">
           <Prioridad prioridad={tarea.priority} />
         </Propiedad>
 
-        <Propiedad icono={CalendarClock} label="Deadline">
+        <Propiedad icono={CalendarTime} label="Deadline">
           <Vencimiento fecha={tarea.due_date} cerrado={tarea.status === "completada"} />
         </Propiedad>
-      </div>
+      </Card>
 
       {tarea.description && (
-        <p className="mb-6 whitespace-pre-wrap rounded-xl border border-line bg-surface p-4 text-sm leading-relaxed text-text-2">
-          {tarea.description}
-        </p>
+        <Card className="mb-6 p-4">
+          <p className="text-sm leading-relaxed whitespace-pre-wrap text-text-secondary">
+            {tarea.description}
+          </p>
+        </Card>
       )}
 
       {/* Los pasos vienen del SOP; la plantilla agrega campos de formulario. */}
@@ -116,7 +119,7 @@ export function TareaContenido({
       )}
 
       <section className="mt-6">
-        <SeccionTitulo icono={Paperclip}>Adjuntos</SeccionTitulo>
+        <SeccionTitulo icono={Paperclip2}>Adjuntos</SeccionTitulo>
         <Adjuntos taskId={tarea.id} adjuntos={adjuntos} />
       </section>
     </>

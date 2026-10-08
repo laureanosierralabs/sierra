@@ -1,23 +1,45 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
+import { useMemo } from "react";
+import { EmptyState } from "@/components/common/empty-state";
+import { DataTable } from "@/components/common/data-table/data-table";
+import { crearColumnasTareas } from "@/components/landing/tareas-columnas";
+import {
+  TabContent,
+  TabList,
+  TabRoot,
+  TabTrigger,
+} from "@/components/tailgrids/core/tabs";
 import {
   esTareaAbierta,
   type Miembro,
   type Proyecto,
   type Tarea,
 } from "@/lib/landing/tipos";
-import { Prioridad, Vencimiento, VacioTabla } from "@/components/landing/ui";
-import { EstadoSelect } from "@/components/landing/estado-select";
-import { TareaForm } from "@/components/landing/tarea-form";
-import { BorrarTarea } from "@/components/landing/borrar";
-import { Tabla, TablaHead } from "@/components/landing/tabla";
 
-const CHIP =
-  "rounded-md px-2.5 py-1 text-xs font-medium transition-all duration-150";
-const CHIP_ACTIVO = "bg-surface text-text shadow-e1";
-const CHIP_INACTIVO = "text-text-2 hover:bg-surface/60 hover:text-text";
+const OBTENER_ID = (t: Tarea) => t.id;
+const IR_A_TAREA = (t: Tarea) => `/landing-pages/tasks/${t.id}`;
+
+function TablaDeTareas({
+  tareas,
+  columnas,
+  vacio,
+}: {
+  tareas: Tarea[];
+  columnas: ReturnType<typeof crearColumnasTareas>;
+  vacio: string;
+}) {
+  return (
+    <DataTable
+      columns={columnas}
+      data={tareas}
+      label="Tareas"
+      getRowId={OBTENER_ID}
+      getRowHref={IR_A_TAREA}
+      emptyState={<EmptyState variant="inline">{vacio}</EmptyState>}
+    />
+  );
+}
 
 /** Las completadas quedan ocultas por defecto: son ruido una vez cerrado el proyecto. */
 export function TareasTabla({
@@ -29,98 +51,50 @@ export function TareasTabla({
   proyectos: Proyecto[];
   miembros: Miembro[];
 }) {
-  const [mostrarCompletadas, setMostrarCompletadas] = useState(false);
-
-  const nombrePor = new Map(miembros.map((m) => [m.id, m.nombre]));
-  const proyectoPor = new Map(proyectos.map((p) => [p.id, p.name]));
-
-  const abiertas = tareas.filter((t) => esTareaAbierta(t.status));
-  const completadas = tareas.filter((t) => !esTareaAbierta(t.status));
-  const visibles = mostrarCompletadas ? tareas : abiertas;
+  const columnas = useMemo(
+    () => crearColumnasTareas(proyectos, miembros),
+    [proyectos, miembros],
+  );
+  const abiertas = useMemo(
+    () => tareas.filter((t) => esTareaAbierta(t.status)),
+    [tareas],
+  );
+  const ocultas = tareas.length - abiertas.length;
 
   return (
-    <>
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <div className="flex items-center gap-0.5 rounded-lg border border-line bg-surface-2 p-0.5">
-          <button
-            type="button"
-            onClick={() => setMostrarCompletadas(false)}
-            className={`${CHIP} ${!mostrarCompletadas ? CHIP_ACTIVO : CHIP_INACTIVO}`}
-          >
-            Abiertas <span className="tnum text-text-3">{abiertas.length}</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setMostrarCompletadas(true)}
-            className={`${CHIP} ${mostrarCompletadas ? CHIP_ACTIVO : CHIP_INACTIVO}`}
-          >
-            Todas <span className="tnum text-text-3">{tareas.length}</span>
-          </button>
-        </div>
-        {!mostrarCompletadas && completadas.length > 0 && (
-          <span className="text-xs text-text-3">
-            {completadas.length} completadas ocultas
-          </span>
+    <TabRoot
+      defaultValue="abiertas"
+      variant="minimal"
+      className="border-0 px-0 pt-0"
+    >
+      <div className="flex flex-wrap items-center gap-x-4">
+        <TabList>
+          <TabTrigger value="abiertas" badge={String(abiertas.length)}>
+            Abiertas
+          </TabTrigger>
+          <TabTrigger value="todas" badge={String(tareas.length)}>
+            Todas
+          </TabTrigger>
+        </TabList>
+        {ocultas > 0 && (
+          <span className="text-xs text-text-tertiary">{ocultas} completadas ocultas</span>
         )}
       </div>
 
-      <Tabla filas={visibles.length}>
-        <table className="w-full min-w-200 text-sm">
-          <TablaHead columnas={["Tarea", "Proyecto", "Responsable", "Estado", "Prioridad", "Deadline", ""]} />
-          <tbody>
-            {visibles.length === 0 && (
-              <VacioTabla colSpan={7}>
-                {mostrarCompletadas
-                  ? "Todavía no hay tareas."
-                  : "No hay tareas abiertas."}
-              </VacioTabla>
-            )}
-            {visibles.map((t) => (
-              <tr
-                key={t.id}
-                className="fila-hover group/fila border-b border-line last:border-0"
-              >
-                <td className="px-4 py-3 font-medium">
-                  <Link
-                    href={`/landing-pages/tasks/${t.id}`}
-                    className="hover:underline"
-                  >
-                    {t.title}
-                  </Link>
-                </td>
-                <td className="px-4 py-3 text-text-2">
-                  {t.project_id ? (proyectoPor.get(t.project_id) ?? "—") : "—"}
-                </td>
-                <td className="px-4 py-3 text-text-2">
-                  {t.assignee_ids
-                    .map((id) => nombrePor.get(id))
-                    .filter((n): n is string => Boolean(n))
-                    .join(", ") || "—"}
-                </td>
-                <td className="px-4 py-3">
-                  <EstadoSelect id={t.id} valor={t.status} tipo="tarea" />
-                </td>
-                <td className="px-4 py-3">
-                  <Prioridad prioridad={t.priority} />
-                </td>
-                <td className="px-4 py-3">
-                  <Vencimiento fecha={t.due_date} cerrado={t.status === "completada"} />
-                </td>
-                <td className="px-4 py-3">
-                  <span className="flex items-center justify-end gap-3 opacity-0 transition-opacity group-hover/fila:opacity-100 focus-within:opacity-100">
-                    <TareaForm
-                      miembros={miembros}
-                      proyectos={proyectos}
-                      tarea={t}
-                    />
-                    <BorrarTarea id={t.id} />
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </Tabla>
-    </>
+      <TabContent value="abiertas" className="px-0 py-4">
+        <TablaDeTareas
+          tareas={abiertas}
+          columnas={columnas}
+          vacio="No hay tareas abiertas."
+        />
+      </TabContent>
+      <TabContent value="todas" className="px-0 py-4">
+        <TablaDeTareas
+          tareas={tareas}
+          columnas={columnas}
+          vacio="Todavía no hay tareas."
+        />
+      </TabContent>
+    </TabRoot>
   );
 }

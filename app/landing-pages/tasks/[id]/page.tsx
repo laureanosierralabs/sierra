@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft } from "@tailgrids/icons";
 import {
   listarProyectos,
   obtenerProyecto,
@@ -40,9 +40,9 @@ export default async function TareaDetalle({
     <>
       <Link
         href={volverA}
-        className="mb-4 inline-flex items-center gap-1.5 text-sm text-text-3 transition-colors hover:text-text"
+        className="mb-4 inline-flex items-center gap-1.5 text-sm text-text-tertiary transition-colors hover:text-text-primary"
       >
-        <ArrowLeft className="size-3.5" />
+        <ArrowLeft className="size-4" />
         {proyecto ? proyecto.name : "Tareas"}
       </Link>
 
