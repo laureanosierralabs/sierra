@@ -9,5 +9,5 @@ export function PageContainer({
   children: ReactNode;
   className?: string;
 }) {
-  return <div className={cn("mx-auto w-full max-w-[1600px] px-8 py-8", className)}>{children}</div>;
+  return <div className={cn("mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-8 sm:py-8", className)}>{children}</div>;
 }

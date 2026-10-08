@@ -134,7 +134,7 @@ export default function OtpInput({
         isInvalid={isInvalid}
         aria-labelledby={label ? labelId : undefined}
         aria-describedby={hint || (isInvalid && errorMessage) ? hintId : undefined}
-        aria-label={!label ? "Verification code" : undefined}
+        aria-label={!label ? "Código de verificación" : undefined}
         className="flex items-center gap-2 not-focus-within:text-input-placeholder-text focus-within:text-text-50"
       >
         {otp.map((digit, index) => (
@@ -144,7 +144,7 @@ export default function OtpInput({
             inputMode="numeric"
             pattern="[0-9]*"
             autoComplete="one-time-code"
-            aria-label={`Digit ${index + 1}`}
+            aria-label={`Dígito ${index + 1}`}
             id={index === 0 ? id : undefined}
             maxLength={1}
             value={digit}

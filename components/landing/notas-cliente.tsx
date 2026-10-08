@@ -23,7 +23,7 @@ function Nota({ nota, clientId }: { nota: NotaCliente; clientId: string }) {
               type="button"
               onClick={() => setAbierta((v) => !v)}
               aria-expanded={abierta}
-              aria-label={abierta ? "Ocultar transcripción" : "Ver transcripción"}
+              aria-label="Transcripción"
               className="shrink-0 rounded text-text-tertiary transition-colors outline-none hover:text-text-primary focus-visible:ring-2 focus-visible:ring-primary-500 [&>svg]:size-4"
             >
               <ChevronDown className={cn("transition-transform", abierta && "rotate-180")} />

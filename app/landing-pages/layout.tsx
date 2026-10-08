@@ -8,7 +8,7 @@ export default function LandingPagesLayout({
 }) {
   return (
     <>
-      <div className="mx-auto max-w-[1600px] px-8 py-8">{children}</div>
+      <div className="mx-auto max-w-[1600px] px-4 py-6 sm:px-8 sm:py-8">{children}</div>
       {panel}
     </>
   );

@@ -99,10 +99,18 @@ function Tarjeta({
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       {...attributes}
+      // No KeyboardSensor: don't announce a keyboard-sortable item ("sortable").
+      aria-roledescription="tarea"
       {...listeners}
       onClick={() => router.push(`/landing-pages/tasks/${tarea.id}`)}
+      onKeyDown={(e) => {
+        // Sin KeyboardSensor, Enter abre la tarea (el arrastre es solo con puntero).
+        if (e.key === "Enter" && e.target === e.currentTarget) {
+          router.push(`/landing-pages/tasks/${tarea.id}`);
+        }
+      }}
       className={cn(
-        "cursor-grab rounded-lg border-[0.5px] border-card-border bg-card-background p-2.5 shadow-sm transition-[border-color,box-shadow] hover:border-primary-300 hover:shadow-md active:cursor-grabbing",
+        "cursor-grab rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-primary-500 border-[0.5px] border-card-border bg-card-background p-2.5 shadow-sm transition-[border-color,box-shadow] hover:border-primary-300 hover:shadow-md active:cursor-grabbing",
         // El hueco queda marcado pero apagado: se ve de dónde salió la tarjeta.
         isDragging && "opacity-30",
       )}
@@ -200,6 +208,13 @@ export function Kanban({
     return t ? columnaDe(t.status) : null;
   }
 
+  const tituloDe = (id: string | number) =>
+    `«${items.find((t) => t.id === String(id))?.title ?? "tarea"}»`;
+  const labelColumna = (id: string | number) => {
+    const col = columnaObjetivo(String(id));
+    return COLUMNAS_KANBAN.find((c) => c.id === col)?.label ?? "otra columna";
+  };
+
   function onDragStart(e: DragStartEvent) {
     setArrastrando(String(e.active.id));
   }
@@ -252,6 +267,19 @@ export function Kanban({
     <DndContext
       sensors={sensors}
       collisionDetection={closestCorners}
+      accessibility={{
+        screenReaderInstructions: { draggable: "Presiona Enter para abrir la tarea." },
+        announcements: {
+          onDragStart: ({ active }) => `Tomaste ${tituloDe(active.id)}.`,
+          onDragOver: ({ active, over }) =>
+            over ? `${tituloDe(active.id)} está sobre ${labelColumna(over.id)}.` : undefined,
+          onDragEnd: ({ active, over }) =>
+            over
+              ? `Soltaste ${tituloDe(active.id)} en ${labelColumna(over.id)}.`
+              : `Soltaste ${tituloDe(active.id)} fuera de una columna.`,
+          onDragCancel: ({ active }) => `Se canceló el movimiento de ${tituloDe(active.id)}.`,
+        },
+      }}
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
       onDragCancel={() => setArrastrando(null)}

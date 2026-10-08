@@ -38,9 +38,6 @@ importers:
       '@fullcalendar/timegrid':
         specifier: 6.1.21
         version: 6.1.21(@fullcalendar/core@6.1.21)
-      '@internationalized/date':
-        specifier: ^3.12.2
-        version: 3.12.4
       '@supabase/supabase-js':
         specifier: ^2.116.0
         version: 2.116.0

@@ -7,7 +7,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 <!-- BEGIN:ui-system-rules -->
 # UI system (NextAdmin/TailGrids)
 
-The UI foundation comes from NextAdmin v2 (TailGrids). It is being adopted in phases; the app's legacy tokens in `app/globals.css` (`ground`, `surface`, `line`, `text-*`, `cat-*`, `.vidrio`, ...) still exist until the migration finishes. **New code uses the TailGrids tokens and primitives only.**
+The UI foundation comes from NextAdmin v2 (TailGrids). The migration is done for every page except `components/personal-finance.tsx` (Finanzas personal). The only legacy leftovers in `app/globals.css` are the app tokens that file still uses (`ground`, `surface`, `line`, `text-2/3`, `critical/warn/ok/idle`, `cat-*`) and the `.eyebrow` class; delete them together with that screen's migration. **New code uses the TailGrids tokens and primitives only.**
 
 ## Structure (root layout, no `src/`)
 
@@ -31,6 +31,7 @@ hooks/  utils/  types/   cross-cutting hooks, `cn` and formatters, ambient type 
 - Do NOT create new CSS utility classes.
 - FullCalendar overrides belong in `app/css/calendars.css`.
 - Fonts: Inter only, via `next/font` (`--font-inter`), exposed as Tailwind `font-sans`.
+- Focus: a global `:focus-visible` outline (primary token) lives in `@layer base`, so primitives opt out with `outline-none` + `focus-visible:ring-*`. Custom interactive elements need one of the two.
 - Dark mode: `next-themes` writes `data-theme` on `<html>` (storage key `tema`). Never toggle it by hand; use `useTheme()`.
 
 ## Component rules
@@ -82,5 +83,5 @@ Issues map to per-field errors (`form.errors[name]`); a thrown server error beco
 
 - Don't install new packages without asking the user.
 - Don't touch business logic, server actions, `lib/` data access, Supabase or Clerk config when doing UI work.
-- Don't use legacy tokens (`bg-surface`, `text-text-2`, `.vidrio`, ...) in new code.
+- Don't use legacy tokens (`bg-surface`, `text-text-2`, `border-line`, `.eyebrow`, ...) in new code.
 <!-- END:ui-system-rules -->

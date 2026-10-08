@@ -7,9 +7,9 @@ import { elegirVista, useVistaGuardada, type VistaProyectos } from "@/components
 const BOTON =
   "aria-pressed:bg-background-gray-secondary aria-pressed:text-text-primary text-sm font-medium";
 
-const OPCIONES: { valor: VistaProyectos; etiqueta: string; aria: string; icono: React.ReactNode }[] = [
-  { valor: "cards", etiqueta: "Cards", aria: "Ver como tarjetas", icono: <Layout6 className="size-4" /> },
-  { valor: "tabla", etiqueta: "Tabla", aria: "Ver como tabla", icono: <Table2 className="size-4" /> },
+const OPCIONES: { valor: VistaProyectos; etiqueta: string; icono: React.ReactNode }[] = [
+  { valor: "cards", etiqueta: "Tarjetas", icono: <Layout6 className="size-4" /> },
+  { valor: "tabla", etiqueta: "Tabla", icono: <Table2 className="size-4" /> },
 ];
 
 /** Alterna entre tarjetas y tabla; la elección queda guardada en este navegador. */
@@ -22,7 +22,6 @@ export function ToggleVista() {
         <button
           key={o.valor}
           type="button"
-          aria-label={o.aria}
           aria-pressed={vista === o.valor}
           onClick={() => elegirVista(o.valor)}
           className={BOTON}

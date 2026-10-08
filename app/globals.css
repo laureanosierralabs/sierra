@@ -46,8 +46,6 @@
   --cat-azul-dim: #e8f1fd;
   --cat-violeta: #7c3aed;
   --cat-violeta-dim: #f1eafe;
-  --cat-rosa: #c026a3;
-  --cat-rosa-dim: #fbe9f7;
   --cat-ambar: #b45309;
   --cat-ambar-dim: #fdf1e0;
   --cat-teal: #0d7490;
@@ -57,11 +55,6 @@
 
   /* Elevación: sombra + vidrio. La profundidad comunica jerarquía —
      lo que flota más alto es lo que reclama atención primero. */
-  --sombra-1: 0 1px 2px rgb(16 24 40 / 0.04), 0 1px 3px rgb(16 24 40 / 0.06);
-  --sombra-2: 0 2px 4px rgb(16 24 40 / 0.04), 0 4px 12px rgb(16 24 40 / 0.08);
-  --sombra-3: 0 8px 16px rgb(16 24 40 / 0.08), 0 16px 32px rgb(16 24 40 / 0.12);
-  --vidrio: rgb(255 255 255 / 0.72);
-  --vidrio-borde: rgb(255 255 255 / 0.5);
 }
 
 /* Tema oscuro — se aplica si el sistema lo pide */
@@ -90,8 +83,6 @@
     --cat-azul-dim: #10233c;
     --cat-violeta: #a78bfa;
     --cat-violeta-dim: #221a3d;
-    --cat-rosa: #e879d0;
-    --cat-rosa-dim: #34142d;
     --cat-ambar: #f0a94c;
     --cat-ambar-dim: #33230d;
     --cat-teal: #3fb6d4;
@@ -99,11 +90,6 @@
     --cat-lima: #9cc94a;
     --cat-lima-dim: #1d2810;
 
-    --sombra-1: 0 1px 2px rgb(0 0 0 / 0.3), 0 1px 3px rgb(0 0 0 / 0.4);
-    --sombra-2: 0 2px 4px rgb(0 0 0 / 0.3), 0 4px 12px rgb(0 0 0 / 0.45);
-    --sombra-3: 0 8px 16px rgb(0 0 0 / 0.4), 0 16px 32px rgb(0 0 0 / 0.55);
-    --vidrio: rgb(25 25 32 / 0.72);
-    --vidrio-borde: rgb(255 255 255 / 0.08);
   }
 }
 
@@ -130,20 +116,12 @@
   --cat-azul-dim: #e8f1fd;
   --cat-violeta: #7c3aed;
   --cat-violeta-dim: #f1eafe;
-  --cat-rosa: #c026a3;
-  --cat-rosa-dim: #fbe9f7;
   --cat-ambar: #b45309;
   --cat-ambar-dim: #fdf1e0;
   --cat-teal: #0d7490;
   --cat-teal-dim: #e2f4f8;
   --cat-lima: #4d7c0f;
   --cat-lima-dim: #eff6e2;
-
-  --sombra-1: 0 1px 2px rgb(16 24 40 / 0.04), 0 1px 3px rgb(16 24 40 / 0.06);
-  --sombra-2: 0 2px 4px rgb(16 24 40 / 0.04), 0 4px 12px rgb(16 24 40 / 0.08);
-  --sombra-3: 0 8px 16px rgb(16 24 40 / 0.08), 0 16px 32px rgb(16 24 40 / 0.12);
-  --vidrio: rgb(255 255 255 / 0.72);
-  --vidrio-borde: rgb(255 255 255 / 0.5);
 }
 
 :root[data-theme="dark"] {
@@ -168,20 +146,12 @@
   --cat-azul-dim: #10233c;
   --cat-violeta: #a78bfa;
   --cat-violeta-dim: #221a3d;
-  --cat-rosa: #e879d0;
-  --cat-rosa-dim: #34142d;
   --cat-ambar: #f0a94c;
   --cat-ambar-dim: #33230d;
   --cat-teal: #3fb6d4;
   --cat-teal-dim: #0d2831;
   --cat-lima: #9cc94a;
   --cat-lima-dim: #1d2810;
-
-  --sombra-1: 0 1px 2px rgb(0 0 0 / 0.3), 0 1px 3px rgb(0 0 0 / 0.4);
-  --sombra-2: 0 2px 4px rgb(0 0 0 / 0.3), 0 4px 12px rgb(0 0 0 / 0.45);
-  --sombra-3: 0 8px 16px rgb(0 0 0 / 0.4), 0 16px 32px rgb(0 0 0 / 0.55);
-  --vidrio: rgb(25 25 32 / 0.72);
-  --vidrio-borde: rgb(255 255 255 / 0.08);
 }
 
 @theme inline {
@@ -189,7 +159,6 @@
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
   --color-line: var(--border);
-  --color-line-strong: var(--border-strong);
   --color-text: var(--text);
   --color-text-2: var(--text-2);
   --color-text-3: var(--text-3);
@@ -205,17 +174,12 @@
   --color-cat-azul-dim: var(--cat-azul-dim);
   --color-cat-violeta: var(--cat-violeta);
   --color-cat-violeta-dim: var(--cat-violeta-dim);
-  --color-cat-rosa: var(--cat-rosa);
-  --color-cat-rosa-dim: var(--cat-rosa-dim);
   --color-cat-ambar: var(--cat-ambar);
   --color-cat-ambar-dim: var(--cat-ambar-dim);
   --color-cat-teal: var(--cat-teal);
   --color-cat-teal-dim: var(--cat-teal-dim);
   --color-cat-lima: var(--cat-lima);
   --color-cat-lima-dim: var(--cat-lima-dim);
-  --shadow-e1: var(--sombra-1);
-  --shadow-e2: var(--sombra-2);
-  --shadow-e3: var(--sombra-3);
   --font-sans: var(--font-inter), system-ui, sans-serif;
   --font-display: var(--font-inter), system-ui, sans-serif;
 }
@@ -232,15 +196,6 @@ h1, h2, h3 {
   text-wrap: balance;
 }
 
-.font-display {
-  font-family: var(--font-display);
-}
-
-/* Números que se comparan en columna deben alinearse */
-.tnum {
-  font-variant-numeric: tabular-nums;
-}
-
 .eyebrow {
   font-size: 0.6875rem;
   font-weight: 600;
@@ -249,25 +204,30 @@ h1, h2, h3 {
   color: var(--text-3);
 }
 
-:focus-visible {
-  outline: 2px solid var(--text-2);
-  outline-offset: 2px;
-  border-radius: 4px;
+/* En @layer base para que `outline-none` y los `focus-visible:ring-*` de las
+   primitivas ganen; sin capa, esta regla los pisaba y dejaba doble indicador. */
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--color-primary-500);
+    outline-offset: 2px;
+  }
 }
 
 /* Todo lo clickeable se comporta como tal. Tailwind 4 ya no lo hace solo. */
-button:not(:disabled),
-[role="button"]:not([aria-disabled="true"]),
-summary,
-label[for],
-select:not(:disabled) {
-  cursor: pointer;
-}
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  summary,
+  label[for],
+  select:not(:disabled) {
+    cursor: pointer;
+  }
 
-button:disabled,
-select:disabled,
-[aria-disabled="true"] {
-  cursor: not-allowed;
+  button:disabled,
+  select:disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
 }
 
 ::-webkit-scrollbar { width: 10px; height: 10px; }
@@ -283,114 +243,4 @@ select:disabled,
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }
-}
-
-/* Selector de estado/etapa: vidrio esmerilado. El color lo pone el dato
-   (data-tono), no el componente, así el estado se lee sin abrir el select. */
-.select-glass {
-  appearance: none;
-  padding-right: 1.75rem;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2393a1b4' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 0.5rem center;
-  backdrop-filter: blur(10px) saturate(140%);
-  -webkit-backdrop-filter: blur(10px) saturate(140%);
-  border: 1px solid color-mix(in oklab, var(--tono) 35%, transparent);
-  background-color: color-mix(in oklab, var(--tono) 14%, transparent);
-  color: var(--tono);
-  transition: border-color 0.15s ease, background-color 0.15s ease;
-}
-
-.select-glass:hover:not(:disabled) {
-  border-color: color-mix(in oklab, var(--tono) 55%, transparent);
-  background-color: color-mix(in oklab, var(--tono) 22%, transparent);
-}
-
-/* El desplegable nativo no hereda el vidrio: se fuerza legible en ambos temas. */
-.select-glass option {
-  background: var(--surface);
-  color: var(--text);
-}
-
-/* Superficie de vidrio: para lo que flota sobre contenido (paneles,
-   menús, barras fijas). No usar en contenido plano — el blur cuesta
-   GPU y sobre fondo liso no aporta nada. */
-.vidrio {
-  background: var(--vidrio);
-  backdrop-filter: blur(16px) saturate(160%);
-  -webkit-backdrop-filter: blur(16px) saturate(160%);
-}
-
-/* El borde del vidrio va aparte: quien la use decide si lo quiere en los
-   cuatro lados o solo en uno (una barra sticky suele querer solo abajo). */
-.vidrio-borde {
-  border: 1px solid var(--vidrio-borde);
-}
-
-/* Select de filtro: mismo peso visual que un chip, con chevron propio
-   porque el nativo no sigue el tema. */
-.filtro-select {
-  appearance: none;
-  padding: 0.3125rem 1.75rem 0.3125rem 0.625rem;
-  border-radius: 0.5rem;
-  border: 1px solid var(--border);
-  background-color: var(--surface);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2393a1b4' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 0.625rem center;
-  font-size: 0.75rem;
-  color: var(--text-2);
-  outline: none;
-  box-shadow: var(--sombra-1);
-  transition: border-color 0.15s ease, color 0.15s ease;
-}
-
-.filtro-select:hover {
-  border-color: var(--border-strong);
-  color: var(--text);
-}
-
-.filtro-select option {
-  background: var(--surface);
-  color: var(--text);
-}
-
-/* Fila de tabla: el hover tiñe en vez de saltar, y la transición corta
-   evita que el barrido del mouse deje un rastro de parpadeos. */
-.fila-hover {
-  transition: background-color 0.12s ease;
-}
-
-.fila-hover:hover {
-  background: color-mix(in oklab, var(--surface-2) 70%, transparent);
-}
-
-/* Card que responde al puntero: sube apenas y gana sombra. El
-   desplazamiento mínimo basta para leerse como "esto es clickeable". */
-.card-interactiva {
-  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
-}
-
-.card-interactiva:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--sombra-2);
-  border-color: var(--border-strong);
-}
-
-@keyframes entrar-derecha {
-  from { transform: translateX(100%); }
-  to { transform: translateX(0); }
-}
-
-@keyframes aparecer {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-.panel-lateral {
-  animation: entrar-derecha 0.22s cubic-bezier(0.32, 0.72, 0, 1);
-}
-
-.panel-fondo {
-  animation: aparecer 0.18s ease-out;
 }

@@ -1,4 +1,3 @@
-import { EmptyState } from "@/components/common/empty-state";
 import { PageHeader as PageHeaderBase } from "@/components/common/page-header";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { cn } from "@/utils/cn";
@@ -256,21 +255,5 @@ export function SeccionTitulo({
       </h2>
       {accion}
     </div>
-  );
-}
-
-export function VacioTabla({
-  children,
-  colSpan,
-}: {
-  children: React.ReactNode;
-  colSpan: number;
-}) {
-  return (
-    <tr>
-      <td colSpan={colSpan} className="px-4 py-10 text-center">
-        <EmptyState variant="inline">{children}</EmptyState>
-      </td>
-    </tr>
   );
 }

@@ -57,7 +57,13 @@ export function NavItem({ entry, collapsed, onItemClick }: NavItemProps) {
                 <NavIcon name={entry.icon} />
               </a>
             ) : (
-              <Link href={href} onClick={onItemClick} aria-label={entry.title} className={className}>
+              <Link
+                href={href}
+                onClick={onItemClick}
+                aria-label={entry.title}
+                aria-current={active ? "page" : undefined}
+                className={className}
+              >
                 <NavIcon name={entry.icon} />
               </Link>
             )}
@@ -104,6 +110,7 @@ export function NavItem({ entry, collapsed, onItemClick }: NavItemProps) {
               key={child.url}
               href={child.url}
               onClick={onItemClick}
+              aria-current={isChildActive(child, pathname) ? "page" : undefined}
               className={cn(
                 "block rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                 isChildActive(child, pathname) ? ROW_ACTIVE : ROW_IDLE,
@@ -142,6 +149,7 @@ export function NavItem({ entry, collapsed, onItemClick }: NavItemProps) {
     <Link
       href={entry.url}
       onClick={onItemClick}
+      aria-current={active ? "page" : undefined}
       className={cn(ROW, active ? ROW_ACTIVE : ROW_IDLE)}
     >
       <span className="flex shrink-0 text-icon-tertiary">

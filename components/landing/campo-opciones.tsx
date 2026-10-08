@@ -29,7 +29,11 @@ export function CampoOpciones({
   }
 
   return (
-    <div className="flex flex-col gap-1.5">
+    <div
+      role={campo.multiple ? "group" : "radiogroup"}
+      aria-label={campo.label}
+      className="flex flex-col gap-1.5"
+    >
       {campo.opciones?.map((o) => {
         const activa = marcadas.includes(o);
         const etiqueta = (

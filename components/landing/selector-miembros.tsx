@@ -36,7 +36,7 @@ export function SelectorMiembros({
   }
 
   return (
-    <div role="group" className="flex flex-wrap gap-1.5">
+    <div role="group" aria-label="Responsables" className="flex flex-wrap gap-1.5">
       {miembros.map((m) => {
         const activo = elegidos.has(m.id);
         return (

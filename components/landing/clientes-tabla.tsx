@@ -25,9 +25,9 @@ type Vista = "cards" | "tabla";
 const BOTON =
   "aria-pressed:bg-background-gray-secondary aria-pressed:text-text-primary text-sm font-medium";
 
-const VISTAS: { valor: Vista; etiqueta: string; aria: string; icono: React.ReactNode }[] = [
-  { valor: "cards", etiqueta: "Cards", aria: "Ver como tarjetas", icono: <Layout6 className="size-4" /> },
-  { valor: "tabla", etiqueta: "Tabla", aria: "Ver como tabla", icono: <Table2 className="size-4" /> },
+const VISTAS: { valor: Vista; etiqueta: string; icono: React.ReactNode }[] = [
+  { valor: "cards", etiqueta: "Tarjetas", icono: <Layout6 className="size-4" /> },
+  { valor: "tabla", etiqueta: "Tabla", icono: <Table2 className="size-4" /> },
 ];
 
 const OBTENER_ID = (c: Cliente) => c.id;
@@ -90,7 +90,6 @@ export function ClientesTabla({ clientes }: { clientes: Cliente[] }) {
             <button
               key={v.valor}
               type="button"
-              aria-label={v.aria}
               aria-pressed={vista === v.valor}
               onClick={() => setVista(v.valor)}
               className={BOTON}
