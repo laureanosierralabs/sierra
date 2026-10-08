@@ -1,120 +1,54 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, ExternalLink, MessageSquareText, Pencil } from "lucide-react";
-import {
-  DialogoForm,
-  Campo,
-  Input,
-  Textarea,
-} from "@/components/landing/dialogo-form";
+import { ChevronDown, ExpandArrowTopRightSquare1, Message1 } from "@tailgrids/icons";
+import { EmptyState } from "@/components/common/empty-state";
 import { BorrarBoton } from "@/components/landing/borrar-boton";
+import { NotaForm } from "@/components/landing/nota-form";
 import { SeccionTitulo } from "@/components/landing/ui";
-import {
-  borrarNotaCliente,
-  guardarNotaCliente,
-} from "@/app/landing-pages/acciones";
+import { Card } from "@/components/tailgrids/core/card";
+import { borrarNotaCliente } from "@/app/landing-pages/acciones";
 import type { NotaCliente } from "@/lib/landing/tipos";
-
-function NotaForm({
-  clientId,
-  nota,
-}: {
-  clientId: string;
-  nota?: NotaCliente;
-}) {
-  const editar = Boolean(nota);
-
-  return (
-    <DialogoForm
-      titulo={editar ? "Editar reunión" : "Nueva reunión"}
-      etiquetaAbrir="Nueva reunión"
-      action={guardarNotaCliente}
-      disparador={editar ? <Pencil className="size-3.5" /> : undefined}
-    >
-      <input type="hidden" name="client_id" value={clientId} />
-      {nota && <input type="hidden" name="id" value={nota.id} />}
-
-      <div className="grid grid-cols-[1fr_auto] gap-4">
-        <Campo label="Título">
-          <Input
-            name="title"
-            required
-            placeholder="Kickoff, revisión de diseño…"
-            defaultValue={nota?.title ?? ""}
-          />
-        </Campo>
-
-        <Campo label="Fecha">
-          <Input
-            type="date"
-            name="meeting_date"
-            defaultValue={nota?.meeting_date ?? ""}
-          />
-        </Campo>
-      </div>
-
-      <Campo label="Link a la grabación">
-        <Input
-          name="url"
-          placeholder="https://fathom.video/…"
-          defaultValue={nota?.url ?? ""}
-        />
-      </Campo>
-
-      <Campo label="Transcripción o notas">
-        <Textarea
-          name="body"
-          rows={10}
-          placeholder="Pegá acá la transcripción de Fathom o tus notas…"
-          defaultValue={nota?.body ?? ""}
-        />
-      </Campo>
-    </DialogoForm>
-  );
-}
+import { cn } from "@/utils/cn";
 
 function Nota({ nota, clientId }: { nota: NotaCliente; clientId: string }) {
   const [abierta, setAbierta] = useState(false);
 
   return (
-    <div>
-      <div className="flex items-center justify-between gap-3 px-3 py-2.5 transition-colors hover:bg-surface-2">
+    <li>
+      <div className="flex items-center justify-between gap-3 px-3 py-2.5 transition-colors hover:bg-background-gray-secondary">
         <span className="flex min-w-0 items-center gap-2.5">
           {nota.body ? (
             <button
               type="button"
               onClick={() => setAbierta((v) => !v)}
               aria-expanded={abierta}
-              className="shrink-0 text-text-3 transition-colors hover:text-text"
+              aria-label={abierta ? "Ocultar transcripción" : "Ver transcripción"}
+              className="shrink-0 rounded text-text-tertiary transition-colors outline-none hover:text-text-primary focus-visible:ring-2 focus-visible:ring-primary-500 [&>svg]:size-4"
             >
-              <ChevronDown
-                className={`size-3.5 transition-transform ${abierta ? "rotate-180" : ""}`}
-              />
+              <ChevronDown className={cn("transition-transform", abierta && "rotate-180")} />
             </button>
           ) : (
-            <span className="size-3.5 shrink-0" />
+            <span className="size-4 shrink-0" />
           )}
 
           <span className="min-w-0">
             <span className="flex flex-wrap items-center gap-2">
-              <span className="truncate text-sm font-medium">{nota.title}</span>
+              <span className="truncate text-sm font-medium text-text-primary">{nota.title}</span>
               {nota.url && (
                 <a
                   href={nota.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-[0.6875rem] text-text-3 hover:text-text"
+                  className="inline-flex items-center gap-1 text-xs text-text-tertiary hover:text-text-primary [&>svg]:size-3.5"
                 >
                   Grabación
-                  <ExternalLink className="size-3" />
+                  <ExpandArrowTopRightSquare1 />
                 </a>
               )}
             </span>
             {nota.meeting_date && (
-              <span className="tnum text-xs text-text-3">
-                {nota.meeting_date}
-              </span>
+              <span className="text-xs tabular-nums text-text-tertiary">{nota.meeting_date}</span>
             )}
           </span>
         </span>
@@ -129,11 +63,11 @@ function Nota({ nota, clientId }: { nota: NotaCliente; clientId: string }) {
       </div>
 
       {abierta && nota.body && (
-        <pre className="whitespace-pre-wrap border-t border-line bg-surface-2/40 px-4 py-3 font-sans text-sm leading-relaxed text-text-2">
+        <pre className="border-t border-card-border bg-background-gray-secondary px-4 py-3 font-sans text-sm leading-relaxed whitespace-pre-wrap text-text-secondary">
           {nota.body}
         </pre>
       )}
-    </div>
+    </li>
   );
 }
 
@@ -146,23 +80,21 @@ export function NotasCliente({
 }) {
   return (
     <section>
-      <SeccionTitulo
-        icono={MessageSquareText}
-        accion={<NotaForm clientId={clientId} />}
-      >
+      <SeccionTitulo icono={Message1} accion={<NotaForm clientId={clientId} />}>
         Reuniones y transcripciones
       </SeccionTitulo>
 
-      <div className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
-        {notas.length === 0 && (
-          <p className="px-4 py-6 text-sm text-text-3">
-            Sin reuniones cargadas.
-          </p>
-        )}
-        {notas.map((n) => (
-          <Nota key={n.id} nota={n} clientId={clientId} />
-        ))}
-      </div>
+      {notas.length === 0 ? (
+        <EmptyState title="Sin reuniones cargadas" />
+      ) : (
+        <Card className="overflow-hidden p-0">
+          <ul className="divide-y divide-card-border">
+            {notas.map((n) => (
+              <Nota key={n.id} nota={n} clientId={clientId} />
+            ))}
+          </ul>
+        </Card>
+      )}
     </section>
   );
 }

@@ -1,13 +1,14 @@
 "use client";
 
-import { Pencil } from "lucide-react";
+import { Pencil1 } from "@tailgrids/icons";
 import {
-  DialogoForm,
-  Campo,
-  Input,
-  Select,
-  Textarea,
-} from "@/components/landing/dialogo-form";
+  FormSelectField,
+  FormTextAreaField,
+  FormTextField,
+} from "@/components/common/form/form-fields";
+import { clienteEsquema } from "@/components/landing/cliente-esquema";
+import { DialogoForm } from "@/components/landing/dialogo-form";
+import { SIN_OPCION } from "@/components/landing/proyecto-esquema";
 import { guardarCliente } from "@/app/landing-pages/acciones";
 import {
   ESTADOS_CLIENTE,
@@ -17,6 +18,19 @@ import {
   type Cliente,
 } from "@/lib/landing/tipos";
 
+const OPCIONES_ESTADO = ESTADOS_CLIENTE.map((e) => ({ value: e, label: LABEL_ESTADO_CLIENTE[e] }));
+
+const OPCIONES_ORIGEN = [
+  { value: SIN_OPCION, label: "Sin definir" },
+  ...ORIGENES.map((o) => ({ value: o, label: LABEL_ORIGEN[o] })),
+];
+
+/** Mismo FormData que antes: "sin definir" viaja como cadena vacía. */
+function guardar(fd: FormData) {
+  if (fd.get("source") === SIN_OPCION) fd.set("source", "");
+  return guardarCliente(fd);
+}
+
 export function ClienteForm({ cliente }: { cliente?: Cliente }) {
   const editar = Boolean(cliente);
 
@@ -24,101 +38,102 @@ export function ClienteForm({ cliente }: { cliente?: Cliente }) {
     <DialogoForm
       titulo={editar ? "Editar cliente" : "Nuevo cliente"}
       etiquetaAbrir="Nuevo cliente"
-      action={guardarCliente}
-      disparador={editar ? <Pencil className="size-3.5" /> : undefined}
+      action={guardar}
+      schema={clienteEsquema}
+      disparador={editar ? <Pencil1 /> : undefined}
     >
-      {cliente && <input type="hidden" name="id" value={cliente.id} />}
+      {(form) => (
+        <>
+          {cliente && <input type="hidden" name="id" value={cliente.id} />}
 
-      <div className="grid grid-cols-2 gap-4">
-        <Campo label="Nombre">
-          <Input name="name" required defaultValue={cliente?.name ?? ""} />
-        </Campo>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <FormTextField
+              {...form.fieldProps("name")}
+              label="Nombre"
+              required
+              defaultValue={cliente?.name ?? ""}
+            />
+            <FormTextField
+              {...form.fieldProps("company")}
+              label="Empresa"
+              defaultValue={cliente?.company ?? ""}
+            />
+          </div>
 
-        <Campo label="Empresa">
-          <Input name="company" defaultValue={cliente?.company ?? ""} />
-        </Campo>
-      </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <FormTextField
+              {...form.fieldProps("email")}
+              type="email"
+              label="Email"
+              defaultValue={cliente?.email ?? ""}
+            />
+            <FormTextField
+              {...form.fieldProps("phone")}
+              label="WhatsApp / teléfono"
+              defaultValue={cliente?.phone ?? ""}
+            />
+          </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <Campo label="Email">
-          <Input type="email" name="email" defaultValue={cliente?.email ?? ""} />
-        </Campo>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <FormTextField
+              {...form.fieldProps("instagram")}
+              label="Instagram"
+              placeholder="@usuario"
+              defaultValue={cliente?.instagram ?? ""}
+            />
+            <FormSelectField
+              {...form.fieldProps("status")}
+              label="Estado"
+              options={OPCIONES_ESTADO}
+              defaultValue={cliente?.status ?? "prospecto"}
+            />
+          </div>
 
-        <Campo label="WhatsApp / teléfono">
-          <Input name="phone" defaultValue={cliente?.phone ?? ""} />
-        </Campo>
-      </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <FormSelectField
+              {...form.fieldProps("source")}
+              label="Origen"
+              options={OPCIONES_ORIGEN}
+              defaultValue={cliente?.source ?? SIN_OPCION}
+            />
+            <FormTextField
+              {...form.fieldProps("source_detail")}
+              label="Detalle del origen"
+              placeholder="Instagram, Meta Ads, quién lo refirió…"
+              defaultValue={cliente?.source_detail ?? ""}
+            />
+          </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <Campo label="Instagram">
-          <Input
-            name="instagram"
-            placeholder="@usuario"
-            defaultValue={cliente?.instagram ?? ""}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <FormTextField
+              {...form.fieldProps("niche")}
+              label="Nicho"
+              placeholder="Pastelería, coaching…"
+              defaultValue={cliente?.niche ?? ""}
+            />
+            <FormTextField
+              {...form.fieldProps("website")}
+              label="Sitio web"
+              placeholder="https://…"
+              defaultValue={cliente?.website ?? ""}
+            />
+          </div>
+
+          <FormTextField
+            {...form.fieldProps("drive_url")}
+            label="Drive de archivos"
+            placeholder="https://drive.google.com/…"
+            defaultValue={cliente?.drive_url ?? ""}
           />
-        </Campo>
 
-        <Campo label="Estado">
-          <Select name="status" defaultValue={cliente?.status ?? "prospecto"}>
-            {ESTADOS_CLIENTE.map((e) => (
-              <option key={e} value={e}>
-                {LABEL_ESTADO_CLIENTE[e]}
-              </option>
-            ))}
-          </Select>
-        </Campo>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <Campo label="Origen">
-          <Select name="source" defaultValue={cliente?.source ?? ""}>
-            <option value="">Sin definir</option>
-            {ORIGENES.map((o) => (
-              <option key={o} value={o}>
-                {LABEL_ORIGEN[o]}
-              </option>
-            ))}
-          </Select>
-        </Campo>
-
-        <Campo label="Detalle del origen">
-          <Input
-            name="source_detail"
-            placeholder="Instagram, Meta Ads, quién lo refirió…"
-            defaultValue={cliente?.source_detail ?? ""}
+          <FormTextAreaField
+            {...form.fieldProps("notes")}
+            label="Notas"
+            rows={3}
+            defaultValue={cliente?.notes ?? ""}
           />
-        </Campo>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <Campo label="Nicho">
-          <Input
-            name="niche"
-            placeholder="Pastelería, coaching…"
-            defaultValue={cliente?.niche ?? ""}
-          />
-        </Campo>
-
-        <Campo label="Sitio web">
-          <Input
-            name="website"
-            placeholder="https://…"
-            defaultValue={cliente?.website ?? ""}
-          />
-        </Campo>
-      </div>
-
-      <Campo label="Drive de archivos">
-        <Input
-          name="drive_url"
-          placeholder="https://drive.google.com/…"
-          defaultValue={cliente?.drive_url ?? ""}
-        />
-      </Campo>
-
-      <Campo label="Notas">
-        <Textarea name="notes" rows={3} defaultValue={cliente?.notes ?? ""} />
-      </Campo>
+        </>
+      )}
     </DialogoForm>
   );
 }

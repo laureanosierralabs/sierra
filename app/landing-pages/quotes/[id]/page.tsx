@@ -2,58 +2,38 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   ArrowLeft,
-  Building2,
-  CalendarClock,
-  CircleDashed,
+  Buildings11,
+  CalendarTime,
+  CheckCircle1,
   CreditCard,
-  ExternalLink,
+  ExpandArrowTopRightSquare1,
   FileText,
-  Layers,
-  Wallet,
-  type LucideIcon,
-} from "lucide-react";
+  Layers2,
+  Wallet2,
+} from "@tailgrids/icons";
 import {
   listarClientes,
   listarPagos,
   listarProyectos,
   obtenerCotizacion,
 } from "@/lib/landing/datos";
-import {
-  codigoCotizacion,
-  formatearMonto,
-  pendienteDeCobro,
-} from "@/lib/landing/tipos";
+import { codigoCotizacion, formatearMonto, pendienteDeCobro } from "@/lib/landing/tipos";
 import {
   EstadoCotizacionPill,
   EstadoPagoPill,
   PageHeader,
   SeccionTitulo,
 } from "@/components/landing/ui";
-import { CotizacionForm } from "@/components/landing/cotizacion-form";
-import { Cobros } from "@/components/landing/cobros";
+import { EmptyState } from "@/components/common/empty-state";
 import { BorrarCotizacion } from "@/components/landing/borrar";
+import { Cobros } from "@/components/landing/cobros";
+import { CotizacionForm } from "@/components/landing/cotizacion-form";
+import { EnlaceBoton } from "@/components/landing/enlace-boton";
+import { Propiedad } from "@/components/landing/propiedad";
+import { Card } from "@/components/tailgrids/core/card";
+import { cn } from "@/utils/cn";
 
 export const dynamic = "force-dynamic";
-
-function Propiedad({
-  icono: Icono,
-  label,
-  children,
-}: {
-  icono: LucideIcon;
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-center gap-3 py-1.5">
-      <span className="flex w-40 shrink-0 items-center gap-2 text-xs text-text-3">
-        <Icono className="size-3.5" />
-        {label}
-      </span>
-      <div className="min-w-0 flex-1">{children}</div>
-    </div>
-  );
-}
 
 export default async function CotizacionDetalle({
   params,
@@ -72,18 +52,16 @@ export default async function CotizacionDetalle({
   if (!cotizacion) notFound();
 
   const nombrePor = new Map(clientes.map((c) => [c.id, c.name]));
-  const vinculados = proyectos.filter((p) =>
-    cotizacion.project_ids.includes(p.id),
-  );
+  const vinculados = proyectos.filter((p) => cotizacion.project_ids.includes(p.id));
   const pendiente = pendienteDeCobro(cotizacion);
 
   return (
     <>
       <Link
         href="/landing-pages/quotes"
-        className="mb-4 inline-flex items-center gap-1.5 text-sm text-text-3 transition-colors hover:text-text"
+        className="mb-4 inline-flex items-center gap-1.5 text-sm text-text-tertiary transition-colors hover:text-text-primary"
       >
-        <ArrowLeft className="size-3.5" />
+        <ArrowLeft className="size-4" />
         Cotizaciones
       </Link>
 
@@ -92,40 +70,33 @@ export default async function CotizacionDetalle({
         descripcion={codigoCotizacion(cotizacion.numero)}
         accion={
           <span className="flex items-center gap-3">
-            <CotizacionForm
-              clientes={clientes}
-              proyectos={proyectos}
-              cotizacion={cotizacion}
-            />
-            <BorrarCotizacion
-              id={cotizacion.id}
-              redirigirA="/landing-pages/quotes"
-            />
+            <CotizacionForm clientes={clientes} proyectos={proyectos} cotizacion={cotizacion} />
+            <BorrarCotizacion id={cotizacion.id} redirigirA="/landing-pages/quotes" />
           </span>
         }
       />
 
-      <div className="mb-8 overflow-hidden rounded-xl border border-line bg-surface shadow-e1">
-        <div className="grid gap-x-10 px-4 py-3 md:grid-cols-2">
-          <Propiedad icono={Building2} label="Cliente que paga">
+      <Card className="mb-8 overflow-hidden p-0">
+        <div className="grid gap-x-10 px-5 py-3 md:grid-cols-2">
+          <Propiedad icono={Buildings11} label="Cliente que paga">
             {cotizacion.client_id ? (
               <Link
                 href={`/landing-pages/clients/${cotizacion.client_id}`}
-                className="truncate text-sm font-medium hover:underline"
+                className="block truncate font-medium hover:underline"
               >
                 {nombrePor.get(cotizacion.client_id) ?? "—"}
               </Link>
             ) : (
-              <p className="text-sm text-text-3">—</p>
+              <p className="text-text-tertiary">—</p>
             )}
           </Propiedad>
 
-          <Propiedad icono={CircleDashed} label="Estado comercial">
+          <Propiedad icono={CheckCircle1} label="Estado comercial">
             <EstadoCotizacionPill estado={cotizacion.commercial_status} />
           </Propiedad>
 
-          <Propiedad icono={Wallet} label="Monto total">
-            <p className="tnum text-sm font-semibold">
+          <Propiedad icono={Wallet2} label="Monto total">
+            <p className="font-semibold tabular-nums">
               {formatearMonto(cotizacion.total_amount, cotizacion.currency)}
             </p>
           </Propiedad>
@@ -134,55 +105,45 @@ export default async function CotizacionDetalle({
             <EstadoPagoPill estado={cotizacion.payment_status} />
           </Propiedad>
 
-          <Propiedad icono={Wallet} label="Cobrado">
-            <p className="tnum text-sm text-ok">
+          <Propiedad icono={Wallet2} label="Cobrado">
+            <p className="tabular-nums text-badge-success-text">
               {formatearMonto(cotizacion.amount_paid, cotizacion.currency)}
             </p>
           </Propiedad>
 
-          <Propiedad icono={Wallet} label="Pendiente">
+          <Propiedad icono={Wallet2} label="Pendiente">
             <p
-              className={`tnum text-sm ${pendiente > 0 ? "text-warn" : "text-text-3"}`}
+              className={cn(
+                "tabular-nums",
+                pendiente > 0 ? "text-badge-warning-text" : "text-text-tertiary",
+              )}
             >
-              {pendiente > 0
-                ? formatearMonto(pendiente, cotizacion.currency)
-                : "—"}
+              {pendiente > 0 ? formatearMonto(pendiente, cotizacion.currency) : "—"}
             </p>
           </Propiedad>
 
           <Propiedad icono={CreditCard} label="Condiciones">
-            <p className="truncate text-sm text-text-2">
-              {cotizacion.payment_terms ?? "—"}
-            </p>
+            <p className="truncate text-text-secondary">{cotizacion.payment_terms ?? "—"}</p>
           </Propiedad>
 
-          <Propiedad icono={CalendarClock} label="Enviada">
-            <p className="tnum text-sm text-text-2">
-              {cotizacion.sent_at ?? "—"}
-            </p>
+          <Propiedad icono={CalendarTime} label="Enviada">
+            <p className="tabular-nums text-text-secondary">{cotizacion.sent_at ?? "—"}</p>
           </Propiedad>
         </div>
 
         {cotizacion.proposal_url && (
-          <div className="border-t border-line px-4 py-3">
-            <a
-              href={cotizacion.proposal_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm font-medium text-text-2 transition-colors hover:border-line-strong hover:text-text"
-            >
-              <FileText className="size-3.5" />
+          <div className="border-t border-card-border px-5 py-3">
+            <EnlaceBoton href={cotizacion.proposal_url} externo icono={<FileText />}>
               Ver cotización
-              <ExternalLink className="size-3.5 opacity-60" />
-            </a>
+            </EnlaceBoton>
           </div>
         )}
-      </div>
+      </Card>
 
       <section className="mb-8">
-        <SeccionTitulo icono={Wallet}>
+        <SeccionTitulo icono={Wallet2}>
           Cobros
-          <span className="tnum ml-2 text-xs font-normal text-text-3">
+          <span className="ml-2 text-xs font-normal tabular-nums text-text-tertiary">
             {pagos.length}
           </span>
         </SeccionTitulo>
@@ -190,50 +151,47 @@ export default async function CotizacionDetalle({
       </section>
 
       <section className="mb-8">
-        <SeccionTitulo icono={Layers}>
+        <SeccionTitulo icono={Layers2}>
           Proyectos que cubre
-          <span className="tnum ml-2 text-xs font-normal text-text-3">
+          <span className="ml-2 text-xs font-normal tabular-nums text-text-tertiary">
             {vinculados.length}
           </span>
         </SeccionTitulo>
 
         {vinculados.length === 0 ? (
-          <p className="rounded-xl border border-line bg-surface px-4 py-8 text-center text-sm text-text-3">
-            Esta cotización todavía no está vinculada a ningún proyecto.
-          </p>
+          <EmptyState title="Esta cotización todavía no está vinculada a ningún proyecto" />
         ) : (
-          <div className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface shadow-e1">
-            {vinculados.map((p) => (
-              <Link
-                key={p.id}
-                href={`/landing-pages/projects/${p.id}`}
-                className="fila-hover flex items-center justify-between gap-3 px-4 py-3"
-              >
-                <span className="min-w-0">
-                  <span className="block truncate text-sm font-medium">
-                    {p.name}
-                  </span>
-                  <span className="text-xs text-text-3">
-                    {p.client_id
-                      ? (nombrePor.get(p.client_id) ?? "Sin cliente")
-                      : "Sin cliente"}
-                  </span>
-                </span>
-                <ExternalLink className="size-3.5 shrink-0 text-text-3" />
-              </Link>
-            ))}
-          </div>
+          <Card className="overflow-hidden p-0">
+            <ul className="divide-y divide-card-border">
+              {vinculados.map((p) => (
+                <li key={p.id}>
+                  <Link
+                    href={`/landing-pages/projects/${p.id}`}
+                    className="flex items-center justify-between gap-3 px-4 py-3 transition-colors outline-none hover:bg-background-gray-secondary focus-visible:bg-background-gray-secondary"
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-medium text-text-primary">
+                        {p.name}
+                      </span>
+                      <span className="text-xs text-text-tertiary">
+                        {p.client_id ? (nombrePor.get(p.client_id) ?? "Sin cliente") : "Sin cliente"}
+                      </span>
+                    </span>
+                    <ExpandArrowTopRightSquare1 className="size-4 shrink-0 text-text-tertiary" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </Card>
         )}
       </section>
 
       {cotizacion.notes && (
         <section>
           <SeccionTitulo icono={FileText}>Notas</SeccionTitulo>
-          <div className="rounded-xl border border-line bg-surface p-4 shadow-e1">
-            <p className="whitespace-pre-wrap text-sm text-text-2">
-              {cotizacion.notes}
-            </p>
-          </div>
+          <Card>
+            <p className="text-sm whitespace-pre-wrap text-text-secondary">{cotizacion.notes}</p>
+          </Card>
         </section>
       )}
     </>

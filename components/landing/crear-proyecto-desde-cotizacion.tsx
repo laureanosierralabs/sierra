@@ -1,13 +1,8 @@
 "use client";
 
-import { ArrowUpRight } from "lucide-react";
+import { ArrowAngularTopRight } from "@tailgrids/icons";
 import { ProyectoForm } from "@/components/landing/proyecto-form";
-import type {
-  Cliente,
-  Cotizacion,
-  Miembro,
-  Proceso,
-} from "@/lib/landing/tipos";
+import type { Cliente, Cotizacion, Miembro, Proceso } from "@/lib/landing/tipos";
 
 /**
  * Abre el formulario de proyecto precargado desde una cotización aprobada.
@@ -37,8 +32,8 @@ export function CrearProyectoDesdeCotizacion({
           : cotizacion.title,
       }}
       disparador={
-        <span className="inline-flex items-center gap-1 text-xs font-medium text-ok hover:underline">
-          <ArrowUpRight className="size-3.5" />
+        <span className="inline-flex items-center gap-1 text-xs font-medium text-badge-success-text hover:underline [&>svg]:size-3.5">
+          <ArrowAngularTopRight />
           Crear proyecto
         </span>
       }

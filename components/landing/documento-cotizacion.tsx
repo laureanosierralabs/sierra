@@ -1,13 +1,22 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
-import { FileText, Upload } from "lucide-react";
+import { FileText, Upload1 } from "@tailgrids/icons";
 import {
   borrarDocumento,
   subirDocumento,
   urlDocumento,
 } from "@/app/landing-pages/acciones";
 import { BorrarBoton } from "@/components/landing/borrar-boton";
+import { Button } from "@/components/tailgrids/core/button";
+
+function MensajeError({ children }: { children: React.ReactNode }) {
+  return (
+    <span role="alert" className="text-xs text-input-error">
+      {children}
+    </span>
+  );
+}
 
 /** Sube, abre y borra el PDF de la propuesta. El bucket es privado. */
 export function DocumentoCotizacion({
@@ -60,35 +69,29 @@ export function DocumentoCotizacion({
             e.target.value = "";
           }}
         />
-        <button
-          type="button"
-          disabled={pendiente}
-          onClick={() => inputRef.current?.click()}
-          className="inline-flex items-center gap-1 rounded-md border border-line px-2 py-1 text-xs text-text-2 transition-colors hover:border-line-strong hover:text-text disabled:opacity-50"
+        <Button
+          appearance="outline"
+          size="xs"
+          className="gap-1 px-2"
+          isDisabled={pendiente}
+          onPress={() => inputRef.current?.click()}
         >
-          <Upload className="size-3" />
+          <Upload1 />
           {pendiente ? "Subiendo…" : "Subir PDF"}
-        </button>
-        {error && <span className="text-xs text-critical">{error}</span>}
+        </Button>
+        {error && <MensajeError>{error}</MensajeError>}
       </span>
     );
   }
 
   return (
     <span className="flex items-center gap-2">
-      <button
-        type="button"
-        onClick={abrir}
-        className="inline-flex items-center gap-1 rounded-md border border-line px-2 py-1 text-xs text-text-2 transition-colors hover:border-line-strong hover:text-text"
-      >
-        <FileText className="size-3" />
+      <Button appearance="outline" size="xs" className="gap-1 px-2" onPress={abrir}>
+        <FileText />
         Ver PDF
-      </button>
-      <BorrarBoton
-        etiqueta="Quitar PDF"
-        onConfirmar={() => borrarDocumento(quoteId)}
-      />
-      {error && <span className="text-xs text-critical">{error}</span>}
+      </Button>
+      <BorrarBoton etiqueta="Quitar PDF" onConfirmar={() => borrarDocumento(quoteId)} />
+      {error && <MensajeError>{error}</MensajeError>}
     </span>
   );
 }

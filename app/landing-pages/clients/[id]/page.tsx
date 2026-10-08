@@ -2,18 +2,16 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   ArrowLeft,
-  AtSign,
-  Briefcase,
-  CircleDashed,
-  Download,
-  ExternalLink,
-  FolderOpen,
-  Globe,
-  Mail,
+  Briefcase4,
+  CheckCircle1,
+  Download1,
+  Envelope1,
+  Folder1,
+  Globe2,
+  Instagram,
   Phone,
-  Sprout,
-  type LucideIcon,
-} from "lucide-react";
+  Target3,
+} from "@tailgrids/icons";
 import {
   listarCotizaciones,
   listarNotasCliente,
@@ -21,12 +19,7 @@ import {
   listarRecursosCliente,
   obtenerCliente,
 } from "@/lib/landing/datos";
-import {
-  formatearMonto,
-  LABEL_ORIGEN,
-  urlInstagram,
-  urlWhatsapp,
-} from "@/lib/landing/tipos";
+import { formatearMonto, LABEL_ORIGEN, urlInstagram, urlWhatsapp } from "@/lib/landing/tipos";
 import {
   EstadoClientePill,
   EstadoCotizacionPill,
@@ -35,69 +28,32 @@ import {
   Vencimiento,
 } from "@/components/landing/ui";
 import { ClienteForm } from "@/components/landing/cliente-form";
-import { Recursos } from "@/components/landing/recursos";
+import { EnlaceBoton, EnlaceExterno } from "@/components/landing/enlace-boton";
 import { NotasCliente } from "@/components/landing/notas-cliente";
+import { Propiedad } from "@/components/landing/propiedad";
+import { Recursos } from "@/components/landing/recursos";
+import { SeccionCard } from "@/components/landing/seccion-card";
+import { Badge } from "@/components/tailgrids/core/badge";
+import { Card } from "@/components/tailgrids/core/card";
+import { EmptyState } from "@/components/common/empty-state";
 
 export const dynamic = "force-dynamic";
 
-function Propiedad({
-  icono: Icono,
-  label,
-  children,
-}: {
-  icono: LucideIcon;
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-center gap-3 py-1.5">
-      <span className="flex w-32 shrink-0 items-center gap-2 text-xs text-text-3">
-        <Icono className="size-3.5" />
-        {label}
-      </span>
-      <div className="min-w-0 flex-1">{children}</div>
-    </div>
-  );
-}
-
 function Texto({ valor }: { valor: string | null }) {
-  return <p className="truncate text-sm">{valor || "—"}</p>;
+  return <p className="truncate">{valor || "—"}</p>;
 }
 
 function Enlace({ href, texto }: { href: string | null; texto?: string }) {
-  if (!href) return <p className="text-sm">—</p>;
+  if (!href) return <p>—</p>;
   return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="inline-flex min-w-0 items-center gap-1.5 text-sm hover:underline"
-    >
+    <EnlaceExterno href={href}>
       <span className="truncate">{texto ?? href.replace(/^https?:\/\//, "")}</span>
-      <ExternalLink className="size-3 shrink-0 text-text-3" />
-    </a>
-  );
-}
-
-function Seccion({
-  titulo,
-  children,
-}: {
-  titulo: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="rounded-xl border border-line bg-surface">
-      <div className="border-b border-line px-4 py-3">
-        <h2 className="font-display text-sm font-bold">{titulo}</h2>
-      </div>
-      <div className="divide-y divide-line">{children}</div>
-    </section>
+    </EnlaceExterno>
   );
 }
 
 function Vacio({ children }: { children: React.ReactNode }) {
-  return <p className="px-4 py-6 text-sm text-text-3">{children}</p>;
+  return <EmptyState variant="inline" className="px-4 py-6">{children}</EmptyState>;
 }
 
 export default async function ClienteDetalle({
@@ -119,14 +75,16 @@ export default async function ClienteDetalle({
 
   const susCotizaciones = cotizaciones.filter((q) => q.client_id === id);
   const susProyectos = proyectos.filter((p) => p.client_id === id);
+  const wa = urlWhatsapp(cliente.phone);
+  const ig = urlInstagram(cliente.instagram);
 
   return (
     <>
       <Link
         href="/landing-pages/clients"
-        className="mb-4 inline-flex items-center gap-1.5 text-sm text-text-3 transition-colors hover:text-text"
+        className="mb-4 inline-flex items-center gap-1.5 text-sm text-text-tertiary transition-colors hover:text-text-primary"
       >
-        <ArrowLeft className="size-3.5" />
+        <ArrowLeft className="size-4" />
         Clientes
       </Link>
 
@@ -135,37 +93,34 @@ export default async function ClienteDetalle({
         descripcion={cliente.company ?? undefined}
         accion={
           <span className="flex items-center gap-3">
-            <a
+            <EnlaceBoton
               href={`/landing-pages/clients/${cliente.id}/export`}
-              download
-              title="Descargar ficha en Markdown"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm font-medium text-text-2 transition-colors hover:border-line-strong hover:text-text"
+              descarga
+              titulo="Descargar ficha en Markdown"
+              icono={<Download1 />}
             >
-              <Download className="size-3.5" />
               Exportar
-            </a>
+            </EnlaceBoton>
             <ClienteForm cliente={cliente} />
           </span>
         }
       />
 
-      <div className="flex flex-col gap-5">
-        <section className="rounded-xl border border-line bg-surface px-4 py-3">
+      <div className="flex flex-col gap-8">
+        <Card className="px-5 py-3">
           <div className="grid gap-x-10 md:grid-cols-2">
-            <Propiedad icono={CircleDashed} label="Estado">
+            <Propiedad icono={CheckCircle1} label="Estado">
               <EstadoClientePill estado={cliente.status} />
             </Propiedad>
 
-            <Propiedad icono={Sprout} label="Origen">
+            <Propiedad icono={Target3} label="Origen">
               {cliente.source ? (
                 <span className="flex min-w-0 items-center gap-2">
-                  <span className="shrink-0 rounded border border-idle/30 bg-idle-dim px-1.5 py-0.5 text-[0.6875rem] font-medium text-idle">
+                  <Badge color="blue" size="sm" className="shrink-0 rounded-md px-1.5">
                     {LABEL_ORIGEN[cliente.source]}
-                  </span>
+                  </Badge>
                   {cliente.source_detail && (
-                    <span className="truncate text-sm text-text-2">
-                      {cliente.source_detail}
-                    </span>
+                    <span className="truncate text-text-secondary">{cliente.source_detail}</span>
                   )}
                 </span>
               ) : (
@@ -174,33 +129,20 @@ export default async function ClienteDetalle({
             </Propiedad>
 
             <Propiedad icono={Phone} label="WhatsApp">
-              {urlWhatsapp(cliente.phone) ? (
-                <Enlace
-                  href={urlWhatsapp(cliente.phone)}
-                  texto={cliente.phone ?? ""}
-                />
-              ) : (
-                <Texto valor={cliente.phone} />
-              )}
+              {wa ? <Enlace href={wa} texto={cliente.phone ?? ""} /> : <Texto valor={cliente.phone} />}
             </Propiedad>
 
-            <Propiedad icono={AtSign} label="Instagram">
-              {urlInstagram(cliente.instagram) ? (
-                <Enlace
-                  href={urlInstagram(cliente.instagram)}
-                  texto={cliente.instagram ?? ""}
-                />
+            <Propiedad icono={Instagram} label="Instagram">
+              {ig ? (
+                <Enlace href={ig} texto={cliente.instagram ?? ""} />
               ) : (
                 <Texto valor={cliente.instagram} />
               )}
             </Propiedad>
 
-            <Propiedad icono={Mail} label="Email">
+            <Propiedad icono={Envelope1} label="Email">
               {cliente.email ? (
-                <a
-                  href={`mailto:${cliente.email}`}
-                  className="truncate text-sm hover:underline"
-                >
+                <a href={`mailto:${cliente.email}`} className="block truncate hover:underline">
                   {cliente.email}
                 </a>
               ) : (
@@ -208,25 +150,25 @@ export default async function ClienteDetalle({
               )}
             </Propiedad>
 
-            <Propiedad icono={Briefcase} label="Nicho">
+            <Propiedad icono={Briefcase4} label="Nicho">
               <Texto valor={cliente.niche} />
             </Propiedad>
 
-            <Propiedad icono={Globe} label="Sitio web">
+            <Propiedad icono={Globe2} label="Sitio web">
               <Enlace href={cliente.website} />
             </Propiedad>
 
-            <Propiedad icono={FolderOpen} label="Drive">
+            <Propiedad icono={Folder1} label="Drive">
               <Enlace href={cliente.drive_url} texto="Drive de archivos" />
             </Propiedad>
           </div>
 
           {cliente.notes && (
-            <p className="mt-3 border-t border-line pt-3 text-sm text-text-2">
+            <p className="mt-3 border-t border-card-border pt-3 text-sm text-text-secondary">
               {cliente.notes}
             </p>
           )}
-        </section>
+        </Card>
 
         <Recursos
           duenoId={cliente.id}
@@ -237,31 +179,22 @@ export default async function ClienteDetalle({
 
         <NotasCliente clientId={cliente.id} notas={notas} />
 
-        <Seccion titulo="Cotizaciones">
+        <SeccionCard titulo="Cotizaciones" cantidad={susCotizaciones.length}>
           {susCotizaciones.length === 0 ? (
             <Vacio>Sin cotizaciones.</Vacio>
           ) : (
             susCotizaciones.map((q) => (
-              <div
-                key={q.id}
-                className="flex items-center justify-between gap-3 px-4 py-2.5"
-              >
+              <div key={q.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
                 <span className="flex min-w-0 items-center gap-2">
-                  <span className="truncate text-sm">{q.title}</span>
+                  <span className="truncate text-sm text-text-primary">{q.title}</span>
                   {q.proposal_url && (
-                    <a
-                      href={q.proposal_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      aria-label="Abrir propuesta"
-                      className="shrink-0 text-text-3 transition-colors hover:text-text"
-                    >
-                      <ExternalLink className="size-3.5" />
-                    </a>
+                    <EnlaceExterno href={q.proposal_url}>
+                      <span className="sr-only">Abrir propuesta</span>
+                    </EnlaceExterno>
                   )}
                 </span>
                 <span className="flex shrink-0 items-center gap-2">
-                  <span className="tnum text-sm text-text-2">
+                  <span className="text-sm tabular-nums text-text-secondary">
                     {formatearMonto(q.total_amount, q.currency)}
                   </span>
                   <EstadoCotizacionPill estado={q.commercial_status} />
@@ -269,20 +202,17 @@ export default async function ClienteDetalle({
               </div>
             ))
           )}
-        </Seccion>
+        </SeccionCard>
 
-        <Seccion titulo="Proyectos">
+        <SeccionCard titulo="Proyectos" cantidad={susProyectos.length}>
           {susProyectos.length === 0 ? (
             <Vacio>Sin proyectos.</Vacio>
           ) : (
             susProyectos.map((p) => (
-              <div
-                key={p.id}
-                className="flex items-center justify-between gap-3 px-4 py-2.5"
-              >
+              <div key={p.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
                 <Link
                   href={`/landing-pages/projects/${p.id}`}
-                  className="min-w-0 truncate text-sm hover:underline"
+                  className="min-w-0 truncate text-sm text-text-primary hover:underline"
                 >
                   {p.name}
                 </Link>
@@ -293,7 +223,7 @@ export default async function ClienteDetalle({
               </div>
             ))
           )}
-        </Seccion>
+        </SeccionCard>
       </div>
     </>
   );
