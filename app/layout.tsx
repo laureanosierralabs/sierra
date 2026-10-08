@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { Inter } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
-import { Sidebar } from "@/components/sidebar";
+import { AppShell } from "@/components/common/app-shell";
+import { accesoActual } from "@/lib/landing/auth";
+import { DEFINICIONES } from "@/lib/unidades";
 import Providers from "./providers";
 import "./globals.css";
 
@@ -25,6 +27,13 @@ export default async function RootLayout({
   const pathname = (await headers()).get("x-pathname") ?? "";
   const esAuth = pathname.startsWith("/sign-in") || pathname.startsWith("/sign-up");
 
+  const acceso = esAuth ? null : await accesoActual();
+  // Un member con una sola unidad ve el nombre de esa unidad, no el del panel:
+  // para él esto ES su panel.
+  const soloUnidad =
+    acceso && !acceso.esOwner && acceso.unidades.length === 1 ? acceso.unidades[0] : null;
+  const titulo = soloUnidad ? DEFINICIONES[soloUnidad].nombre : "Sistema Operativo";
+
   return (
     <html lang="es" className={`${inter.variable} h-full`} suppressHydrationWarning>
       <body className="min-h-full">
@@ -37,16 +46,17 @@ export default async function RootLayout({
             signInFallbackRedirectUrl="/"
             signUpFallbackRedirectUrl="/"
           >
-            {esAuth ? (
-              children
+            {acceso ? (
+              <AppShell
+                esOwner={acceso.esOwner}
+                unidades={acceso.unidades}
+                titulo={titulo}
+                rolLabel={acceso.esOwner ? "Owner" : "Builder"}
+              >
+                {children}
+              </AppShell>
             ) : (
-              <div className="flex min-h-screen">
-                {/* El sidebar es sticky al viewport: no crece con el contenido */}
-                <div className="sticky top-0 hidden h-screen shrink-0 md:block">
-                  <Sidebar />
-                </div>
-                <main className="min-w-0 flex-1">{children}</main>
-              </div>
+              children
             )}
           </ClerkProvider>
         </Providers>
