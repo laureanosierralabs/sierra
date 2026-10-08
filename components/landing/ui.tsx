@@ -1,5 +1,8 @@
 import type { LucideIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { EmptyState } from "@/components/common/empty-state";
+import { PageHeader as PageHeaderBase } from "@/components/common/page-header";
+import { Badge } from "@/components/tailgrids/core/badge";
+import { cn } from "@/utils/cn";
 import {
   LABEL_ESTADO_CLIENTE,
   LABEL_ESTADO_COTIZACION,
@@ -8,7 +11,6 @@ import {
   LABEL_ESTADO_TAREA,
   LABEL_PRIORIDAD,
   LABEL_TIPO_PAGINA_CORTO,
-  TONO_TIPO_PAGINA,
   type EstadoCliente,
   type EstadoCotizacion,
   type EstadoPago,
@@ -18,46 +20,23 @@ import {
   type TipoPagina,
 } from "@/lib/landing/tipos";
 
-/** El fondo teñido pertenece al estado, no al componente: así el color
-    hace el trabajo de señalizar y el texto solo confirma. */
-type Tono = { dot: string; text: string; fondo: string; borde: string };
+/**
+ * Un solo sistema de badges: el `Badge` del template. Cada estado elige una
+ * familia de color; el color señaliza y el texto confirma.
+ *
+ *   OK       -> success  (en curso, entregado, aprobado, pagado)
+ *   WARN     -> warning  (en revisión, pago pendiente)
+ *   CRITICAL -> error    (bloqueado, esperando cliente, rechazado)
+ *   IDLE     -> blue     (por iniciar, enviado, prospecto, pago parcial)
+ *   NEUTRO   -> gray     (cerrado, stand-by, borrador, cancelado)
+ */
+type Tono = NonNullable<React.ComponentProps<typeof Badge>["color"]>;
 
-/* Clases literales, no interpoladas: Tailwind escanea el fuente y no
-   genera una clase que se arma en runtime. */
-const NEUTRO: Tono = {
-  dot: "bg-text-3",
-  text: "text-text-3",
-  fondo: "bg-surface-2",
-  borde: "border-line",
-};
-
-const OK: Tono = {
-  dot: "bg-ok",
-  text: "text-ok",
-  fondo: "bg-ok-dim",
-  borde: "border-ok/20",
-};
-
-const WARN: Tono = {
-  dot: "bg-warn",
-  text: "text-warn",
-  fondo: "bg-warn-dim",
-  borde: "border-warn/20",
-};
-
-const CRITICAL: Tono = {
-  dot: "bg-critical",
-  text: "text-critical",
-  fondo: "bg-critical-dim",
-  borde: "border-critical/20",
-};
-
-const IDLE: Tono = {
-  dot: "bg-idle",
-  text: "text-idle",
-  fondo: "bg-idle-dim",
-  borde: "border-idle/20",
-};
+const NEUTRO: Tono = "gray";
+const OK: Tono = "success";
+const WARN: Tono = "warning";
+const CRITICAL: Tono = "error";
+const IDLE: Tono = "blue";
 
 const TONO_PROYECTO: Record<EstadoProyecto, Tono> = {
   "por-iniciar": IDLE,
@@ -78,33 +57,35 @@ const TONO_TAREA: Record<EstadoTarea, Tono> = {
 
 function Pill({ tono, label }: { tono: Tono; label: string }) {
   return (
-    <span
-      className={cn(
-        "inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1",
-        "text-xs font-medium",
-        tono.borde,
-        tono.fondo,
-        tono.text,
-      )}
+    <Badge
+      color={tono}
+      prefixIcon={<span aria-hidden="true" className="size-1.5 rounded-full bg-current" />}
+      className="shrink-0"
     >
-      <span className={cn("size-1.5 rounded-full", tono.dot)} />
       {label}
-    </span>
+    </Badge>
   );
 }
+
+/** Familia de color de cada tipo de página (la identifica, no indica estado). */
+const TONO_TIPO_PAGINA_BADGE: Record<TipoPagina, Tono> = {
+  registro: "blue",
+  ventas: "orange",
+  "lead-magnet": "cyan",
+  portfolio: "violet",
+  institucional: "sky",
+  otro: NEUTRO,
+};
 
 /** Badge de categoría: identifica qué ES la página, no su estado. */
 export function TipoPaginaBadge({ tipo }: { tipo: TipoPagina }) {
   return (
-    <span
-      className={cn(
-        "inline-flex shrink-0 items-center rounded-md border px-1.5 py-0.5",
-        "text-[0.625rem] font-semibold uppercase tracking-wide",
-        TONO_TIPO_PAGINA[tipo],
-      )}
+    <Badge
+      color={TONO_TIPO_PAGINA_BADGE[tipo]}
+      className="shrink-0 rounded-md px-1.5 text-[0.625rem] font-semibold tracking-wide uppercase"
     >
       {LABEL_TIPO_PAGINA_CORTO[tipo]}
-    </span>
+    </Badge>
   );
 }
 
@@ -150,7 +131,7 @@ const TONO_PAGO: Record<EstadoPago, Tono> = {
 
 export function EstadoPagoPill({ estado }: { estado: EstadoPago }) {
   if (estado === "not_applicable") {
-    return <span className="text-xs text-text-3">—</span>;
+    return <span className="text-xs text-text-tertiary">—</span>;
   }
   return (
     <Pill
@@ -178,22 +159,23 @@ export function EstadoCotizacionPill({ estado }: { estado: EstadoCotizacion }) {
   );
 }
 
-const TONO_PRIORIDAD: Record<PrioridadLanding, string> = {
-  alta: "border-warn/30 bg-warn-dim text-warn",
-  media: "border-line bg-surface-2 text-text-2",
-  baja: "border-line bg-surface-2 text-text-3",
+const TONO_PRIORIDAD: Record<PrioridadLanding, Tono> = {
+  alta: WARN,
+  media: NEUTRO,
+  baja: NEUTRO,
 };
 
 export function Prioridad({ prioridad }: { prioridad: PrioridadLanding }) {
   return (
-    <span
+    <Badge
+      color={TONO_PRIORIDAD[prioridad]}
       className={cn(
-        "rounded border px-1.5 py-0.5 text-[0.6875rem] font-semibold uppercase tracking-wide",
-        TONO_PRIORIDAD[prioridad],
+        "rounded-md px-1.5 text-[0.6875rem] font-semibold tracking-wide uppercase",
+        prioridad === "baja" && "opacity-70",
       )}
     >
       {LABEL_PRIORIDAD[prioridad]}
-    </span>
+    </Badge>
   );
 }
 
@@ -206,18 +188,18 @@ export function Vencimiento({
   /** Ya entregado o completado: la fecha se cumplió, no venció. */
   cerrado?: boolean;
 }) {
-  if (!fecha) return <span className="text-xs text-text-3">—</span>;
+  if (!fecha) return <span className="text-xs text-text-tertiary">—</span>;
 
   const objetivo = new Date(`${fecha}T00:00:00`);
   if (Number.isNaN(objetivo.getTime()))
-    return <span className="text-xs text-text-3">—</span>;
+    return <span className="text-xs text-text-tertiary">—</span>;
 
   // Lo cerrado no corre contra el reloj: se muestra la fecha, sin urgencia.
   if (cerrado) {
     return (
-      <span className="tnum inline-flex items-center rounded-md bg-surface-2 px-2 py-1 text-xs font-semibold text-text-2">
+      <Badge color={NEUTRO} className="font-semibold tabular-nums">
         {fecha}
-      </span>
+      </Badge>
     );
   }
 
@@ -235,16 +217,9 @@ export function Vencimiento({
       : `${dias} ${dias === 1 ? "día" : "días"}`;
 
   return (
-    <span
-      className={cn(
-        "tnum inline-flex items-center rounded-md px-2 py-1 text-xs font-semibold",
-        vencido && "bg-critical-dim text-critical",
-        urgente && !vencido && "bg-warn-dim text-warn",
-        !vencido && !urgente && "bg-surface-2 text-text-2",
-      )}
-    >
+    <Badge color={vencido ? CRITICAL : urgente ? WARN : NEUTRO} className="font-semibold tabular-nums">
       {texto}
-    </span>
+    </Badge>
   );
 }
 
@@ -257,17 +232,7 @@ export function PageHeader({
   descripcion?: string;
   accion?: React.ReactNode;
 }) {
-  return (
-    <header className="mb-6 flex items-start justify-between gap-4">
-      <div>
-        <h1 className="font-display text-2xl font-bold">{titulo}</h1>
-        {descripcion && (
-          <p className="mt-1 text-sm text-text-2">{descripcion}</p>
-        )}
-      </div>
-      {accion}
-    </header>
-  );
+  return <PageHeaderBase title={titulo} description={descripcion} actions={accion} />;
 }
 
 /** Título de sección dentro de una página, con su ícono. */
@@ -282,8 +247,8 @@ export function SeccionTitulo({
 }) {
   return (
     <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-      <h2 className="flex items-center gap-2 font-display text-sm font-bold">
-        <Icono className="size-4 text-text-3" />
+      <h2 className="flex items-center gap-2 text-sm font-semibold text-title-50">
+        <Icono className="size-4 text-text-tertiary" />
         {children}
       </h2>
       {accion}
@@ -300,8 +265,8 @@ export function VacioTabla({
 }) {
   return (
     <tr>
-      <td colSpan={colSpan} className="px-4 py-10 text-center text-sm text-text-3">
-        {children}
+      <td colSpan={colSpan} className="px-4 py-10 text-center">
+        <EmptyState variant="inline">{children}</EmptyState>
       </td>
     </tr>
   );

@@ -1,12 +1,20 @@
 "use client";
 
-import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Maximize2, X } from "lucide-react";
+import { Close, ExpandArrowTopRightSquare1 } from "@tailgrids/icons";
+import {
+  SheetBody,
+  SheetClose,
+  SheetContent,
+  SheetHeader,
+  SheetOverlay,
+  SheetTitle,
+} from "@/components/tailgrids/core/sheet";
 
 /**
- * Panel que entra desde la derecha. Cerrarlo vuelve atrás en el historial,
- * porque se abre sobre una ruta interceptada.
+ * Panel que entra desde la derecha. Cerrarlo (X, Escape o click afuera) vuelve
+ * atrás en el historial, porque se abre sobre una ruta interceptada. El Sheet
+ * de React Aria aporta el portal, el focus trap y el bloqueo de scroll.
  */
 export function PanelLateral({
   titulo,
@@ -20,62 +28,40 @@ export function PanelLateral({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const cerrarRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") router.back();
-    };
-    document.addEventListener("keydown", onKey);
-    cerrarRef.current?.focus();
-
-    // El fondo no debe scrollear mientras el panel está abierto.
-    const previo = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = previo;
-    };
-  }, [router]);
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label={titulo}
-      className="panel-fondo fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-[2px]"
-      onMouseDown={(e) => e.target === e.currentTarget && router.back()}
-    >
-      <aside className="panel-lateral flex h-full w-full flex-col border-l border-line bg-ground shadow-e3 sm:w-[58%] sm:min-w-125">
-        {/* Sticky con vidrio: el título queda anclado aunque el cuerpo scrollee. */}
-        <header className="vidrio sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-line px-5 py-4">
-          <h1 className="min-w-0 font-display text-lg font-bold">{titulo}</h1>
+    // Siempre abierto: el panel existe mientras la ruta interceptada esté
+    // montada; al cerrar se navega y el slot vuelve a `default`.
+    <SheetOverlay isOpen onOpenChange={(abierto) => !abierto && router.back()}>
+      <SheetContent
+        side="right"
+        showCloseButton={false}
+        className="gap-0 p-0 sm:w-[58%] sm:max-w-none sm:min-w-125"
+      >
+        <SheetHeader className="flex-row items-start justify-between gap-3 border-b border-card-border px-5 py-4">
+          <SheetTitle className="min-w-0 text-lg leading-6">{titulo}</SheetTitle>
 
-          <span className="flex shrink-0 items-center gap-3">
+          <span className="flex shrink-0 items-center gap-3 text-text-tertiary">
             {acciones}
             <a
               href={verCompletoEn}
               aria-label="Abrir en pantalla completa"
               title="Abrir en pantalla completa"
-              className="text-text-3 transition-colors hover:text-text"
+              className="rounded outline-none transition-colors hover:text-text-primary focus-visible:ring-2 focus-visible:ring-primary-500 [&>svg]:size-4"
             >
-              <Maximize2 className="size-3.5" />
+              <ExpandArrowTopRightSquare1 />
             </a>
-            <button
-              ref={cerrarRef}
-              type="button"
-              onClick={() => router.back()}
+            <SheetClose
               aria-label="Cerrar"
-              className="text-text-3 transition-colors hover:text-text"
+              className="rounded transition-colors hover:text-text-primary focus-visible:ring-2 focus-visible:ring-primary-500 [&>svg]:size-5"
             >
-              <X className="size-4" />
-            </button>
+              <Close />
+            </SheetClose>
           </span>
-        </header>
+        </SheetHeader>
 
-        <div className="flex-1 overflow-y-auto px-5 py-5">{children}</div>
-      </aside>
-    </div>
+        <SheetBody className="mx-0 px-5 py-5">{children}</SheetBody>
+      </SheetContent>
+    </SheetOverlay>
   );
 }

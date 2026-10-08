@@ -45,6 +45,31 @@ hooks/  utils/  types/   cross-cutting hooks, `cn` and formatters, ambient type 
 - Data tables: TanStack Table (`@tanstack/react-table`); keep columns, types and skeletons in separate files.
 - Form validation: Zod, **inside server actions** (validate `FormData` before touching Supabase).
 
+## Shared building blocks (`components/common/`)
+
+- `page-header.tsx` (title + description + actions), `empty-state.tsx` (`variant="card"|"inline"`), `error-state.tsx` (retry via `onRetry`; in `error.tsx` pass `unstable_retry`), `kpi-card.tsx`, `confirm-dialog.tsx` (controlled; `onConfirm` may throw, the message shows inline + toast), `page-skeleton.tsx`.
+- `data-table/`: `<DataTable columns data label />` on TanStack Table. Opt-in props: `searchable`, `facets`, `paginate` (+ `pageSize`, default 10), `getRowHref` / `onRowClick`, `isLoading`, `emptyState`. Column header class goes in `meta.headerClassName`. Use `DataTableSkeleton` in `loading.tsx`.
+- Badges: one system, the template `Badge`. Do not hand-roll pills.
+- Do not call helpers exported from a `"use client"` module (e.g. `buttonStyles`) in a Server Component.
+
+### Forms
+
+Zod validates on the client only for instant feedback; the server action still validates and stays the source of truth.
+
+```tsx
+"use client";
+const form = useZodForm({ schema, action: guardar, successMessage: "Guardado", onSuccess: cerrar });
+
+<form onSubmit={form.onSubmit}>            {/* or <form action={form.submit}> */}
+  <FormTextField {...form.fieldProps("title")} label="Título" required />
+  <FormSelectField {...form.fieldProps("status")} label="Estado" options={ESTADOS} />
+  <FormError message={form.formError} />
+  <Button type="submit" isDisabled={form.pending}>Guardar</Button>
+</form>
+```
+
+Issues map to per-field errors (`form.errors[name]`); a thrown server error becomes `formError` + `toast.error`. Prefer `onSubmit`: with `action={form.submit}` React resets uncontrolled fields when the action ends, even on failure. Schemas receive strings (use `z.coerce`). Legacy `components/landing/dialogo-form.tsx` (`DialogoForm`, `Campo`, `Input`, `Select`, `Textarea`) keeps its API and uses the same hook; its `Select` is a native `<select>` on purpose.
+
 ## Where this app DIFFERS from the NextAdmin template
 
 - Data is fetched in **Server Components and server actions**, with Supabase **server-only** (`server-only`, `lib/` data access). There is no react-query, no `services/api` mocks, no client-side fetching layer. Don't add them.

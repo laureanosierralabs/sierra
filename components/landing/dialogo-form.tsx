@@ -1,10 +1,26 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
-import { Plus, X } from "lucide-react";
+import { useCallback, useState } from "react";
+import { Plus } from "@tailgrids/icons";
+import { FormError } from "@/components/common/form/form-error";
+import { useZodForm } from "@/components/common/form/use-zod-form";
+import { Button } from "@/components/tailgrids/core/button";
+import {
+  Dialog,
+  DialogClose,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/tailgrids/core/dialog";
+import { Input as TgInput } from "@/components/tailgrids/core/input";
+import { Backdrop, OverlayWrapper } from "@/components/tailgrids/core/overlay";
+import { TextArea } from "@/components/tailgrids/core/text-area";
 
-const INPUT =
-  "w-full rounded-lg border border-line bg-ground px-3 py-2 text-sm text-text outline-none transition-colors focus:border-line-strong";
+/* Mismo aspecto que el `Input` del template, para el <select> nativo. Se usa
+   nativo (y no el Select de React Aria) porque los formularios pasan <option>
+   como children y algunos leen `e.target.value` en onChange. */
+const SELECT_NATIVO =
+  "w-full rounded-lg border border-card-border bg-input-background px-4 py-2.5 text-title-50 outline-none duration-300 focus:border-input-primary-focus-border focus:ring-4 focus:ring-input-primary-focus-border/20 disabled:cursor-not-allowed disabled:border-base-100 disabled:text-input-disabled-text";
 
 export function Campo({
   label,
@@ -15,29 +31,30 @@ export function Campo({
 }) {
   return (
     <label className="flex flex-col gap-1.5">
-      <span className="text-xs font-medium text-text-2">{label}</span>
+      <span className="text-sm font-medium text-input-label-text">{label}</span>
       {children}
     </label>
   );
 }
 
 export function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
-  return <input {...props} className={INPUT} />;
+  return <TgInput {...props} className="w-full" />;
 }
 
 export function Select(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
-  return <select {...props} className={INPUT} />;
+  return <select {...props} className={SELECT_NATIVO} />;
 }
 
 export function Textarea(
   props: React.TextareaHTMLAttributes<HTMLTextAreaElement>,
 ) {
-  return <textarea {...props} className={INPUT} />;
+  return <TextArea {...props} className="w-full" />;
 }
 
 /**
  * Modal con formulario. `action` es una Server Action; el diálogo se cierra
  * solo cuando la transición termina sin error, para no ocultar un fallo.
+ * Los errores se muestran en el diálogo (Alert) y como toast.
  */
 export function DialogoForm({
   titulo,
@@ -61,113 +78,72 @@ export function DialogoForm({
   const [abiertoInterno, setAbiertoInterno] = useState(false);
   const abierto = controlado ? abiertoExterno : abiertoInterno;
 
-  const [error, setError] = useState<string | null>(null);
-  const [pendiente, iniciar] = useTransition();
-  const cerrarRef = useRef<HTMLButtonElement>(null);
+  const cerrar = useCallback(() => {
+    if (controlado) onCerrar?.();
+    else setAbiertoInterno(false);
+  }, [controlado, onCerrar]);
 
-  const setAbierto = useCallback(
-    (v: boolean) => {
-      if (controlado) {
-        if (!v) onCerrar?.();
-      } else {
-        setAbiertoInterno(v);
-      }
-    },
-    [controlado, onCerrar],
-  );
+  const form = useZodForm({ action, onSuccess: cerrar });
 
-  useEffect(() => {
-    if (!abierto) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setAbierto(false);
-    document.addEventListener("keydown", onKey);
-    cerrarRef.current?.focus();
-    return () => document.removeEventListener("keydown", onKey);
-  }, [abierto, setAbierto]);
-
-  function enviar(fd: FormData) {
-    setError(null);
-    iniciar(async () => {
-      try {
-        await action(fd);
-        setAbierto(false);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "No se pudo guardar");
-      }
-    });
+  function cambiarApertura(v: boolean) {
+    if (v) {
+      form.reset();
+      if (!controlado) setAbiertoInterno(true);
+    } else {
+      if (form.pending) return;
+      form.reset();
+      cerrar();
+    }
   }
 
   return (
     <>
-      {!controlado && (
-      <button
-        type="button"
-        onClick={() => setAbierto(true)}
-        className={
-          disparador
-            ? "text-text-3 transition-colors hover:text-text"
-            : "inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface-2 px-3.5 py-2 text-sm font-medium text-text transition-colors hover:border-line-strong hover:bg-surface"
-        }
-      >
-        {disparador ?? (
-          <>
-            <Plus className="size-4" />
+      {!controlado &&
+        (disparador ? (
+          <button
+            type="button"
+            onClick={() => cambiarApertura(true)}
+            aria-label={etiquetaAbrir ?? titulo}
+            className="rounded text-text-tertiary transition-colors outline-none hover:text-text-primary focus-visible:ring-2 focus-visible:ring-primary-500"
+          >
+            {disparador}
+          </button>
+        ) : (
+          <Button appearance="outline" onPress={() => cambiarApertura(true)}>
+            <Plus />
             {etiquetaAbrir}
-          </>
-        )}
-      </button>
-      )}
+          </Button>
+        ))}
 
-      {abierto && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label={titulo}
-          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4 pt-[8vh]"
-          onMouseDown={(e) => e.target === e.currentTarget && setAbierto(false)}
+      <OverlayWrapper isOpen={abierto} onOpenChange={cambiarApertura}>
+        {/* z por encima del Sheet (z-9999): también se abre desde el panel lateral. */}
+        <Backdrop
+          className="z-10000"
+          isDismissable={!form.pending}
+          isKeyboardDismissDisabled={form.pending}
         >
-          <div className="w-full max-w-lg rounded-xl border border-line bg-surface shadow-xl">
-            <div className="flex items-center justify-between border-b border-line px-5 py-4">
-              <h2 className="font-display text-base font-bold">{titulo}</h2>
-              <button
-                ref={cerrarRef}
-                type="button"
-                onClick={() => setAbierto(false)}
-                aria-label="Cerrar"
-                className="text-text-3 transition-colors hover:text-text"
-              >
-                <X className="size-4" />
-              </button>
-            </div>
+          <Dialog className="max-h-[calc(100dvh-2rem)] max-w-lg overflow-y-auto p-0">
+            <DialogHeader className="border-b border-card-border py-4 pr-14 pl-5">
+              <DialogTitle>{titulo}</DialogTitle>
+            </DialogHeader>
 
-            <form action={enviar} className="flex flex-col gap-4 p-5">
+            <form onSubmit={form.onSubmit} className="flex flex-col gap-4 p-5">
               {children}
 
-              {error && (
-                <p className="rounded-lg bg-critical-dim px-3 py-2 text-sm text-critical">
-                  {error}
-                </p>
-              )}
+              <FormError message={form.formError} />
 
-              <div className="flex justify-end gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={() => setAbierto(false)}
-                  className="rounded-lg px-3 py-2 text-sm text-text-2 transition-colors hover:text-text"
-                >
+              <DialogFooter className="pt-1">
+                <DialogClose appearance="outline" isDisabled={form.pending}>
                   Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={pendiente}
-                  className="rounded-lg bg-text px-4 py-2 text-sm font-semibold text-ground transition-opacity hover:opacity-90 disabled:opacity-50"
-                >
-                  {pendiente ? "Guardando…" : "Guardar"}
-                </button>
-              </div>
+                </DialogClose>
+                <Button type="submit" isDisabled={form.pending}>
+                  {form.pending ? "Guardando…" : "Guardar"}
+                </Button>
+              </DialogFooter>
             </form>
-          </div>
-        </div>
-      )}
+          </Dialog>
+        </Backdrop>
+      </OverlayWrapper>
     </>
   );
 }

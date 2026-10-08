@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Trash2 } from "lucide-react";
+import { Trash1 } from "@tailgrids/icons";
 import { borrarMovimiento } from "@/app/finanzas/acciones";
+import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import type { Ambito } from "@/lib/finanzas";
 
 export function BorrarMovimiento({
@@ -12,37 +13,30 @@ export function BorrarMovimiento({
   id: string;
   ambito: Ambito;
 }) {
-  const [confirmando, setConfirmando] = useState(false);
-
-  if (confirmando) {
-    return (
-      <span className="inline-flex items-center gap-1">
-        <button
-          type="button"
-          onClick={() => borrarMovimiento(id, ambito)}
-          className="rounded px-1.5 py-0.5 text-xs font-medium text-critical hover:bg-critical-dim"
-        >
-          Borrar
-        </button>
-        <button
-          type="button"
-          onClick={() => setConfirmando(false)}
-          className="rounded px-1.5 py-0.5 text-xs text-text-3 hover:text-text"
-        >
-          No
-        </button>
-      </span>
-    );
-  }
+  const [abierto, setAbierto] = useState(false);
 
   return (
-    <button
-      type="button"
-      onClick={() => setConfirmando(true)}
-      className="rounded-md p-1.5 text-text-3 transition-colors hover:bg-surface-2 hover:text-critical"
-      aria-label="Borrar movimiento"
-    >
-      <Trash2 className="size-3.5" />
-    </button>
+    <>
+      <button
+        type="button"
+        onClick={() => setAbierto(true)}
+        className="rounded-md p-1.5 text-text-tertiary transition-colors outline-none hover:bg-background-gray-secondary hover:text-error-500 focus-visible:ring-2 focus-visible:ring-primary-500 [&>svg]:size-4"
+        aria-label="Borrar movimiento"
+      >
+        <Trash1 />
+      </button>
+
+      <ConfirmDialog
+        isOpen={abierto}
+        onOpenChange={setAbierto}
+        title="Borrar movimiento"
+        description="Esta acción no se puede deshacer."
+        confirmLabel="Borrar"
+        pendingLabel="Borrando…"
+        successMessage="Movimiento borrado"
+        fallbackError="No se pudo borrar"
+        onConfirm={() => borrarMovimiento(id, ambito)}
+      />
+    </>
   );
 }

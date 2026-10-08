@@ -1,4 +1,5 @@
-import { cn } from "@/lib/utils";
+import { TableHead, TableHeader, TableRow } from "@/components/tailgrids/core/table";
+import { cn } from "@/utils/cn";
 
 /** Alto de fila usado para calcular dónde cortar. */
 const FILA_PX = 45;
@@ -29,7 +30,7 @@ export function Tabla({
   return (
     <div
       className={cn(
-        "overflow-x-auto rounded-xl border border-line bg-surface shadow-e1",
+        "overflow-x-auto rounded-xl border-[0.5px] border-card-border bg-card-background",
         limitar && "overflow-y-auto",
         className,
       )}
@@ -41,20 +42,21 @@ export function Tabla({
   );
 }
 
-/** Cabecera sticky. Se separa para que el vidrio no tape las filas al pasar. */
+/** Cabecera sticky con fondo sólido, para que no se transparenten las filas al pasar. */
 export function TablaHead({ columnas }: { columnas: string[] }) {
   return (
-    <thead className="sticky top-0 z-10">
-      <tr className="vidrio border-b border-line text-left">
+    <TableHeader className="sticky top-0 z-10 bg-card-background">
+      <TableRow>
         {columnas.map((h, i) => (
-          <th
+          <TableHead
             key={h || i}
-            className="whitespace-nowrap px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-text-3"
+            scope="col"
+            className="px-4 py-2.5 text-xs font-medium whitespace-nowrap text-text-tertiary"
           >
             {h}
-          </th>
+          </TableHead>
         ))}
-      </tr>
-    </thead>
+      </TableRow>
+    </TableHeader>
   );
 }
