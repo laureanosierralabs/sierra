@@ -1,9 +1,7 @@
-import { Suspense } from "react";
 import { FinanzasSeccion } from "@/components/finanzas-seccion";
 import { BalanceTabla } from "@/components/finanzas-balance-tabla";
 import { signoDe, textoMontos } from "@/components/finanzas-montos";
 import { KpiCard } from "@/components/common/kpi-card";
-import { FiltroMes } from "@/components/landing/filtro-mes";
 import type { Balance, PorMoneda } from "@/lib/landing/balance";
 import { nombreMes } from "@/lib/landing/meses";
 
@@ -73,11 +71,6 @@ export function BalanceMensual({ balance, mes }: { balance: Balance; mes?: strin
     <FinanzasSeccion
       titulo="Balance por mes"
       resumen={mes ? <span className="capitalize">{nombreMes(mes)}</span> : undefined}
-      accion={
-        <Suspense fallback={null}>
-          <FiltroMes meses={balance.mesesDisponibles} />
-        </Suspense>
-      }
     >
       <BalanceTabla meses={balance.meses} filtrado={Boolean(mes)} />
     </FinanzasSeccion>
