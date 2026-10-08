@@ -1,7 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { Check, ChevronDown, Copy, Download } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import { ChevronDown, Copy1, Download1 } from "@tailgrids/icons";
+import { buttonStyles } from "@/components/tailgrids/core/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/tailgrids/core/dropdown";
 
 const RUTA = "/landing-pages/finanzas/exportar";
 
@@ -12,31 +20,7 @@ const OPCIONES = [
 ];
 
 export function ExportarFinanzas() {
-  const [abierto, setAbierto] = useState(false);
-  const [copiado, setCopiado] = useState(false);
   const [copiando, setCopiando] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!abierto) return;
-    const fuera = (e: MouseEvent) => {
-      if (!ref.current?.contains(e.target as Node)) setAbierto(false);
-    };
-    const esc = (e: KeyboardEvent) => e.key === "Escape" && setAbierto(false);
-    document.addEventListener("mousedown", fuera);
-    document.addEventListener("keydown", esc);
-    return () => {
-      document.removeEventListener("mousedown", fuera);
-      document.removeEventListener("keydown", esc);
-    };
-  }, [abierto]);
-
-  // El aviso de copiado se apaga solo: un estado que queda pegado miente.
-  useEffect(() => {
-    if (!copiado) return;
-    const t = setTimeout(() => setCopiado(false), 2200);
-    return () => clearTimeout(t);
-  }, [copiado]);
 
   async function copiarParaIA() {
     setCopiando(true);
@@ -44,72 +28,60 @@ export function ExportarFinanzas() {
       const r = await fetch(`${RUTA}?formato=md`);
       if (!r.ok) throw new Error("No se pudo generar el informe");
       await navigator.clipboard.writeText(await r.text());
-      setCopiado(true);
-      setAbierto(false);
+      toast.success("Contexto financiero copiado");
     } catch {
-      alert("No se pudo copiar el informe.");
+      toast.error("No se pudo copiar el informe.");
     } finally {
       setCopiando(false);
     }
   }
 
   return (
-    <div ref={ref} className="relative">
-      <div className="flex items-center gap-2">
-        {copiado && (
-          <span className="flex items-center gap-1.5 text-xs text-ok">
-            <Check className="size-3.5" />
-            Contexto financiero copiado
-          </span>
-        )}
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        aria-label="Exportar finanzas"
+        className={buttonStyles({ appearance: "outline", size: "md", className: "gap-2" })}
+      >
+        <Download1 />
+        Exportar
+        <ChevronDown />
+      </DropdownMenuTrigger>
 
-        <button
-          type="button"
-          onClick={() => setAbierto((v) => !v)}
-          aria-expanded={abierto}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm font-medium text-text transition-colors hover:border-line-strong hover:bg-surface"
+      <DropdownMenuContent placement="bottom end" className="w-64 p-1">
+        <DropdownMenuItem
+          id="copiar"
+          textValue="Copiar para IA"
+          isDisabled={copiando}
+          onAction={copiarParaIA}
+          className="items-start gap-2.5 px-2.5 py-2"
         >
-          <Download className="size-3.5" />
-          Exportar
-          <ChevronDown className="size-3.5 text-text-3" />
-        </button>
-      </div>
-
-      {abierto && (
-        <div className="absolute right-0 z-20 mt-1.5 w-60 overflow-hidden rounded-xl border border-line bg-surface shadow-e3">
-          <button
-            type="button"
-            onClick={copiarParaIA}
-            disabled={copiando}
-            className="flex w-full items-start gap-2.5 border-b border-line px-3.5 py-2.5 text-left transition-colors hover:bg-surface-2 disabled:opacity-60"
-          >
-            <Copy className="mt-0.5 size-3.5 shrink-0 text-text-3" />
-            <span className="min-w-0">
-              <span className="block text-sm font-medium">
-                {copiando ? "Generando…" : "Copiar para IA"}
-              </span>
-              <span className="block text-xs text-text-3">
-                Al portapapeles, listo para pegar
-              </span>
+          <Copy1 className="mt-0.5 size-4 shrink-0 text-text-tertiary" />
+          <span className="min-w-0">
+            <span className="block text-sm font-medium text-text-primary">
+              {copiando ? "Generando…" : "Copiar para IA"}
             </span>
-          </button>
+            <span className="block text-xs text-text-tertiary">
+              Al portapapeles, listo para pegar
+            </span>
+          </span>
+        </DropdownMenuItem>
 
-          {OPCIONES.map((o) => (
-            <a
-              key={o.formato}
-              href={`${RUTA}?formato=${o.formato}`}
-              onClick={() => setAbierto(false)}
-              className="flex items-start gap-2.5 border-b border-line px-3.5 py-2.5 transition-colors last:border-0 hover:bg-surface-2"
-            >
-              <Download className="mt-0.5 size-3.5 shrink-0 text-text-3" />
-              <span className="min-w-0">
-                <span className="block text-sm font-medium">{o.label}</span>
-                <span className="block text-xs text-text-3">{o.detalle}</span>
-              </span>
-            </a>
-          ))}
-        </div>
-      )}
-    </div>
+        {OPCIONES.map((o) => (
+          <DropdownMenuItem
+            key={o.formato}
+            id={o.formato}
+            textValue={o.label}
+            href={`${RUTA}?formato=${o.formato}`}
+            className="items-start gap-2.5 px-2.5 py-2"
+          >
+            <Download1 className="mt-0.5 size-4 shrink-0 text-text-tertiary" />
+            <span className="min-w-0">
+              <span className="block text-sm font-medium text-text-primary">{o.label}</span>
+              <span className="block text-xs text-text-tertiary">{o.detalle}</span>
+            </span>
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

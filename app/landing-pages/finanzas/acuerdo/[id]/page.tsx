@@ -2,56 +2,31 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   ArrowLeft,
-  CalendarClock,
+  CalendarTime,
   CreditCard,
-  ExternalLink,
+  ExpandArrowTopRightSquare1,
   FileText,
-  Layers,
-  UserRound,
-  Wallet,
-  type LucideIcon,
-} from "lucide-react";
+  Layers2,
+  User2,
+  Wallet2,
+} from "@tailgrids/icons";
 import {
   listarClientes,
   listarPagosEquipo,
   listarProyectos,
   obtenerAcuerdo,
 } from "@/lib/landing/datos";
-import {
-  codigoAcuerdo,
-  formatearMonto,
-  pendienteDePago,
-} from "@/lib/landing/tipos";
-import {
-  EstadoPagoPill,
-  PageHeader,
-  SeccionTitulo,
-} from "@/components/landing/ui";
+import { codigoAcuerdo, formatearMonto, pendienteDePago } from "@/lib/landing/tipos";
+import { EstadoPagoPill, PageHeader, SeccionTitulo } from "@/components/landing/ui";
+import { EmptyState } from "@/components/common/empty-state";
 import { AcuerdoForm } from "@/components/landing/acuerdo-form";
-import { PagosEquipo } from "@/components/landing/pagos-equipo";
 import { BorrarAcuerdo } from "@/components/landing/borrar";
+import { PagosEquipo } from "@/components/landing/pagos-equipo";
+import { Propiedad } from "@/components/landing/propiedad";
+import { Card } from "@/components/tailgrids/core/card";
+import { cn } from "@/utils/cn";
 
 export const dynamic = "force-dynamic";
-
-function Propiedad({
-  icono: Icono,
-  label,
-  children,
-}: {
-  icono: LucideIcon;
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-center gap-3 py-1.5">
-      <span className="flex w-40 shrink-0 items-center gap-2 text-xs text-text-3">
-        <Icono className="size-3.5" />
-        {label}
-      </span>
-      <div className="min-w-0 flex-1">{children}</div>
-    </div>
-  );
-}
 
 export default async function AcuerdoDetalle({
   params,
@@ -77,9 +52,9 @@ export default async function AcuerdoDetalle({
     <>
       <Link
         href="/landing-pages/finanzas"
-        className="mb-4 inline-flex items-center gap-1.5 text-sm text-text-3 transition-colors hover:text-text"
+        className="mb-4 inline-flex items-center gap-1.5 text-sm text-text-tertiary transition-colors hover:text-text-primary"
       >
-        <ArrowLeft className="size-3.5" />
+        <ArrowLeft className="size-4" />
         Finanzas
       </Link>
 
@@ -88,62 +63,57 @@ export default async function AcuerdoDetalle({
         descripcion={`${codigoAcuerdo(acuerdo.numero)} · ${acuerdo.member_name}`}
         accion={
           <span className="flex items-center gap-3">
-            <AcuerdoForm
-              proyectos={proyectos}
-              clientes={clientes}
-              acuerdo={acuerdo}
-            />
+            <AcuerdoForm proyectos={proyectos} clientes={clientes} acuerdo={acuerdo} />
             <BorrarAcuerdo id={acuerdo.id} redirigirA="/landing-pages/finanzas" />
           </span>
         }
       />
 
-      <div className="mb-8 overflow-hidden rounded-xl border border-line bg-surface shadow-e1">
-        <div className="grid gap-x-10 px-4 py-3 md:grid-cols-2">
-          <Propiedad icono={UserRound} label="Para">
-            <p className="truncate text-sm font-medium">{acuerdo.member_name}</p>
+      <Card className="mb-8 overflow-hidden p-0">
+        <div className="grid gap-x-10 px-5 py-3 md:grid-cols-2">
+          <Propiedad icono={User2} label="Para">
+            <p className="truncate font-medium">{acuerdo.member_name}</p>
           </Propiedad>
 
           <Propiedad icono={CreditCard} label="Estado">
             <EstadoPagoPill estado={acuerdo.payment_status} />
           </Propiedad>
 
-          <Propiedad icono={Wallet} label="Monto acordado">
-            <p className="tnum text-sm font-semibold">
+          <Propiedad icono={Wallet2} label="Monto acordado">
+            <p className="font-semibold tabular-nums">
               {formatearMonto(acuerdo.total_amount, acuerdo.currency)}
             </p>
           </Propiedad>
 
-          <Propiedad icono={Wallet} label="Pagado">
-            <p className="tnum text-sm">
-              {formatearMonto(acuerdo.amount_paid, acuerdo.currency)}
-            </p>
+          <Propiedad icono={Wallet2} label="Pagado">
+            <p className="tabular-nums">{formatearMonto(acuerdo.amount_paid, acuerdo.currency)}</p>
           </Propiedad>
 
-          <Propiedad icono={Wallet} label="Resta">
-            <p className={`tnum text-sm ${resta > 0 ? "text-warn" : "text-text-3"}`}>
+          <Propiedad icono={Wallet2} label="Resta">
+            <p
+              className={cn(
+                "tabular-nums",
+                resta > 0 ? "text-badge-warning-text" : "text-text-tertiary",
+              )}
+            >
               {resta > 0 ? formatearMonto(resta, acuerdo.currency) : "—"}
             </p>
           </Propiedad>
 
           <Propiedad icono={CreditCard} label="Condiciones">
-            <p className="truncate text-sm text-text-2">
-              {acuerdo.payment_terms ?? "—"}
-            </p>
+            <p className="truncate text-text-secondary">{acuerdo.payment_terms ?? "—"}</p>
           </Propiedad>
 
-          <Propiedad icono={CalendarClock} label="Fecha del acuerdo">
-            <p className="tnum text-sm text-text-2">
-              {acuerdo.agreed_on ?? "—"}
-            </p>
+          <Propiedad icono={CalendarTime} label="Fecha del acuerdo">
+            <p className="tabular-nums text-text-secondary">{acuerdo.agreed_on ?? "—"}</p>
           </Propiedad>
         </div>
-      </div>
+      </Card>
 
       <section className="mb-8">
-        <SeccionTitulo icono={Wallet}>
+        <SeccionTitulo icono={Wallet2}>
           Pagos
-          <span className="tnum ml-2 text-xs font-normal text-text-3">
+          <span className="ml-2 text-xs font-normal tabular-nums text-text-tertiary">
             {pagos.length}
           </span>
         </SeccionTitulo>
@@ -151,50 +121,47 @@ export default async function AcuerdoDetalle({
       </section>
 
       <section className="mb-8">
-        <SeccionTitulo icono={Layers}>
+        <SeccionTitulo icono={Layers2}>
           Proyectos que cubre
-          <span className="tnum ml-2 text-xs font-normal text-text-3">
+          <span className="ml-2 text-xs font-normal tabular-nums text-text-tertiary">
             {vinculados.length}
           </span>
         </SeccionTitulo>
 
         {vinculados.length === 0 ? (
-          <p className="rounded-xl border border-line bg-surface px-4 py-8 text-center text-sm text-text-3">
-            Sin proyectos vinculados: es trabajo por horas.
-          </p>
+          <EmptyState title="Sin proyectos vinculados: es trabajo por horas" />
         ) : (
-          <div className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface shadow-e1">
-            {vinculados.map((p) => (
-              <Link
-                key={p.id}
-                href={`/landing-pages/projects/${p.id}`}
-                className="fila-hover flex items-center justify-between gap-3 px-4 py-3"
-              >
-                <span className="min-w-0">
-                  <span className="block truncate text-sm font-medium">
-                    {p.name}
-                  </span>
-                  <span className="text-xs text-text-3">
-                    {p.client_id
-                      ? (nombrePor.get(p.client_id) ?? "Sin cliente")
-                      : "Sin cliente"}
-                  </span>
-                </span>
-                <ExternalLink className="size-3.5 shrink-0 text-text-3" />
-              </Link>
-            ))}
-          </div>
+          <Card className="overflow-hidden p-0">
+            <ul className="divide-y divide-card-border">
+              {vinculados.map((p) => (
+                <li key={p.id}>
+                  <Link
+                    href={`/landing-pages/projects/${p.id}`}
+                    className="flex items-center justify-between gap-3 px-4 py-3 transition-colors outline-none hover:bg-background-gray-secondary focus-visible:bg-background-gray-secondary"
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-medium text-text-primary">
+                        {p.name}
+                      </span>
+                      <span className="text-xs text-text-tertiary">
+                        {p.client_id ? (nombrePor.get(p.client_id) ?? "Sin cliente") : "Sin cliente"}
+                      </span>
+                    </span>
+                    <ExpandArrowTopRightSquare1 className="size-4 shrink-0 text-text-tertiary" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </Card>
         )}
       </section>
 
       {acuerdo.notes && (
         <section>
           <SeccionTitulo icono={FileText}>Notas</SeccionTitulo>
-          <div className="rounded-xl border border-line bg-surface p-4 shadow-e1">
-            <p className="whitespace-pre-wrap text-sm text-text-2">
-              {acuerdo.notes}
-            </p>
-          </div>
+          <Card>
+            <p className="text-sm whitespace-pre-wrap text-text-secondary">{acuerdo.notes}</p>
+          </Card>
         </section>
       )}
     </>

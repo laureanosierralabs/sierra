@@ -5,15 +5,9 @@ import {
   listarMiembrosDetalle,
 } from "@/lib/landing/auth";
 import { esProyectoActivo, esTareaAbierta } from "@/lib/landing/tipos";
-import { DEFINICIONES } from "@/lib/unidades";
-import { PageHeader, VacioTabla } from "@/components/landing/ui";
-import { Tabla, TablaHead } from "@/components/landing/tabla";
-import {
-  EditarAcceso,
-  Invitaciones,
-  InvitarMiembro,
-  QuitarMiembro,
-} from "@/components/landing/equipo-gestion";
+import { PageHeader } from "@/components/landing/ui";
+import { EquipoTabla } from "@/components/landing/equipo-tabla";
+import { Invitaciones, InvitarMiembro } from "@/components/landing/equipo-gestion";
 
 export const dynamic = "force-dynamic";
 
@@ -44,16 +38,6 @@ export default async function EquipoPage() {
     }
   }
 
-  const columnas = [
-    "Nombre",
-    "Email",
-    "Rol",
-    "Unidades",
-    "Proyectos activos",
-    "Tareas pendientes",
-    ...(esOwner ? [""] : []),
-  ];
-
   return (
     <>
       <PageHeader
@@ -66,59 +50,12 @@ export default async function EquipoPage() {
         accion={esOwner ? <InvitarMiembro /> : undefined}
       />
 
-      <Tabla filas={miembros.length}>
-        <table className="w-full min-w-200 text-sm">
-          <TablaHead columnas={columnas} />
-          <tbody>
-            {miembros.length === 0 && (
-              <VacioTabla colSpan={columnas.length}>
-                No hay miembros cargados.
-              </VacioTabla>
-            )}
-            {miembros.map((m) => (
-              <tr
-                key={m.id}
-                className="border-b border-line transition-colors last:border-0 hover:bg-surface-2"
-              >
-                <td className="px-4 py-3 font-medium">{m.nombre}</td>
-                <td className="px-4 py-3 text-text-2">{m.email ?? "—"}</td>
-                <td className="px-4 py-3">
-                  <span
-                    className={
-                      m.rol === "owner"
-                        ? "rounded border border-idle/30 bg-idle-dim px-1.5 py-0.5 text-[0.6875rem] font-semibold uppercase tracking-wide text-idle"
-                        : "text-xs text-text-2"
-                    }
-                  >
-                    {m.rol === "owner" ? "Owner" : "Builder"}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-xs text-text-2">
-                  {m.rol === "owner"
-                    ? "Todas"
-                    : m.unidades
-                        .map((u) => DEFINICIONES[u].nombre)
-                        .join(", ") || "—"}
-                </td>
-                <td className="tnum px-4 py-3 text-text-2">
-                  {proyectosPor.get(m.id) ?? 0}
-                </td>
-                <td className="tnum px-4 py-3 text-text-2">
-                  {tareasPor.get(m.id) ?? 0}
-                </td>
-                {esOwner && (
-                  <td className="px-4 py-3">
-                    <span className="flex items-center justify-end gap-3">
-                      <EditarAcceso miembro={m} />
-                      <QuitarMiembro id={m.id} />
-                    </span>
-                  </td>
-                )}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </Tabla>
+      <EquipoTabla
+        miembros={miembros}
+        esOwner={esOwner}
+        proyectosPor={proyectosPor}
+        tareasPor={tareasPor}
+      />
 
       {esOwner && <Invitaciones invitaciones={invitaciones} />}
     </>

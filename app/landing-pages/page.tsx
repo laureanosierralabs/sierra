@@ -6,18 +6,12 @@ import {
 } from "@/lib/landing/datos";
 import { listarMiembros } from "@/lib/landing/auth";
 import { esProyectoActivo, nombreCliente } from "@/lib/landing/tipos";
-import {
-  EstadoProyectoPill,
-  PageHeader,
-  Vencimiento,
-  VacioTabla,
-} from "@/components/landing/ui";
+import { PageHeader } from "@/components/landing/ui";
 import { Calendario } from "@/components/landing/calendario";
-import { Tabla, TablaHead } from "@/components/landing/tabla";
+import { InicioProyectosTabla } from "@/components/landing/inicio-proyectos-tabla";
 
 export const dynamic = "force-dynamic";
 
-const COLUMNAS = ["Proyecto", "Cliente", "Estado", "Responsable", "Entrega"];
 const MAX_EN_INICIO = 8;
 
 export default async function LandingPagesInicio() {
@@ -35,7 +29,18 @@ export default async function LandingPagesInicio() {
   const activos = proyectos
     .filter((p) => esProyectoActivo(p.status))
     .sort((a, b) => (a.due_date ?? "9999").localeCompare(b.due_date ?? "9999"))
-    .slice(0, MAX_EN_INICIO);
+    .slice(0, MAX_EN_INICIO)
+    .map((p) => ({
+      id: p.id,
+      name: p.name,
+      cliente: nombreCliente(p, clientePor) ?? "",
+      status: p.status,
+      responsables: p.assignee_ids
+        .map((id) => nombreMiembro.get(id))
+        .filter((n): n is string => Boolean(n))
+        .join(", "),
+      due_date: p.due_date,
+    }));
 
   return (
     <>
@@ -47,57 +52,16 @@ export default async function LandingPagesInicio() {
 
       <section>
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="font-display text-sm font-bold">Proyectos activos</h2>
+          <h2 className="text-lg font-semibold text-title-50">Proyectos activos</h2>
           <Link
             href="/landing-pages/projects"
-            className="text-xs text-text-3 transition-colors hover:text-text"
+            className="text-sm font-medium text-text-secondary transition-colors hover:text-text-primary"
           >
             Ver todos →
           </Link>
         </div>
 
-        <Tabla filas={activos.length}>
-          <table className="w-full min-w-200 text-sm">
-            <TablaHead columnas={COLUMNAS} />
-            <tbody>
-              {activos.length === 0 && (
-                <VacioTabla colSpan={COLUMNAS.length}>
-                  No hay proyectos activos.
-                </VacioTabla>
-              )}
-              {activos.map((p) => (
-                <tr
-                  key={p.id}
-                  className="border-b border-line transition-colors last:border-0 hover:bg-surface-2"
-                >
-                  <td className="px-4 py-2.5 font-medium">
-                    <Link
-                      href={`/landing-pages/projects/${p.id}`}
-                      className="hover:underline"
-                    >
-                      {p.name}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-2.5 text-text-2">
-                    {nombreCliente(p, clientePor) ?? "—"}
-                  </td>
-                  <td className="px-4 py-2.5">
-                    <EstadoProyectoPill estado={p.status} />
-                  </td>
-                  <td className="px-4 py-2.5 text-text-2">
-                    {p.assignee_ids
-                      .map((id) => nombreMiembro.get(id))
-                      .filter((n): n is string => Boolean(n))
-                      .join(", ") || "—"}
-                  </td>
-                  <td className="px-4 py-2.5">
-                    <Vencimiento fecha={p.due_date} cerrado={p.status === "entregado"} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </Tabla>
+        <InicioProyectosTabla proyectos={activos} />
       </section>
     </>
   );

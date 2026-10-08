@@ -1,21 +1,18 @@
 "use client";
 
-import { Pencil } from "lucide-react";
+import { Pencil1 } from "@tailgrids/icons";
 import {
-  DialogoForm,
-  Campo,
-  Input,
-  Select,
-  Textarea,
-} from "@/components/landing/dialogo-form";
+  FormSelectField,
+  FormTextAreaField,
+  FormTextField,
+} from "@/components/common/form/form-fields";
+import { acuerdoEsquema } from "@/components/landing/acuerdo-esquema";
+import { DialogoForm } from "@/components/landing/dialogo-form";
 import { SelectorProyectos } from "@/components/landing/selector-proyectos";
 import { guardarAcuerdo } from "@/app/landing-pages/acciones";
-import {
-  MONEDAS,
-  type AcuerdoEquipo,
-  type Cliente,
-  type Proyecto,
-} from "@/lib/landing/tipos";
+import { MONEDAS, type AcuerdoEquipo, type Cliente, type Proyecto } from "@/lib/landing/tipos";
+
+const OPCIONES_MONEDA = MONEDAS.map((m) => ({ value: m, label: m }));
 
 export function AcuerdoForm({
   proyectos,
@@ -34,85 +31,84 @@ export function AcuerdoForm({
       titulo={editar ? "Editar acuerdo" : "Nuevo acuerdo"}
       etiquetaAbrir="Nuevo acuerdo"
       action={guardarAcuerdo}
-      disparador={editar ? <Pencil className="size-3.5" /> : undefined}
+      schema={acuerdoEsquema}
+      disparador={editar ? <Pencil1 /> : undefined}
     >
-      {acuerdo && <input type="hidden" name="id" value={acuerdo.id} />}
+      {(form) => (
+        <>
+          {acuerdo && <input type="hidden" name="id" value={acuerdo.id} />}
 
-      <div className="grid grid-cols-2 gap-4">
-        <Campo label="A quién se le paga">
-          <Input
-            name="member_name"
-            required
-            placeholder="Bruno"
-            defaultValue={acuerdo?.member_name ?? ""}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <FormTextField
+              {...form.fieldProps("member_name")}
+              label="A quién se le paga"
+              required
+              placeholder="Bruno"
+              defaultValue={acuerdo?.member_name ?? ""}
+            />
+            <FormTextField
+              {...form.fieldProps("title")}
+              label="Concepto"
+              required
+              placeholder="Misión Origen + Game"
+              defaultValue={acuerdo?.title ?? ""}
+            />
+          </div>
+
+          {/* Sin proyectos vinculados es trabajo por horas: mantenimiento,
+              cambios sueltos. El acuerdo funciona igual. */}
+          <div className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium text-input-label-text">
+              Proyectos que cubre (opcional)
+            </span>
+            <SelectorProyectos
+              proyectos={proyectos}
+              clientePor={clientePor}
+              defaultValue={acuerdo?.project_ids}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <FormTextField
+              {...form.fieldProps("total_amount")}
+              label="Monto acordado"
+              defaultValue={acuerdo?.total_amount?.toString() ?? ""}
+            />
+            <FormSelectField
+              {...form.fieldProps("currency")}
+              label="Moneda"
+              options={OPCIONES_MONEDA}
+              defaultValue={acuerdo?.currency ?? "USD"}
+            />
+            {/* Cuándo se acordó, no cuándo se carga el dato: el balance
+                mensual necesita la fecha real del hecho. */}
+            <FormTextField
+              {...form.fieldProps("agreed_on")}
+              type="date"
+              label="Fecha del acuerdo"
+              defaultValue={acuerdo?.agreed_on ?? ""}
+            />
+          </div>
+
+          <FormTextField
+            {...form.fieldProps("payment_terms")}
+            label="Condiciones de pago"
+            placeholder="2 pagos"
+            defaultValue={acuerdo?.payment_terms ?? ""}
           />
-        </Campo>
 
-        <Campo label="Concepto">
-          <Input
-            name="title"
-            required
-            placeholder="Misión Origen + Game"
-            defaultValue={acuerdo?.title ?? ""}
+          <FormTextAreaField
+            {...form.fieldProps("notes")}
+            label="Notas"
+            rows={2}
+            defaultValue={acuerdo?.notes ?? ""}
           />
-        </Campo>
-      </div>
 
-      {/* Sin proyectos vinculados es trabajo por horas: mantenimiento,
-          cambios sueltos. El acuerdo funciona igual. */}
-      <Campo label="Proyectos que cubre (opcional)">
-        <SelectorProyectos
-          proyectos={proyectos}
-          clientePor={clientePor}
-          defaultValue={acuerdo?.project_ids}
-        />
-      </Campo>
-
-      <div className="grid grid-cols-3 gap-4">
-        <Campo label="Monto acordado">
-          <Input
-            name="total_amount"
-            inputMode="decimal"
-            defaultValue={acuerdo?.total_amount?.toString() ?? ""}
-          />
-        </Campo>
-
-        <Campo label="Moneda">
-          <Select name="currency" defaultValue={acuerdo?.currency ?? "USD"}>
-            {MONEDAS.map((m) => (
-              <option key={m} value={m}>
-                {m}
-              </option>
-            ))}
-          </Select>
-        </Campo>
-
-        {/* Cuándo se acordó, no cuándo se carga el dato: el balance mensual
-            necesita la fecha real del hecho. */}
-        <Campo label="Fecha del acuerdo">
-          <Input
-            type="date"
-            name="agreed_on"
-            defaultValue={acuerdo?.agreed_on ?? ""}
-          />
-        </Campo>
-      </div>
-
-      <Campo label="Condiciones de pago">
-        <Input
-          name="payment_terms"
-          placeholder="2 pagos"
-          defaultValue={acuerdo?.payment_terms ?? ""}
-        />
-      </Campo>
-
-      <Campo label="Notas">
-        <Textarea name="notes" rows={2} defaultValue={acuerdo?.notes ?? ""} />
-      </Campo>
-
-      <p className="text-xs text-text-3">
-        Lo pagado se registra desde el detalle, con su fecha.
-      </p>
+          <p className="text-xs text-text-tertiary">
+            Lo pagado se registra desde el detalle, con su fecha.
+          </p>
+        </>
+      )}
     </DialogoForm>
   );
 }

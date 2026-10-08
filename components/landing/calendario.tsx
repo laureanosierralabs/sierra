@@ -7,14 +7,13 @@ import timeGridPlugin from "@fullcalendar/timegrid";
 import type { EventClickArg, EventInput } from "@fullcalendar/core";
 import esLocale from "@fullcalendar/core/locales/es";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "@tailgrids/icons";
+import { Card } from "@/components/tailgrids/core/card";
+import { Button } from "@/components/tailgrids/core/button";
 import type { Miembro, Proyecto, Tarea } from "@/lib/landing/tipos";
 
 type Vista = "timeGridWeek" | "dayGridMonth";
 type EstadoVencimiento = "cerrado" | "vencido" | "urgente" | "normal";
-
-const BOTON =
-  "rounded-md px-2.5 py-1 text-xs font-medium transition-colors hover:bg-surface-2";
 
 /** El `end` de un evento de día completo es exclusivo: hay que correrlo uno. */
 function sumarUnDia(fecha: string): string {
@@ -131,54 +130,52 @@ export function Calendario({
   return (
     <div className="flex flex-col">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
+        <div className="flex items-center gap-1.5">
+          <Button
+            appearance="outline"
+            size="xs"
+            iconOnly
             aria-label="Anterior"
-            onClick={() => api()?.prev()}
-            className="rounded-md p-1 text-text-2 transition-colors hover:bg-surface-2 hover:text-text"
+            onPress={() => api()?.prev()}
           >
-            <ChevronLeft className="size-4" />
-          </button>
-          <button
-            type="button"
+            <ChevronLeft />
+          </Button>
+          <Button
+            appearance="outline"
+            size="xs"
+            iconOnly
             aria-label="Siguiente"
-            onClick={() => api()?.next()}
-            className="rounded-md p-1 text-text-2 transition-colors hover:bg-surface-2 hover:text-text"
+            onPress={() => api()?.next()}
           >
-            <ChevronRight className="size-4" />
-          </button>
-          <button
-            type="button"
-            onClick={() => api()?.today()}
-            className={`${BOTON} ml-1 border border-line text-text-2`}
-          >
+            <ChevronRight />
+          </Button>
+          <Button appearance="outline" size="xs" onPress={() => api()?.today()}>
             Hoy
-          </button>
-          <h2 className="ml-2 font-display text-sm font-bold capitalize">
-            {titulo}
-          </h2>
+          </Button>
+          <h2 className="ml-2 text-sm font-semibold text-title-50 capitalize">{titulo}</h2>
         </div>
 
-        <div className="flex items-center gap-0.5 rounded-lg border border-line p-0.5">
-          <button
-            type="button"
-            onClick={() => cambiarVista("timeGridWeek")}
-            className={`${BOTON} ${vista === "timeGridWeek" ? "bg-surface-2 text-text" : "text-text-2"}`}
+        <div role="group" aria-label="Vista del calendario" className="flex items-center gap-1.5">
+          <Button
+            size="xs"
+            appearance={vista === "timeGridWeek" ? "fill" : "outline"}
+            aria-pressed={vista === "timeGridWeek"}
+            onPress={() => cambiarVista("timeGridWeek")}
           >
             Semana
-          </button>
-          <button
-            type="button"
-            onClick={() => cambiarVista("dayGridMonth")}
-            className={`${BOTON} ${vista === "dayGridMonth" ? "bg-surface-2 text-text" : "text-text-2"}`}
+          </Button>
+          <Button
+            size="xs"
+            appearance={vista === "dayGridMonth" ? "fill" : "outline"}
+            aria-pressed={vista === "dayGridMonth"}
+            onPress={() => cambiarVista("dayGridMonth")}
           >
             Mes
-          </button>
+          </Button>
         </div>
       </div>
 
-      <div className="calendario overflow-hidden rounded-xl border border-line bg-surface">
+      <Card className="calendario overflow-hidden p-0">
         <FullCalendar
           ref={ref}
           plugins={[dayGridPlugin, timeGridPlugin]}
@@ -208,27 +205,26 @@ export function Calendario({
                   completada ? "opacity-50" : ""
                 } ${
                   vencimiento === "vencido"
-                    ? "bg-critical-dim"
+                    ? "bg-badge-error-background"
                     : vencimiento === "urgente"
-                      ? "bg-warn-dim"
+                      ? "bg-badge-warning-background"
                       : ""
                 }`}
               >
                 <span
                   className={`size-1.5 shrink-0 rounded-full ${
-                    tipo === "proyecto" ? "bg-warn" : "bg-idle"
+                    tipo === "proyecto" ? "bg-warning-500" : "bg-primary-500"
                   }`}
                 />
                 <span className="truncate font-medium">{arg.event.title}</span>
                 {detalle && (
-                  <span className="truncate text-text-3">{detalle}</span>
+                  <span className="truncate text-text-tertiary">{detalle}</span>
                 )}
               </div>
             );
           }}
         />
-      </div>
-
+      </Card>
     </div>
   );
 }

@@ -9,6 +9,12 @@ export const fechaOpcional = z
   .refine((v) => v === "" || FECHA.test(v), "Fecha inválida");
 
 /**
+ * Fecha que la UI exige aunque el server caiga a hoy si llega vacía: un vacío
+ * silencioso manda el movimiento al mes equivocado del balance.
+ */
+export const fechaRequerida = fechaOpcional.refine((v) => v !== "", "Falta la fecha");
+
+/**
  * Espejo de la conversión de `monto()` en acciones.ts: quita espacios, cambia la
  * coma por punto y exige un número finito y no negativo. `null` = vacío.
  * Devuelve `undefined` si el texto no es un monto válido.

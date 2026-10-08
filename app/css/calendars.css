@@ -1,235 +1,106 @@
-.fc .fc-toolbar.fc-header-toolbar {
-  margin-bottom: 0 !important;
-  padding: 20px 24px;
-  border-bottom: 1px solid var(--border-primary) !important;
+/*
+ * FullCalendar, mapeado a los tokens del template para que herede claro/oscuro.
+ *
+ * Todo cuelga de `.calendario` (el contenedor de components/landing/calendario.tsx):
+ * las reglas `.fc` sin scope del template pisarían cualquier otro calendario con
+ * `!important`. La altura no se toca acá: la fija la prop `height` del componente.
+ */
+.calendario {
+  --fc-border-color: var(--border-secondary);
+  --fc-page-bg-color: var(--card-background);
+  --fc-neutral-bg-color: var(--background-gray-secondary);
+  --fc-today-bg-color: var(--background-gray-secondary);
+  --fc-now-indicator-color: var(--error-500);
+  --fc-event-bg-color: var(--card-background);
+  --fc-event-border-color: var(--border-secondary);
+  --fc-event-text-color: var(--text-primary);
+  --fc-small-font-size: 0.75rem;
 }
 
-.custom-calendar .fc-theme-standard .fc-scrollgrid {
-  border: none !important;
+.calendario .fc {
+  font-family: var(--font-sans);
 }
 
-.custom-calendar .fc .fc-scrollgrid-section-sticky > * {
+/* Sin marco exterior: el contenedor ya dibuja el borde redondeado. */
+.calendario .fc-theme-standard .fc-scrollgrid {
+  border: none;
+}
+
+.calendario .fc-theme-standard td,
+.calendario .fc-theme-standard th {
+  border-color: var(--border-secondary);
+}
+
+.calendario .fc .fc-scrollgrid-section-sticky > * {
   background-color: transparent;
 }
 
-.custom-calendar .fc-theme-standard .fc-col-header-cell {
-  padding-top: 24px !important;
-  padding-bottom: 12px !important;
+/* Encabezado de columnas */
+.calendario .fc-col-header-cell {
+  padding: 0.75rem 0;
+  background: var(--background-soft-50);
 }
 
-.custom-calendar .fc-theme-standard .fc-col-header-cell .fc-col-header-cell-cushion {
-  font-size: 14px;
-  color: var(--text-secondary);
-  font-weight: 500;
-  line-height: 20px;
+.calendario .fc-col-header-cell .fc-col-header-cell-cushion {
   padding: 0;
-}
-
-.custom-calendar .fc-theme-standard {
-  border-left: none !important;
-}
-
-.custom-calendar .fc-theme-standard thead {
-  border-bottom: 1px solid var(--border-primary) !important;
-}
-
-.custom-calendar .fc-theme-standard th {
-  color: var(--text-secondary);
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 500;
-}
-
-.custom-calendar .fc-theme-standard th,
-.custom-calendar .fc-theme-standard td {
-  border-color: var(--border-primary) !important;
-  border-right: none !important;
-  border-bottom: none !important;
-}
-
-.fc .fc-daygrid-day {
-  height: 150px;
-}
-
-.fc .fc-daygrid-day:hover {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(87, 80, 241, 0.38) 100%);
-}
-
-.fc .fc-day {
-  padding: 8px;
-}
-
-.fc .fc-day .fc-daygrid-day-number {
-  font-size: 14px;
+  line-height: 1.25rem;
   color: var(--text-secondary);
+}
+
+/* Ejes de hora y número de día */
+.calendario .fc-timegrid-axis-cushion,
+.calendario .fc-timegrid-slot-label-cushion,
+.calendario .fc-list-day-text {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+}
+
+.calendario .fc-daygrid-day-top {
+  flex-direction: row;
+  justify-content: flex-end;
+}
+
+.calendario .fc-daygrid-day-number {
+  padding: 0.5rem 0.625rem;
+  font-size: 0.875rem;
   font-weight: 500;
-  line-height: 20px;
-  text-align: right;
-  /* height: 100px; */
-}
-
-.custom-calendar .fc .fc-day.fc-day-today {
-  background-color: transparent !important;
-}
-
-.fc .fc-day-other .fc-daygrid-day-top {
-  color: var(--text-200) !important;
-  opacity: 100;
-}
-
-.fc .fc-daygrid-day-top {
-  flex-direction: row !important;
-}
-
-.fc .fc-day .fc-daygrid-day-frame .fc-daygrid-day-top {
-  display: flex;
-  justify-content: end;
-}
-
-.fc .fc-timegrid-axis-cushion,
-.fc .fc-timegrid-slot-label-cushion {
-  padding: 16px 24px;
-  font-size: 14px;
+  line-height: 1.25rem;
   color: var(--text-secondary);
 }
 
-.custom-calendar .fc-timeGridWeek-view .fc-theme-standard .fc-col-header-cell {
-  background-color: var(--background-soft-50);
+.calendario .fc-day-other .fc-daygrid-day-top {
+  opacity: 0.5;
 }
 
-/* Palette classes for calendar event backgrounds (used by calendar-1.tsx) */
-.fc-bg-primary {
-  background-color: var(--calendar-primary-background) !important; /* user color */
-  color: #1f2937 !important;
+.calendario .fc-daygrid-day:hover {
+  background: var(--background-soft-50);
 }
 
-.fc-bg-warning {
-  background-color: var(--calendar-warning-background) !important; /* user color */
-  color: #92400e !important;
+.calendario .fc-day-today .fc-daygrid-day-number {
+  font-weight: 700;
+  color: var(--text-primary);
 }
 
-.fc-bg-danger {
-  background-color: var(--calendar-danger-background) !important; /* user color */
-  color: #991b1b !important;
+/* Eventos: la tarjeta la dibuja `eventContent`; acá solo el contenedor. */
+.calendario .fc-event {
+  border-radius: 6px;
+  border: 1px solid var(--border-secondary);
+  background: var(--card-background);
+  cursor: pointer;
+  transition: border-color 0.12s ease;
 }
 
-.fc-bg-success {
-  background-color: var(--calendar-info-background) !important; /* user color */
-  color: #0c4a6e !important;
+.calendario .fc-event:hover {
+  border-color: var(--primary-500);
 }
 
-/* Tiny event container tweaks used by event-fc-color */
-.event-fc-color {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.fc-h-event {
-  background-color: transparent !important;
-  border-color: transparent !important;
-}
-
-.fc-v-event {
-  background-color: transparent !important;
-  border-color: transparent !important;
-  box-shadow: none !important;
-}
-
-.fc-v-event .fc-event-main {
-  height: 100%;
-  padding: 0;
-}
-
-.custom-calendar .fc-daygrid-event-dot {
-  width: 4px;
-  height: 20px;
-  margin-left: 0;
-  border: none;
-  border-radius: 4px;
-}
-
-.event-fc-color.fc-bg-success .fc-daygrid-event-dot {
-  background-color: var(--calendar-success-badge) !important;
-}
-
-.event-fc-color.fc-bg-danger .fc-daygrid-event-dot {
-  background-color: var(--calendar-danger-badge) !important;
-}
-
-.event-fc-color.fc-bg-primary .fc-daygrid-event-dot {
-  background-color: var(--calendar-primary-badge) !important;
-}
-
-.event-fc-color.fc-bg-warning .fc-daygrid-event-dot {
-  background-color: var(--calendar-warning-badge) !important;
-}
-
-/* Yearly */
-
-.fc .fc-view-harness {
-  overflow-x: auto !important;
-  max-width: 100%;
-}
-
-.fc .fc-multimonth {
-  border: none !important;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  padding: 8px;
-}
-
-@media (max-width: 1023px) {
-  .fc .fc-multimonth {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 767px) {
-  .fc .fc-multimonth {
-    grid-template-columns: repeat(1, 1fr);
-  }
-}
-
-.custom-calendar .fc .fc-multimonth-singlecol .fc-multimonth-header {
-  background: none;
-}
-
-.fc .fc-multimonth td,
-.fc .fc-multimonth th {
-  border: none !important;
-  background: none !important;
-}
-
-.fc .fc-multimonth-month {
-  overflow: hidden;
-  padding: 20px;
-  border-radius: 12px;
-  border: 1px solid var(--border-primary) !important;
-}
-
-.fc .fc-multimonth-daygrid {
+.calendario .fc-daygrid-dot-event:hover {
   background: transparent;
 }
 
-.fc .fc-multimonth-month .fc-daygrid-day {
-  height: auto;
-}
-
-.fc .fc-multimonth-title {
-  font-size: 18px;
-  text-align: left;
-  font-weight: 500;
-}
-
-.custom-calendar .fc .fc-multimonth thead {
-  border-bottom: none !important;
-}
-
-.fc-multimonth .fc-col-header-cell {
-  background: none !important;
-}
-
-.fc-daygrid-dot-event:hover {
-  background: rgba(0, 0, 0, 0) !important;
+/* El scroller interno no debe pelear con el scroll de la página. */
+.calendario .fc-scroller {
+  overflow-y: auto !important;
 }

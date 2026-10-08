@@ -1,7 +1,11 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
+import { FiltroSelect } from "@/components/landing/filtro-select";
 import { nombreMes } from "@/lib/landing/meses";
+
+/** Valor interno de "todos los meses": el Select no admite una clave vacía. */
+const TODOS = "todos";
 
 /** El mes elegido viaja en la URL: así el filtro sobrevive a un refresh. */
 export function FiltroMes({ meses }: { meses: string[] }) {
@@ -12,21 +16,12 @@ export function FiltroMes({ meses }: { meses: string[] }) {
   if (meses.length === 0) return null;
 
   return (
-    <select
-      value={actual}
-      onChange={(e) => {
-        const v = e.target.value;
-        router.push(v ? `?mes=${v}` : "?");
-      }}
-      aria-label="Filtrar por mes"
-      className="filtro-select"
-    >
-      <option value="">Todos los meses</option>
-      {meses.map((m) => (
-        <option key={m} value={m}>
-          {nombreMes(m)}
-        </option>
-      ))}
-    </select>
+    <FiltroSelect
+      etiqueta="Filtrar por mes"
+      valor={actual || TODOS}
+      onChange={(v) => router.push(v === TODOS ? "?" : `?mes=${v}`)}
+      todos={{ valor: TODOS, etiqueta: "Todos los meses" }}
+      opciones={meses.map((m) => ({ valor: m, etiqueta: nombreMes(m) }))}
+    />
   );
 }
