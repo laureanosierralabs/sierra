@@ -1,4 +1,7 @@
-import { PersonalFinance } from "@/components/personal-finance";
+import { ErrorState } from "@/components/common/error-state";
+import { PageContainer } from "@/components/common/page-container";
+import { PageHeader } from "@/components/common/page-header";
+import { FinanzasPersonal } from "@/components/finanzas-personal";
 import {
   loadPersonalFinance,
   requireFinanceOwner,
@@ -7,7 +10,7 @@ import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
-export default async function FinanzasPersonal({
+export default async function FinanzasPersonalPage({
   searchParams,
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -26,15 +29,18 @@ export default async function FinanzasPersonal({
     data = await loadPersonalFinance();
   } catch {
     return (
-      <div className="px-6 py-10">
-        <h1 className="text-2xl font-bold">Finanzas personales V1</h1>
-        <p className="mt-4 text-sm text-text-3">
-          No se pudieron cargar las finanzas. Verificar conexión y aplicar las
-          migraciones de Finanzas Personales V1 antes de activar esta sección.
-          No se modificaron datos existentes.
-        </p>
-      </div>
+      <PageContainer>
+        <PageHeader title="Finanzas" />
+        <ErrorState
+          title="No se pudieron cargar las finanzas"
+          description="Verificar conexión y aplicar las migraciones de Finanzas Personales V1 antes de activar esta sección. No se modificaron datos existentes."
+        />
+      </PageContainer>
     );
   }
-  return <PersonalFinance data={data} query={query} />;
+  return (
+    <PageContainer>
+      <FinanzasPersonal data={data} query={query} />
+    </PageContainer>
+  );
 }
