@@ -11,6 +11,8 @@ import {
   ESTADOS_COTIZACION,
   ESTADOS_PAGO,
   codigoCotizacion,
+  fechaCorta,
+  fechaCotizacion,
   formatearMonto,
   pendienteDeCobro,
   type Cliente,
@@ -27,7 +29,7 @@ interface DatosColumnas {
   proyectoPor: Map<string, string>;
 }
 
-/** Cotización, Cliente, Proyectos, Total, Estado, Pago, Pendiente, Documento. */
+/** Cotización, Fecha, Cliente, Proyectos, Total, Estado, Pago, Pendiente, Documento. */
 export function crearColumnasCotizaciones({
   clientes,
   proyectos,
@@ -41,7 +43,10 @@ export function crearColumnasCotizaciones({
     {
       id: "title",
       header: "Cotización",
-      accessorFn: (q) => q.numero,
+      // El valor es texto para que el buscador encuentre por título o código;
+      // el orden sigue siendo por número.
+      accessorFn: (q) => `${q.title} ${codigoCotizacion(q.numero)}`,
+      sortingFn: (a, b) => a.original.numero - b.original.numero,
       cell: ({ row }) => (
         <>
           <Link
@@ -54,6 +59,15 @@ export function crearColumnasCotizaciones({
             {codigoCotizacion(row.original.numero)}
           </span>
         </>
+      ),
+    },
+    {
+      id: "date",
+      header: "Fecha",
+      // AAAA-MM-DD ordena bien como texto.
+      accessorFn: (q) => fechaCotizacion(q),
+      cell: ({ getValue }) => (
+        <span className="tabular-nums text-text-secondary">{fechaCorta(getValue<string>())}</span>
       ),
     },
     {

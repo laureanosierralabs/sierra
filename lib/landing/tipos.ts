@@ -513,6 +513,25 @@ export function codigoCotizacion(numero: number): string {
   return `COT-${String(numero).padStart(4, "0")}`;
 }
 
+const DIA_BUENOS_AIRES = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "America/Argentina/Buenos_Aires",
+});
+
+/**
+ * Fecha de la cotización (AAAA-MM-DD): la de envío si la tiene, si no el día
+ * en que se creó. Así un borrador también se ordena. La zona es fija para que
+ * servidor y navegador den el mismo día.
+ */
+export function fechaCotizacion(q: Pick<Cotizacion, "sent_at" | "created_at">): string {
+  return q.sent_at ?? DIA_BUENOS_AIRES.format(new Date(q.created_at));
+}
+
+/** AAAA-MM-DD → DD/MM/AAAA, sin pasar por Date (no corre por zona horaria). */
+export function fechaCorta(fecha: string): string {
+  const [a, m, d] = fecha.split("-");
+  return `${d}/${m}/${a}`;
+}
+
 /**
  * El estado de pago se deduce de cuánto entró: registrar un cobro y además
  * elegir el estado a mano abre la puerta a que se contradigan.
