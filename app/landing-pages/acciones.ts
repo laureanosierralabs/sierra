@@ -689,6 +689,61 @@ export async function cambiarEstadoCotizacion(id: string, estado: string) {
 }
 
 /**
+ * Duplica la cotización con sus proyectos y montos asignados: sirve para las
+ * recurrentes (un abono mensual). No copia cobros, PDF ni fecha de envío —
+ * son de la original. Nace en borrador para no sumar una cuenta por cobrar
+ * hasta que se confirme.
+ */
+export async function duplicarCotizacion(id: string) {
+  await exigirOwner();
+  const db = supabaseAdmin();
+
+  const { data: original, error: errLeer } = await db
+    .from("quotes")
+    .select("*, quote_projects(project_id, allocated_amount)")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (errLeer || !original)
+    throw new Error(`No se pudo leer la cotización: ${errLeer?.message ?? "no existe"}`);
+
+  const total = original.total_amount as number | null;
+
+  const { data: copia, error: errCrear } = await db
+    .from("quotes")
+    .insert({
+      title: `${original.title} (copia)`,
+      client_id: original.client_id,
+      service: original.service,
+      total_amount: total,
+      currency: original.currency,
+      commercial_status: "draft",
+      payment_status: estadoPagoSegun(total, 0),
+      payment_terms: original.payment_terms,
+      proposal_url: original.proposal_url,
+      notes: original.notes,
+    })
+    .select("id")
+    .single();
+
+  if (errCrear || !copia)
+    throw new Error(`No se pudo duplicar: ${errCrear?.message ?? "sin id"}`);
+
+  const vinculos = (original.quote_projects ?? []) as {
+    project_id: string;
+    allocated_amount: number | null;
+  }[];
+  await sincronizarProyectosCotizacion(
+    copia.id,
+    vinculos.map((v) => v.project_id),
+    Object.fromEntries(vinculos.map((v) => [v.project_id, v.allocated_amount])),
+  );
+
+  revalidar();
+  redirect(`/landing-pages/quotes/${copia.id}`);
+}
+
+/**
  * Duplica el proyecto con su checklist de tareas y sus recursos: eso es lo que
  * se reusa entre proyectos parecidos. No copia el avance — las tareas nacen
  * pendientes y sin fecha, porque son de un trabajo nuevo.

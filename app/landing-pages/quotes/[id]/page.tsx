@@ -28,6 +28,7 @@ import { EmptyState } from "@/components/common/empty-state";
 import { BorrarCotizacion } from "@/components/landing/borrar";
 import { Cobros } from "@/components/landing/cobros";
 import { CotizacionForm } from "@/components/landing/cotizacion-form";
+import { DuplicarCotizacion } from "@/components/landing/duplicar-cotizacion";
 import { EnlaceBoton } from "@/components/landing/enlace-boton";
 import { Propiedad } from "@/components/landing/propiedad";
 import { Card } from "@/components/tailgrids/core/card";
@@ -71,6 +72,7 @@ export default async function CotizacionDetalle({
         accion={
           <span className="flex items-center gap-3">
             <CotizacionForm clientes={clientes} proyectos={proyectos} cotizacion={cotizacion} />
+            <DuplicarCotizacion id={cotizacion.id} />
             <BorrarCotizacion id={cotizacion.id} redirigirA="/landing-pages/quotes" />
           </span>
         }

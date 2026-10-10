@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ColumnDef } from "@tanstack/react-table";
 import { BorrarCotizacion } from "@/components/landing/borrar";
 import { CotizacionForm } from "@/components/landing/cotizacion-form";
+import { DuplicarCotizacion } from "@/components/landing/duplicar-cotizacion";
 import { EnlaceBoton } from "@/components/landing/enlace-boton";
 import { EstadoSelect } from "@/components/landing/estado-select";
 import { EstadoPagoPill } from "@/components/landing/ui";
@@ -158,6 +159,7 @@ export function crearColumnasCotizaciones({
       cell: ({ row }) => (
         <span className="flex items-center justify-end gap-3">
           <CotizacionForm clientes={clientes} proyectos={proyectos} cotizacion={row.original} />
+          <DuplicarCotizacion id={row.original.id} />
           <BorrarCotizacion id={row.original.id} />
         </span>
       ),
