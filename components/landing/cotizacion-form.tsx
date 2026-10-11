@@ -66,8 +66,9 @@ export function CotizacionForm(props: Props) {
 function Campos({ form, clientes, proyectos, cotizacion, clienteFijo }: Props & { form: ZodFormApi }) {
   const clienteInicial = cotizacion?.client_id ?? clienteFijo ?? SIN_OPCION;
   const [cliente, setCliente] = useState(clienteInicial);
-  const [{ items: iniciales, previos }] = useState(() => itemsIniciales(cotizacion, proyectos));
+  const [{ items: iniciales, previos, descuento }] = useState(() => itemsIniciales(cotizacion, proyectos));
   const [conItems, setConItems] = useState(iniciales.length > 0);
+  const [moneda, setMoneda] = useState<string>(cotizacion?.currency ?? "USD");
 
   const opcionesCliente = [
     { value: SIN_OPCION, label: "Sin cliente" },
@@ -111,6 +112,8 @@ function Campos({ form, clientes, proyectos, cotizacion, clienteFijo }: Props & 
         <ItemsCotizacion
           iniciales={iniciales}
           previos={previos}
+          descuentoInicial={descuento}
+          moneda={moneda}
           totalAnterior={
             cotizacion?.total_amount != null
               ? formatearMonto(cotizacion.total_amount, cotizacion.currency)
@@ -125,8 +128,8 @@ function Campos({ form, clientes, proyectos, cotizacion, clienteFijo }: Props & 
           }}
         />
         <p className="text-xs text-text-tertiary">
-          Cada ítem puede ser un proyecto (una landing) o un servicio suelto. El total es la suma, y
-          lo asignado a cada proyecto sale de su ítem.
+          Cada ítem es un proyecto (una landing) o un servicio suelto. Con + Extensión le colgás una
+          integración o automatización. Sin precio, el ítem figura como Incluido.
         </p>
       </div>
 
@@ -142,6 +145,10 @@ function Campos({ form, clientes, proyectos, cotizacion, clienteFijo }: Props & 
         )}
         <FormSelectField
           {...form.fieldProps("currency")}
+          onChange={(valor) => {
+            form.clearError("currency");
+            setMoneda(valor);
+          }}
           label="Moneda"
           options={OPCIONES_MONEDA}
           defaultValue={cotizacion?.currency ?? "USD"}

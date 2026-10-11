@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { fechaOpcional, montoOpcional, parsearMonto } from "@/components/landing/esquema-comun";
 import { urlOpcional } from "@/components/landing/url-esquema";
-import { ESTADOS_COTIZACION, MONEDAS } from "@/lib/landing/tipos";
+import { ESTADOS_COTIZACION, MONEDAS, parsearDescuento } from "@/lib/landing/tipos";
 
 /**
  * Espejo de las reglas de `guardarCotizacion` (app/landing-pages/acciones.ts),
@@ -17,6 +17,8 @@ import { ESTADOS_COTIZACION, MONEDAS } from "@/lib/landing/tipos";
  *                        suma no puede superar el total
  *   items             -> JSON del editor de ítems; con ítems, el total y lo
  *                        asignado los calcula el server
+ *   discount          -> con ítems: vacío, monto o porcentaje ("10%") que no
+ *                        supere la suma de los ítems
  *   client_id, service, payment_terms, notes, project_ids -> libres
  *
  * `looseObject` conserva las claves dinámicas `alloc_<id>`.
@@ -28,6 +30,7 @@ export const cotizacionEsquema = z
     client_id: z.string().optional(),
     service: z.string().optional(),
     items: z.string().optional(),
+    discount: z.string().optional(),
     // Ausente cuando hay ítems: el form no muestra el campo.
     total_amount: montoOpcional.optional(),
     currency: z.enum(MONEDAS, { error: "Moneda inválida" }),
@@ -73,6 +76,14 @@ export const cotizacionEsquema = z
           code: "custom",
           path: ["items"],
           message: "Los ítems suman 0: cargá los montos o quitá los ítems",
+        });
+        return;
+      }
+      if (parsearDescuento(v.discount ?? "", suma) === undefined) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["items"],
+          message: "Descuento inválido: un monto o porcentaje que no supere el subtotal",
         });
       }
       return;

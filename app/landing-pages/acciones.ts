@@ -23,6 +23,7 @@ import {
   PRIORIDADES,
   TIPOS_PAGINA,
   TIPOS_RECURSO,
+  parsearDescuento,
   totalItems,
   type CategoriaGasto,
   type EstadoCliente,
@@ -412,6 +413,9 @@ function itemsDe(fd: FormData): ItemNuevo[] | null {
   }
   if (!Array.isArray(crudos)) throw new Error("Ítems inválidos");
 
+  // Una extensión hereda el proyecto del ítem principal que la precede, sin
+  // importar lo que haya mandado el form.
+  let proyectoPrincipal: string | null = null;
   return crudos.map((c, i) => {
     const o = (c ?? {}) as Record<string, unknown>;
     const title = String(o.title ?? "").trim();
@@ -422,12 +426,16 @@ function itemsDe(fd: FormData): ItemNuevo[] | null {
     const link = String(o.url ?? "").trim();
     if (link && !/^https?:\/\//i.test(link))
       throw new Error(`El link del ítem ${i + 1} debe empezar con http:// o https://`);
+    const extension = o.is_extension === true;
+    if (extension && i === 0) throw new Error("La primera fila no puede ser una extensión");
+    if (!extension) proyectoPrincipal = String(o.project_id ?? "") || null;
     return {
       title,
       detail: String(o.detail ?? "").trim() || null,
       url: link || null,
       amount: Math.round(amount * 100) / 100,
-      project_id: String(o.project_id ?? "") || null,
+      project_id: proyectoPrincipal,
+      is_extension: extension,
     };
   });
 }
@@ -476,9 +484,21 @@ export async function guardarCotizacion(fd: FormData) {
   const conItems = items !== null && items.length > 0;
   if (conItems) await validarProyectosItems(items);
 
-  // Con ítems, el total es su suma: cargarlo a mano abriría la puerta a que
-  // el documento y el número del panel no coincidan.
-  const total = conItems ? totalItems(items) : monto(fd, "total_amount");
+  // Con ítems, el total es su suma menos el descuento por paquete: cargarlo a
+  // mano abriría la puerta a que el documento y el panel no coincidan.
+  const subtotal = conItems ? totalItems(items) : 0;
+  let total: number | null;
+  if (conItems) {
+    const descuento = parsearDescuento(texto(fd, "discount"), subtotal);
+    if (descuento === undefined)
+      throw new Error("Descuento inválido: un monto o porcentaje que no supere el subtotal");
+    total = Math.round((subtotal - (descuento ?? 0)) * 100) / 100;
+  } else {
+    total = monto(fd, "total_amount");
+  }
+  // El descuento se reparte en proporción a cada ítem, así la rentabilidad
+  // por proyecto refleja lo que de verdad se cobra.
+  const factor = conItems && subtotal > 0 && total !== null ? total / subtotal : 1;
   const proyectos = varios(fd, "project_ids");
   // Un ítem con proyecto lo vincula aunque no se haya elegido en el selector.
   if (conItems) {
@@ -510,7 +530,15 @@ export async function guardarCotizacion(fd: FormData) {
         porProyecto[item.project_id] = (porProyecto[item.project_id] ?? 0) + item.amount;
     }
     for (const [pid, suma] of Object.entries(porProyecto)) {
-      asignado[pid] = Math.round(suma * 100) / 100;
+      // floor y no round: redondear para arriba varios proyectos podría
+      // sumar un centavo más que el total. El épsilon evita que el error de
+      // float (1.15 * 100 = 114.999…) le saque un centavo a un monto exacto.
+      asignado[pid] = Math.floor(suma * factor * 100 + 1e-6) / 100;
+    }
+    // Los vínculos de antes de los ítems también absorben el descuento.
+    for (const pid of proyectos) {
+      if (!(pid in porProyecto) && asignado[pid] != null)
+        asignado[pid] = Math.floor((asignado[pid] as number) * factor * 100 + 1e-6) / 100;
     }
   }
 
@@ -518,9 +546,11 @@ export async function guardarCotizacion(fd: FormData) {
     (t, v) => t + (v ?? 0),
     0,
   );
-  if (total !== null && sumaAsignada > total) {
+  if (total !== null && sumaAsignada > total + 0.005) {
     throw new Error(
-      `Lo asignado a los proyectos (${sumaAsignada}) supera el total (${total})`,
+      conItems
+        ? `Lo asignado a los proyectos (${sumaAsignada}) supera el total (${total}). Pasá a ítems los proyectos vinculados de antes.`
+        : `Lo asignado a los proyectos (${sumaAsignada}) supera el total (${total})`,
     );
   }
 
@@ -824,7 +854,7 @@ export async function duplicarCotizacion(id: string) {
   const { data: original, error: errLeer } = await db
     .from("quotes")
     .select(
-      "*, quote_projects(project_id, allocated_amount), quote_items(position, title, detail, url, amount, project_id)",
+      "*, quote_projects(project_id, allocated_amount), quote_items(position, title, detail, url, amount, project_id, is_extension)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -875,6 +905,7 @@ export async function duplicarCotizacion(id: string) {
       url: item.url,
       amount: Number(item.amount),
       project_id: item.project_id,
+      is_extension: Boolean(item.is_extension),
     })),
   );
 

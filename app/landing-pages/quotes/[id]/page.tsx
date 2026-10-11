@@ -17,7 +17,12 @@ import {
   listarProyectos,
   obtenerCotizacion,
 } from "@/lib/landing/datos";
-import { codigoCotizacion, formatearMonto, pendienteDeCobro } from "@/lib/landing/tipos";
+import {
+  codigoCotizacion,
+  formatearMonto,
+  pendienteDeCobro,
+  resumenPrecio,
+} from "@/lib/landing/tipos";
 import {
   EstadoCotizacionPill,
   EstadoPagoPill,
@@ -56,6 +61,7 @@ export default async function CotizacionDetalle({
   const nombrePor = new Map(clientes.map((c) => [c.id, c.name]));
   const vinculados = proyectos.filter((p) => cotizacion.project_ids.includes(p.id));
   const pendiente = pendienteDeCobro(cotizacion);
+  const precio = resumenPrecio(cotizacion.items, cotizacion.total_amount);
 
   return (
     <>
@@ -158,21 +164,41 @@ export default async function CotizacionDetalle({
           ) : (
             <ul className="divide-y divide-card-border">
               {cotizacion.items.map((item) => (
-                <li key={item.id} className="flex items-center justify-between gap-4 px-5 py-2.5 text-sm">
+                <li
+                  key={item.id}
+                  className={cn(
+                    "flex items-center justify-between gap-4 py-2.5 pr-5 text-sm",
+                    item.is_extension ? "pl-10" : "pl-5",
+                  )}
+                >
                   <span className="min-w-0">
+                    {item.is_extension && <span className="text-text-tertiary">↳ </span>}
                     <span className="font-medium text-text-primary">{item.title}</span>
                     {item.detail && <span className="text-text-secondary"> ({item.detail})</span>}
-                    {item.project_id && (
+                    {item.project_id && !item.is_extension && (
                       <span className="block text-xs text-text-tertiary">
                         {vinculados.find((p) => p.id === item.project_id)?.name ?? "Proyecto"}
                       </span>
                     )}
                   </span>
                   <span className="shrink-0 tabular-nums">
-                    {formatearMonto(item.amount, cotizacion.currency)}
+                    {item.amount > 0 ? (
+                      formatearMonto(item.amount, cotizacion.currency)
+                    ) : (
+                      <span className="text-text-tertiary italic">Incluido</span>
+                    )}
                   </span>
                 </li>
               ))}
+              {precio.descuento > 0 && (
+                <li className="flex justify-between gap-4 px-5 py-2.5 text-sm text-text-secondary tabular-nums">
+                  <span>
+                    Subtotal {formatearMonto(precio.subtotal, cotizacion.currency)} · Descuento por
+                    paquete ({precio.porcentaje}%)
+                  </span>
+                  <span>− {formatearMonto(precio.descuento, cotizacion.currency)}</span>
+                </li>
+              )}
             </ul>
           )}
           <div className="border-t border-card-border px-5 py-3">

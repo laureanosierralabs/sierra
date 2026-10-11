@@ -400,6 +400,8 @@ export interface ItemCotizacion {
   url: string | null;
   amount: number;
   project_id: string | null;
+  /** Cuelga del ítem principal anterior y hereda su proyecto. */
+  is_extension: boolean;
 }
 
 /**
@@ -560,6 +562,44 @@ export function fechaDocumento(fecha: string): string {
 /** Suma de los ítems, redondeada a centavos para no arrastrar error de float. */
 export function totalItems(items: Pick<ItemCotizacion, "amount">[]): number {
   return Math.round(items.reduce((t, i) => t + i.amount, 0) * 100) / 100;
+}
+
+const centavos = (n: number) => Math.round(n * 100) / 100;
+
+/**
+ * Descuento por paquete escrito como monto ("80") o porcentaje ("10%"),
+ * llevado a monto sobre el subtotal. null = sin descuento; undefined =
+ * inválido (negativo, mayor al subtotal o no numérico).
+ */
+export function parsearDescuento(valor: string, subtotal: number): number | null | undefined {
+  const v = valor.trim().replace(/\s/g, "");
+  if (v === "") return null;
+  const porcentaje = v.endsWith("%");
+  const n = Number((porcentaje ? v.slice(0, -1) : v).replace(",", "."));
+  if (!Number.isFinite(n) || n < 0) return undefined;
+  const monto = centavos(porcentaje ? (subtotal * n) / 100 : n);
+  if (monto > subtotal) return undefined;
+  return monto === 0 ? null : monto;
+}
+
+/**
+ * Lo que el documento necesita para explicar el precio: el subtotal de los
+ * ítems y, si el total es menor, la bonificación por paquete.
+ */
+export function resumenPrecio(
+  items: Pick<ItemCotizacion, "amount">[],
+  total: number | null,
+): { subtotal: number; descuento: number; porcentaje: number; total: number } {
+  const subtotal = totalItems(items);
+  const final = items.length > 0 ? (total ?? subtotal) : (total ?? 0);
+  const descuento = items.length > 0 ? Math.max(centavos(subtotal - final), 0) : 0;
+  return {
+    subtotal,
+    descuento,
+    // Un decimal como mucho: "6%", "12.5%".
+    porcentaje: subtotal > 0 ? Math.round((descuento / subtotal) * 1000) / 10 : 0,
+    total: final,
+  };
 }
 
 /**

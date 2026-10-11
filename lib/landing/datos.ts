@@ -225,7 +225,7 @@ export async function obtenerCliente(id: string): Promise<Cliente | null> {
 
 /** Cotización con sus proyectos e ítems: todo form que la edite los necesita. */
 const SELECT_COTIZACION =
-  "*, quote_projects(project_id, allocated_amount), quote_items(id, position, title, detail, url, amount, project_id)";
+  "*, quote_projects(project_id, allocated_amount), quote_items(id, position, title, detail, url, amount, project_id, is_extension)";
 
 type ItemCrudo = Omit<ItemCotizacion, "amount"> & { position: number; amount: number | string };
 
@@ -240,6 +240,7 @@ function aItems(crudos: ItemCrudo[] | null | undefined): ItemCotizacion[] {
       url: i.url,
       amount: Number(i.amount),
       project_id: i.project_id,
+      is_extension: Boolean(i.is_extension),
     }));
 }
 
@@ -277,6 +278,7 @@ export interface CotizacionPublica {
   service: string | null;
   currency: Moneda;
   total_amount: number | null;
+  payment_terms: string | null;
   sent_at: string | null;
   created_at: string;
   cliente: string | null;
@@ -289,7 +291,7 @@ export async function obtenerCotizacionPublica(
   const { data, error } = await supabaseAdmin()
     .from("quotes")
     .select(
-      "numero, title, service, currency, total_amount, sent_at, created_at, clients(name), quote_items(id, position, title, detail, url, amount, project_id)",
+      "numero, title, service, currency, total_amount, payment_terms, sent_at, created_at, clients(name), quote_items(id, position, title, detail, url, amount, project_id, is_extension)",
     )
     .eq("public_token", token)
     .maybeSingle();
