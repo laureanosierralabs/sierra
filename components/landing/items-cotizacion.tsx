@@ -23,7 +23,7 @@ const CAMPO =
 
 const ENLACE = "text-sm font-medium text-primary-500 hover:underline";
 
-type ProyectoItem = Pick<Proyecto, "id" | "name" | "client_id">;
+type ProyectoItem = Pick<Proyecto, "id" | "name" | "client_id" | "site_url">;
 
 export type ItemInicial = {
   title: string;
@@ -96,6 +96,8 @@ const vacia = (extension = false): ItemInicial => ({
 const desdeProyecto = (p: ProyectoItem): ItemInicial => ({
   ...vacia(),
   title: tituloDe(p),
+  // El título del documento linkea a la web publicada del proyecto.
+  url: p.site_url ?? "",
   project_id: p.id,
 });
 
@@ -147,6 +149,8 @@ export function ItemsCotizacion({
   const [previos, setPrevios] = useState(previosIniciales);
   const [descuento, setDescuento] = useState(descuentoInicial);
 
+  const proyectoPor = new Map(proyectos.map((p) => [p.id, p]));
+
   const actualizar = (next: Fila[]) => {
     setFilas(next);
     onCantidad?.(next.length);
@@ -154,6 +158,21 @@ export function ItemsCotizacion({
 
   const cambiar = (clave: number, campo: keyof ItemInicial, valor: string) =>
     actualizar(filas.map((f) => (f.clave === clave ? { ...f, [campo]: valor } : f)));
+
+  /**
+   * Elegir proyecto trae su web como link, salvo que el link ya se haya
+   * escrito a mano (distinto de la web del proyecto anterior).
+   */
+  const elegirProyecto = (clave: number, pid: string) =>
+    actualizar(
+      filas.map((f) => {
+        if (f.clave !== clave) return f;
+        const webAnterior = proyectoPor.get(f.project_id)?.site_url ?? "";
+        const manual = f.url !== "" && f.url !== webAnterior;
+        const web = proyectoPor.get(pid)?.site_url ?? "";
+        return { ...f, project_id: pid, url: manual ? f.url : web };
+      }),
+    );
 
   /** Mueve el ítem principal junto con sus extensiones. */
   const mover = (i: number, delta: -1 | 1) => {
@@ -188,6 +207,7 @@ export function ItemsCotizacion({
           ...vacia(),
           title: v.nombre,
           amount: v.asignado === null ? "" : String(v.asignado),
+          url: proyectoPor.get(v.id)?.site_url ?? "",
           project_id: v.id,
         }),
       ),
@@ -201,7 +221,6 @@ export function ItemsCotizacion({
     ...previos.map((v) => v.id),
   ]);
   const disponibles = delCliente.filter((p) => !usados.has(p.id));
-  const proyectoPor = new Map(proyectos.map((p) => [p.id, p]));
 
   const agregar = (nuevos: ItemInicial[]) => actualizar([...filas, ...nuevos.map(conClave)]);
 
@@ -331,7 +350,7 @@ export function ItemsCotizacion({
                       <select
                         aria-label={`Proyecto del ${nombre}`}
                         value={f.project_id}
-                        onChange={(e) => cambiar(f.clave, "project_id", e.target.value)}
+                        onChange={(e) => elegirProyecto(f.clave, e.target.value)}
                         className={`${CAMPO} flex-1 basis-40`}
                       >
                         <option value="">Sin proyecto (servicio suelto)</option>
@@ -344,7 +363,7 @@ export function ItemsCotizacion({
                     )}
                     <input
                       aria-label={`Link del ${nombre}`}
-                      placeholder="Link del detalle (opcional)"
+                      placeholder={f.is_extension ? "Link (opcional)" : "Link de la web (se completa con la del proyecto)"}
                       value={f.url}
                       onChange={(e) => cambiar(f.clave, "url", e.target.value)}
                       className={`${CAMPO} flex-1 basis-48`}

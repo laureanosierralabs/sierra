@@ -7,6 +7,7 @@ import type {
   Cliente,
   Cotizacion,
   GastoFijo,
+  EstadoPago,
   ItemCotizacion,
   Moneda,
   PagoEquipo,
@@ -279,6 +280,9 @@ export interface CotizacionPublica {
   currency: Moneda;
   total_amount: number | null;
   payment_terms: string | null;
+  payment_url: string | null;
+  /** Solo para mostrar "Pagada" en vez del botón de pago. */
+  payment_status: EstadoPago;
   sent_at: string | null;
   created_at: string;
   cliente: string | null;
@@ -291,7 +295,7 @@ export async function obtenerCotizacionPublica(
   const { data, error } = await supabaseAdmin()
     .from("quotes")
     .select(
-      "numero, title, service, currency, total_amount, payment_terms, sent_at, created_at, clients(name), quote_items(id, position, title, detail, url, amount, project_id, is_extension)",
+      "numero, title, service, currency, total_amount, payment_terms, payment_url, payment_status, sent_at, created_at, clients(name), quote_items(id, position, title, detail, url, amount, project_id, is_extension)",
     )
     .eq("public_token", token)
     .maybeSingle();

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 import { BotonImprimir } from "@/components/landing/boton-imprimir";
-import { DocumentoCotizacionPublica } from "@/components/landing/cotizacion-publica";
+import { BarraPago, DocumentoCotizacionPublica } from "@/components/landing/cotizacion-publica";
 import { obtenerCotizacionPublica } from "@/lib/landing/datos";
 import { codigoCotizacion } from "@/lib/landing/tipos";
 
@@ -37,6 +37,7 @@ export default async function CotizacionPublicaPage({ params }: Props) {
       <main className="flex-1">
         <DocumentoCotizacionPublica cotizacion={cotizacion} />
       </main>
+      <BarraPago cotizacion={cotizacion} />
       <div className="h-5 bg-doc-band" />
     </div>
   );

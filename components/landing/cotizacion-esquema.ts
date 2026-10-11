@@ -12,6 +12,7 @@ import { ESTADOS_COTIZACION, MONEDAS, parsearDescuento } from "@/lib/landing/tip
  *   currency          -> una de MONEDAS
  *   commercial_status -> uno de ESTADOS_COTIZACION
  *   proposal_url      -> vacío, o URL http(s) válida
+ *   payment_url       -> vacío, o URL http(s) válida
  *   sent_at           -> vacío o AAAA-MM-DD
  *   alloc_<id>        -> por cada proyecto elegido: vacío o número >= 0, y la
  *                        suma no puede superar el total
@@ -38,6 +39,7 @@ export const cotizacionEsquema = z
     payment_terms: z.string().optional(),
     sent_at: fechaOpcional,
     proposal_url: urlOpcional,
+    payment_url: urlOpcional,
     notes: z.string().optional(),
     project_ids: z.union([z.string(), z.array(z.string())]).optional(),
   })

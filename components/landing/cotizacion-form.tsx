@@ -37,7 +37,7 @@ function guardar(fd: FormData) {
 
 type Props = {
   clientes: Pick<Cliente, "id" | "name">[];
-  proyectos: Pick<Proyecto, "id" | "name" | "client_id">[];
+  proyectos: Pick<Proyecto, "id" | "name" | "client_id" | "site_url">[];
   cotizacion?: Cotizacion;
   clienteFijo?: string;
 };
@@ -178,6 +178,14 @@ function Campos({ form, clientes, proyectos, cotizacion, clienteFijo }: Props & 
           defaultValue={cotizacion?.sent_at ?? ""}
         />
       </div>
+
+      <FormTextField
+        {...form.fieldProps("payment_url")}
+        label="Link de pago"
+        placeholder="https://buy.stripe.com/… (Stripe, Mercado Pago, PayPal)"
+        description="Aparece como botón Pagar en el link del cliente y como link en el PDF."
+        defaultValue={cotizacion?.payment_url ?? ""}
+      />
 
       <FormTextField
         {...form.fieldProps("proposal_url")}

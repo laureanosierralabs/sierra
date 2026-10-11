@@ -376,6 +376,8 @@ export interface Cotizacion {
   payment_terms: string | null;
   /** La propuesta vive en Drive; acá solo se guarda el acceso directo. */
   proposal_url: string | null;
+  /** Link para pagar (Stripe, Mercado Pago…): el botón "Pagar" del link público. */
+  payment_url: string | null;
   document_path: string | null;
   movement_id: string | null;
   sent_at: string | null;

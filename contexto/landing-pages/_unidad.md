@@ -2,7 +2,7 @@
 tipo: unidad
 nombre: Landing Pages & Sitios Web
 estado: activa
-actualizado: 2026-07-23
+actualizado: 2026-10-11
 ---
 
 # Landing Pages & Sitios Web
@@ -32,6 +32,10 @@ Trabajo por proyecto, con código propio.
 | Drive — Clientes | https://drive.google.com/drive/folders/1rXXWLxY-4zcaiLcYp2ZYYFOeqAUFGphC |
 
 El Drive replica la estructura local: carpeta madre → Negocio + Clientes.
+
+## Decisiones
+<!-- Solo decisiones que cambian el rumbo. Formato: AAAA-MM-DD — decisión — por qué. -->
+2026-10-11 — Dejar de vender solo landings: posicionarse como socio operativo de lanzamientos para infoproductores y marcas personales (infraestructura + landing como pieza central; integraciones GHL, MailerLite, Stripe; datos del embudo). Los anuncios quedan fuera del servicio por ahora. — Los clientes activos piden métricas en cada lanzamiento y esperan proactividad; hacer solo landings deja ese valor afuera.
 
 ## Clientes históricos
 Hay 11 carpetas de clientes en disco. Solo Pilar Sousa y AIDA QUI tienen

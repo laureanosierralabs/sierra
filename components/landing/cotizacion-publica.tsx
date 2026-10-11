@@ -10,7 +10,9 @@ import {
 
 /* Datos de contacto del pie del documento. */
 const WHATSAPP = "+54 9 2221 429754";
+const WHATSAPP_URL = "https://wa.me/5492221429754";
 const SITIO = "www.laureanosierra.com";
+const SITIO_URL = "https://www.laureanosierra.com";
 
 /** `$ 1,250.00 USD`, como en el documento original. */
 function monto(n: number, moneda: string): string {
@@ -45,24 +47,26 @@ function Caja({ label, children }: { label: string; children: React.ReactNode })
   );
 }
 
-/** Título en negrita y detalle entre paréntesis, con link si lo tiene. */
+/**
+ * Título en negrita y detalle entre paréntesis. Con link, el título lleva a
+ * la web publicada: el cliente puede abrir cada landing desde el PDF.
+ */
 function Linea({ item }: { item: Pick<ItemCotizacion, "title" | "detail" | "url"> }) {
   return (
     <span>
-      <strong className="font-semibold">{item.title}</strong>
-      {item.detail ? (
-        <>
-          {" ("}
-          {item.url ? (
-            <a href={item.url} target="_blank" rel="noreferrer" className="text-doc-link">
-              {item.detail}
-            </a>
-          ) : (
-            item.detail
-          )}
-          {")"}
-        </>
-      ) : null}
+      {item.url ? (
+        <a
+          href={item.url}
+          target="_blank"
+          rel="noreferrer"
+          className="font-semibold text-doc-link underline decoration-1 underline-offset-2"
+        >
+          {item.title}
+        </a>
+      ) : (
+        <strong className="font-semibold">{item.title}</strong>
+      )}
+      {item.detail ? ` (${item.detail})` : null}
     </span>
   );
 }
@@ -75,6 +79,41 @@ function Linea({ item }: { item: Pick<ItemCotizacion, "title" | "detail" | "url"
  * parte con su precio (o "Incluido"), las extensiones colgadas de su ítem y,
  * si hay descuento por paquete, el subtotal y la bonificación a la vista.
  */
+/**
+ * Barra fija al pie con el total y el botón de pago: el cliente paga sin
+ * salir de la cotización. Ya cobrada, dice "Pagada" en vez del botón.
+ */
+export function BarraPago({ cotizacion }: { cotizacion: CotizacionPublica }) {
+  if (!cotizacion.payment_url && cotizacion.payment_status !== "paid") return null;
+  const { total } = resumenPrecio(cotizacion.items, cotizacion.total_amount);
+  const pagada = cotizacion.payment_status === "paid";
+
+  return (
+    <div className="sticky bottom-0 z-10 border-t-2 border-doc-box bg-doc-paper print:hidden">
+      <div className="mx-auto flex w-full max-w-[1000px] items-center justify-between gap-4 px-6 py-3 sm:px-14">
+        <p className="flex flex-col leading-tight">
+          <span className="text-xs text-doc-muted">Monto total</span>
+          <span className="text-lg font-semibold tabular-nums">{monto(total, cotizacion.currency)}</span>
+        </p>
+        {pagada ? (
+          <span className="rounded-xl border-2 border-doc-navy px-6 py-2.5 text-base font-semibold">
+            Pagada ✓
+          </span>
+        ) : (
+          <a
+            href={cotizacion.payment_url ?? undefined}
+            target="_blank"
+            rel="noreferrer"
+            className="rounded-xl bg-doc-navy px-8 py-3 text-base font-semibold text-doc-paper transition-opacity hover:opacity-90"
+          >
+            Pagar
+          </a>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function DocumentoCotizacionPublica({ cotizacion }: { cotizacion: CotizacionPublica }) {
   const fecha = fechaCotizacion(cotizacion);
   const moneda = cotizacion.currency;
@@ -188,6 +227,15 @@ export function DocumentoCotizacionPublica({ cotizacion }: { cotizacion: Cotizac
           <div className="rounded-xl rounded-tl-none border-2 border-doc-navy px-4 py-3 text-base font-semibold tabular-nums">
             {monto(total, moneda)}
           </div>
+          {/* En pantalla paga la barra fija; en el PDF no hay botón, va el link. */}
+          {cotizacion.payment_url && cotizacion.payment_status !== "paid" ? (
+            <p className="mt-3 hidden text-sm print:block">
+              <span className="text-doc-muted">Pagar online: </span>
+              <a href={cotizacion.payment_url} className="break-all text-doc-link underline">
+                {cotizacion.payment_url}
+              </a>
+            </p>
+          ) : null}
         </div>
       </section>
 
@@ -210,9 +258,13 @@ export function DocumentoCotizacionPublica({ cotizacion }: { cotizacion: Cotizac
           </span>
         </span>
         <span className="text-right leading-snug">
-          WhatsApp: {WHATSAPP}
+          <a href={WHATSAPP_URL} target="_blank" rel="noreferrer" className="hover:underline">
+            WhatsApp: {WHATSAPP}
+          </a>
           <br />
-          {SITIO}
+          <a href={SITIO_URL} target="_blank" rel="noreferrer" className="hover:underline">
+            {SITIO}
+          </a>
         </span>
       </footer>
     </article>

@@ -108,17 +108,17 @@ function monto(fd: FormData, campo: string): number | null {
 }
 
 /** Solo http/https: un `javascript:` en un href es XSS. */
-function url(fd: FormData, campo: string): string | null {
+function url(fd: FormData, campo: string, nombre = "La URL"): string | null {
   const v = texto(fd, campo);
   if (v === "") return null;
   let parsed: URL;
   try {
     parsed = new URL(v);
   } catch {
-    throw new Error("La URL de la propuesta no es válida");
+    throw new Error(`${nombre} no es válida`);
   }
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-    throw new Error("La URL debe empezar con http:// o https://");
+    throw new Error(`${nombre} debe empezar con http:// o https://`);
   }
   return parsed.toString();
 }
@@ -568,7 +568,8 @@ export async function guardarCotizacion(fd: FormData) {
     // amount_paid y payment_status son derivados de quote_payments: el form
     // no los toca, los mantiene el registro de cobros.
     payment_terms: opcional(fd, "payment_terms"),
-    proposal_url: url(fd, "proposal_url"),
+    proposal_url: url(fd, "proposal_url", "El link a la propuesta"),
+    payment_url: url(fd, "payment_url", "El link de pago"),
     sent_at: fecha(fd, "sent_at"),
     notes: opcional(fd, "notes"),
     updated_at: new Date().toISOString(),
@@ -876,6 +877,8 @@ export async function duplicarCotizacion(id: string) {
       payment_status: estadoPagoSegun(total, 0),
       payment_terms: original.payment_terms,
       proposal_url: original.proposal_url,
+      // Un abono mensual se paga con el mismo link.
+      payment_url: original.payment_url,
       notes: original.notes,
     })
     .select("id")
