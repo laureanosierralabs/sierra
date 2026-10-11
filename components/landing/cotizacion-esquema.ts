@@ -28,7 +28,8 @@ export const cotizacionEsquema = z
     client_id: z.string().optional(),
     service: z.string().optional(),
     items: z.string().optional(),
-    total_amount: montoOpcional,
+    // Ausente cuando hay ítems: el form no muestra el campo.
+    total_amount: montoOpcional.optional(),
     currency: z.enum(MONEDAS, { error: "Moneda inválida" }),
     commercial_status: z.enum(ESTADOS_COTIZACION, { error: "Estado comercial inválido" }),
     payment_terms: z.string().optional(),
@@ -40,7 +41,42 @@ export const cotizacionEsquema = z
   .superRefine((v, ctx) => {
     // Con ítems, el total y lo asignado salen de los ítems y los valida el
     // server: comparar contra el monto manual daría un error falso.
-    if (typeof v.items === "string" && v.items !== "[]" && v.items !== "") return;
+    if (typeof v.items === "string" && v.items !== "[]" && v.items !== "") {
+      let items: { title?: string; amount?: string; url?: string }[] = [];
+      try {
+        items = JSON.parse(v.items);
+      } catch {
+        return;
+      }
+      if (items.some((i) => !String(i.title ?? "").trim())) {
+        ctx.addIssue({ code: "custom", path: ["items"], message: "Hay un ítem sin título" });
+        return;
+      }
+      if (items.some((i) => i.url && !/^https?:\/\//i.test(i.url.trim()))) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["items"],
+          message: "El link de un ítem debe empezar con http:// o https://",
+        });
+        return;
+      }
+      // Ítems sin montos dejarían la cotización en 0 al guardar. Pasa al
+      // convertir proyectos viejos sin monto asignado.
+      const montos = items.map((i) => parsearMonto(String(i.amount ?? "")));
+      if (montos.includes(undefined)) {
+        ctx.addIssue({ code: "custom", path: ["items"], message: "Hay un ítem con monto inválido" });
+        return;
+      }
+      const suma = montos.reduce<number>((t, n) => t + (n ?? 0), 0);
+      if (suma <= 0) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["items"],
+          message: "Los ítems suman 0: cargá los montos o quitá los ítems",
+        });
+      }
+      return;
+    }
 
     const proyectos = ([] as string[]).concat(v.project_ids ?? []).filter(Boolean);
 
@@ -55,7 +91,7 @@ export const cotizacionEsquema = z
       suma += n ?? 0;
     }
 
-    const total = parsearMonto(v.total_amount);
+    const total = parsearMonto(v.total_amount ?? "");
     if (typeof total === "number" && suma > total) {
       ctx.addIssue({
         code: "custom",
