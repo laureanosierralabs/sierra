@@ -20,6 +20,7 @@ const {
   hasUnbackedReserve,
   deltaPercent,
   defaultPaymentAmount,
+  monthCommitments,
 } = await import("../lib/personal-finance-stats.ts");
 
 const mov = (id, tipo, fecha, usd, extra = {}) => ({
@@ -85,6 +86,33 @@ test("upcomingCommitments excluye cerradas y ordena por fecha", () => {
   assert.deepEqual(list.map((c) => c.row.id), ["d1", "d2"]);
   assert.equal(upcomingCommitments(data, 1).length, 1);
   assert.equal(defaultPaymentAmount(data.obligations[0], "obligation", data), 140);
+});
+
+test("monthCommitments: lo cobrado en el mes queda tildado y lo futuro no entra", () => {
+  const conSeguro = {
+    ...data,
+    schedules: [
+      // Cobrado en octubre: el cronograma ya avanzó a noviembre.
+      { id: "s1", owner_id: "o", name: "Seguro", kind: "income", amount: 366000, currency: "ARS", status: "active", next_date: "2026-11-11" },
+      { id: "s2", owner_id: "o", name: "Alquiler", kind: "expense", amount: 100, currency: "USD", status: "active", next_date: "2026-10-20" },
+      { id: "s3", owner_id: "o", name: "Gym", kind: "expense", amount: 30, currency: "USD", status: "active", next_date: "2026-09-05" },
+      { id: "s4", owner_id: "o", name: "Sin fecha", kind: "subscription", amount: 10, currency: "USD", status: "incomplete" },
+    ],
+    movements: [
+      ...data.movements,
+      mov("m7", "ingreso", "2026-10-11", 300, { moneda: "ARS", monto: 366000, schedule_id: "s1", occurrence_date: "2026-10-11" }),
+      mov("m8", "ingreso", "2026-10-11", 300, { schedule_id: "s1", occurrence_date: "2026-10-01", cancelled_at: "2026-10-11" }),
+    ],
+  };
+  const list = monthCommitments(conSeguro, "2026-10", "2026-10-11");
+  const ids = list.map((c) => `${c.row.id}:${c.settled ? "ok" : c.overdue ? "vencido" : "pend"}`);
+  // Vencido primero, luego pendientes por fecha, resueltos al final por fecha.
+  // d1 vence en noviembre pero se pagó en octubre: entra solo como resuelto. s4 no tiene fecha.
+  assert.deepEqual(ids, ["s3:vencido", "s2:pend", "d1:ok", "s1:ok"]);
+  assert.equal(list.find((c) => c.row.id === "s1").settledAmount, 366000);
+  // En noviembre el seguro vuelve a estar pendiente.
+  const nov = monthCommitments(conSeguro, "2026-11", "2026-11-01");
+  assert.ok(nov.some((c) => c.row.id === "s1" && !c.settled));
 });
 
 test("duesByMonth reparte por mes y cuenta los sin fecha", () => {

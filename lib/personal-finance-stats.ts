@@ -188,6 +188,66 @@ export function upcomingCommitments(data: FinanceData, limit?: number): Commitme
   return limit === undefined ? sorted : sorted.slice(0, limit);
 }
 
+export type MonthCommitment = Commitment & {
+  /** Vencimiento (pendientes) o fecha del período saldado (resueltos). */
+  date: string;
+  settled: boolean;
+  overdue: boolean;
+  /** Lo pagado/cobrado en el mes; solo en los resueltos. */
+  settledAmount: number | null;
+};
+
+/**
+ * Compromisos de un mes: lo que vence en el mes o ya venció sin pagarse, y lo
+ * que se saldó en el mes (marcado como resuelto). Lo que vence en meses
+ * futuros no entra: aparece cuando llegue su mes. Los sin fecha quedan fuera
+ * porque no tienen mes al que pertenecer.
+ */
+export function monthCommitments(
+  data: FinanceData,
+  month: string = today().slice(0, 7),
+  todayDate: string = today(),
+): MonthCommitment[] {
+  const pending: MonthCommitment[] = [];
+  for (const c of upcomingCommitments(data)) {
+    const date = commitmentDate(c.row);
+    if (!date || date.slice(0, 7) > month) continue;
+    // Una fecha `AAAA-MM` vence a fin de mes; una completa, ese día.
+    const overdue = date.length === 7 ? date < month : date < todayDate;
+    pending.push({ ...c, date, settled: false, overdue, settledAmount: null });
+  }
+
+  // Un cronograma se salda por período (occurrence_date); una obligación, el
+  // día del pago.
+  const settledBy = new Map<string, MonthCommitment>();
+  for (const m of data.movements) {
+    if (!isPosted(m)) continue;
+    const entity = m.schedule_id ? "schedule" : m.obligation_id ? "obligation" : null;
+    if (!entity) continue;
+    const date = String(m.occurrence_date ?? m.fecha);
+    if (date.slice(0, 7) !== month) continue;
+    const id = String(entity === "schedule" ? m.schedule_id : m.obligation_id);
+    const rows = entity === "schedule" ? data.schedules : data.obligations;
+    const row = rows.find((r) => r.id === id);
+    if (!row) continue;
+    const key = `${entity}:${id}`;
+    const previo = settledBy.get(key);
+    settledBy.set(key, {
+      row,
+      entity,
+      date: previo && previo.date > date ? previo.date : date,
+      settled: true,
+      overdue: false,
+      settledAmount: (previo?.settledAmount ?? 0) + Number(m.monto),
+    });
+  }
+
+  // Vencidos primero, después por fecha; los resueltos al final.
+  pending.sort((a, b) => Number(b.overdue) - Number(a.overdue) || a.date.localeCompare(b.date));
+  const settled = [...settledBy.values()].sort((a, b) => a.date.localeCompare(b.date));
+  return [...pending, ...settled];
+}
+
 /** Monto sugerido al pagar: cuota mensual, o el saldo pendiente / monto del cronograma. */
 export function defaultPaymentAmount(
   row: FinanceRow,
