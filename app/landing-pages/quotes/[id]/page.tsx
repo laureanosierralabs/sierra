@@ -30,6 +30,7 @@ import { Cobros } from "@/components/landing/cobros";
 import { CotizacionForm } from "@/components/landing/cotizacion-form";
 import { DuplicarCotizacion } from "@/components/landing/duplicar-cotizacion";
 import { EnlaceBoton } from "@/components/landing/enlace-boton";
+import { LinkCotizacion } from "@/components/landing/link-cotizacion";
 import { Propiedad } from "@/components/landing/propiedad";
 import { Card } from "@/components/tailgrids/core/card";
 import { cn } from "@/utils/cn";
@@ -141,6 +142,44 @@ export default async function CotizacionDetalle({
           </div>
         )}
       </Card>
+
+      <section className="mb-8">
+        <SeccionTitulo icono={FileText}>
+          Documento para el cliente
+          <span className="ml-2 text-xs font-normal tabular-nums text-text-tertiary">
+            {cotizacion.items.length} {cotizacion.items.length === 1 ? "ítem" : "ítems"}
+          </span>
+        </SeccionTitulo>
+        <Card className="overflow-hidden p-0">
+          {cotizacion.items.length === 0 ? (
+            <p className="px-5 py-3 text-sm text-text-tertiary">
+              Sin ítems: el documento muestra solo el título y el total. Cargalos desde Editar.
+            </p>
+          ) : (
+            <ul className="divide-y divide-card-border">
+              {cotizacion.items.map((item) => (
+                <li key={item.id} className="flex items-center justify-between gap-4 px-5 py-2.5 text-sm">
+                  <span className="min-w-0">
+                    <span className="font-medium text-text-primary">{item.title}</span>
+                    {item.detail && <span className="text-text-secondary"> ({item.detail})</span>}
+                    {item.project_id && (
+                      <span className="block text-xs text-text-tertiary">
+                        {vinculados.find((p) => p.id === item.project_id)?.name ?? "Proyecto"}
+                      </span>
+                    )}
+                  </span>
+                  <span className="shrink-0 tabular-nums">
+                    {formatearMonto(item.amount, cotizacion.currency)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="border-t border-card-border px-5 py-3">
+            <LinkCotizacion id={cotizacion.id} token={cotizacion.public_token} />
+          </div>
+        </Card>
+      </section>
 
       <section className="mb-8">
         <SeccionTitulo icono={Wallet2}>

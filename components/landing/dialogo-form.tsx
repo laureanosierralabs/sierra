@@ -68,6 +68,7 @@ export function DialogoForm({
   disparador,
   abiertoExterno,
   onCerrar,
+  ancho = "lg",
 }: {
   titulo: string;
   etiquetaAbrir?: string;
@@ -80,6 +81,8 @@ export function DialogoForm({
   /** Modo controlado: el diálogo se abre desde afuera y no renderiza botón. */
   abiertoExterno?: boolean;
   onCerrar?: () => void;
+  /** "2xl" para formularios con filas (ítems de cotización). */
+  ancho?: "lg" | "2xl";
 }) {
   const controlado = abiertoExterno !== undefined;
   const [abiertoInterno, setAbiertoInterno] = useState(false);
@@ -129,7 +132,9 @@ export function DialogoForm({
           isDismissable={!form.pending}
           isKeyboardDismissDisabled={form.pending}
         >
-          <Dialog className="max-h-[calc(100dvh-2rem)] max-w-lg overflow-y-auto p-0">
+          <Dialog
+            className={`max-h-[calc(100dvh-2rem)] overflow-y-auto p-0 ${ancho === "2xl" ? "max-w-2xl" : "max-w-lg"}`}
+          >
             <DialogHeader className="border-b border-card-border py-4 pr-14 pl-5">
               <DialogTitle>{titulo}</DialogTitle>
             </DialogHeader>

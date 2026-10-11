@@ -8,6 +8,7 @@ import {
 } from "@/components/common/form/form-fields";
 import { cotizacionEsquema } from "@/components/landing/cotizacion-esquema";
 import { DialogoForm } from "@/components/landing/dialogo-form";
+import { ItemsCotizacion } from "@/components/landing/items-cotizacion";
 import { SIN_OPCION } from "@/components/landing/proyecto-esquema";
 import { SelectorProyectos } from "@/components/landing/selector-proyectos";
 import { guardarCotizacion } from "@/app/landing-pages/acciones";
@@ -59,6 +60,7 @@ export function CotizacionForm({
       action={guardar}
       schema={cotizacionEsquema}
       disparador={editar ? <Pencil1 /> : undefined}
+      ancho="2xl"
     >
       {(form) => (
         <>
@@ -72,12 +74,29 @@ export function CotizacionForm({
             defaultValue={cotizacion?.title ?? ""}
           />
 
-          <FormSelectField
-            {...form.fieldProps("client_id")}
-            label="Cliente que paga"
-            options={opcionesCliente}
-            defaultValue={cotizacion?.client_id ?? clienteFijo ?? SIN_OPCION}
-          />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <FormSelectField
+              {...form.fieldProps("client_id")}
+              label="Cliente que paga"
+              options={opcionesCliente}
+              defaultValue={cotizacion?.client_id ?? clienteFijo ?? SIN_OPCION}
+            />
+            <FormTextField
+              {...form.fieldProps("service")}
+              label="Servicio"
+              placeholder="Embudo de venta"
+              description="Encabeza los ítems en el documento."
+              defaultValue={cotizacion?.service ?? ""}
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium text-input-label-text">Ítems</span>
+            <ItemsCotizacion items={cotizacion?.items} proyectos={proyectos} />
+            <p className="text-xs text-text-tertiary">
+              Con ítems, el monto total es su suma y lo asignado a cada proyecto sale de sus ítems.
+            </p>
+          </div>
 
           {/* El cliente que paga puede no ser el del proyecto: una agencia
               intermediaria factura el trabajo hecho para su propio cliente. */}
@@ -100,6 +119,7 @@ export function CotizacionForm({
             <FormTextField
               {...form.fieldProps("total_amount")}
               label="Monto total"
+              description="Solo si no hay ítems."
               defaultValue={cotizacion?.total_amount?.toString() ?? ""}
             />
             <FormSelectField

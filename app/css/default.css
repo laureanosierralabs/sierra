@@ -1,4 +1,15 @@
 :root {
+  /* Documento de cotización público. Sin override en dark.css a propósito:
+     es una pieza de marca que se ve e imprime igual con cualquier tema. */
+  --doc-paper: #ffffff;
+  --doc-ink: #0a0a1f;
+  --doc-navy: #0a0a33;
+  --doc-muted: #8a8a8a;
+  --doc-box: #e6e6e6;
+  --doc-rule: #bdbdbd;
+  --doc-link: #1a56db;
+  --doc-band: #0a0ac2;
+
   --primary-50: #eff3ff;
   --primary-100: #dae2ff;
   --primary-200: #becdff;

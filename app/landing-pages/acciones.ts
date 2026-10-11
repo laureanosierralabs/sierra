@@ -1,5 +1,6 @@
 "use server";
 
+import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
@@ -22,6 +23,7 @@ import {
   PRIORIDADES,
   TIPOS_PAGINA,
   TIPOS_RECURSO,
+  totalItems,
   type CategoriaGasto,
   type EstadoCliente,
   type EstadoCotizacion,
@@ -29,6 +31,7 @@ import {
   type PeriodoGasto,
   type EstadoTarea,
   type Etapa,
+  type ItemCotizacion,
   type Moneda,
   type Origen,
   type Paso,
@@ -393,14 +396,96 @@ async function sincronizarProyectosCotizacion(
     throw new Error(`No se pudieron vincular los proyectos: ${errInsertar.message}`);
 }
 
+type ItemNuevo = Omit<ItemCotizacion, "id">;
+
+/**
+ * Lee los ítems del campo `items` (JSON que arma el editor). `null` si el
+ * form no lo mandó: así un form que no conoce los ítems no los borra.
+ */
+function itemsDe(fd: FormData): ItemNuevo[] | null {
+  if (!fd.has("items")) return null;
+  let crudos: unknown;
+  try {
+    crudos = JSON.parse(texto(fd, "items") || "[]");
+  } catch {
+    throw new Error("Ítems inválidos");
+  }
+  if (!Array.isArray(crudos)) throw new Error("Ítems inválidos");
+
+  return crudos.map((c, i) => {
+    const o = (c ?? {}) as Record<string, unknown>;
+    const title = String(o.title ?? "").trim();
+    if (!title) throw new Error(`Al ítem ${i + 1} le falta el título`);
+    const amount = Number(String(o.amount ?? "0").replace(/\s/g, "").replace(",", ".") || 0);
+    if (!Number.isFinite(amount) || amount < 0)
+      throw new Error(`Monto inválido en el ítem ${i + 1}`);
+    const link = String(o.url ?? "").trim();
+    if (link && !/^https?:\/\//i.test(link))
+      throw new Error(`El link del ítem ${i + 1} debe empezar con http:// o https://`);
+    return {
+      title,
+      detail: String(o.detail ?? "").trim() || null,
+      url: link || null,
+      amount: Math.round(amount * 100) / 100,
+      project_id: String(o.project_id ?? "") || null,
+    };
+  });
+}
+
+/** Falla antes de escribir nada si un ítem apunta a un proyecto que no existe. */
+async function validarProyectosItems(items: ItemNuevo[]) {
+  const ids = [...new Set(items.map((i) => i.project_id).filter((p): p is string => Boolean(p)))];
+  if (ids.length === 0) return;
+  const { data, error } = await supabaseAdmin().from("projects").select("id").in("id", ids);
+  if (error || (data ?? []).length !== ids.length)
+    throw new Error("Un ítem apunta a un proyecto que ya no existe");
+}
+
+/**
+ * Inserta los nuevos y después borra los viejos: si el insert falla, la
+ * cotización conserva sus ítems anteriores en vez de quedar vacía.
+ */
+async function reemplazarItems(quoteId: string, items: ItemNuevo[]) {
+  const db = supabaseAdmin();
+  const { data: previos, error: errLeer } = await db
+    .from("quote_items")
+    .select("id")
+    .eq("quote_id", quoteId);
+  if (errLeer) throw new Error(`No se pudieron guardar los ítems: ${errLeer.message}`);
+
+  if (items.length > 0) {
+    const { error } = await db
+      .from("quote_items")
+      .insert(items.map((item, position) => ({ ...item, quote_id: quoteId, position })));
+    if (error) throw new Error(`No se pudieron guardar los ítems: ${error.message}`);
+  }
+
+  const viejos = (previos ?? []).map((p) => p.id);
+  if (viejos.length === 0) return;
+  const { error: errBorrar } = await db.from("quote_items").delete().in("id", viejos);
+  if (errBorrar) throw new Error(`No se pudieron guardar los ítems: ${errBorrar.message}`);
+}
+
 export async function guardarCotizacion(fd: FormData) {
   await exigirOwner();
 
   const titulo = texto(fd, "title");
   if (!titulo) throw new Error("Falta el título de la cotización");
 
-  const total = monto(fd, "total_amount");
+  const items = itemsDe(fd);
+  const conItems = items !== null && items.length > 0;
+  if (conItems) await validarProyectosItems(items);
+
+  // Con ítems, el total es su suma: cargarlo a mano abriría la puerta a que
+  // el documento y el número del panel no coincidan.
+  const total = conItems ? totalItems(items) : monto(fd, "total_amount");
   const proyectos = varios(fd, "project_ids");
+  // Un ítem con proyecto lo vincula aunque no se haya elegido en el selector.
+  if (conItems) {
+    for (const item of items) {
+      if (item.project_id && !proyectos.includes(item.project_id)) proyectos.push(item.project_id);
+    }
+  }
 
   // Un campo por proyecto: alloc_<id>. Vacío = sin asignar.
   const asignado: Record<string, number | null> = {};
@@ -415,6 +500,18 @@ export async function guardarCotizacion(fd: FormData) {
       throw new Error("Monto asignado inválido");
     }
     asignado[pid] = n;
+  }
+
+  // Lo asignado a un proyecto con ítems sale de sus ítems y pisa lo manual.
+  if (conItems) {
+    const porProyecto: Record<string, number> = {};
+    for (const item of items) {
+      if (item.project_id)
+        porProyecto[item.project_id] = (porProyecto[item.project_id] ?? 0) + item.amount;
+    }
+    for (const [pid, suma] of Object.entries(porProyecto)) {
+      asignado[pid] = Math.round(suma * 100) / 100;
+    }
   }
 
   const sumaAsignada = Object.values(asignado).reduce<number>(
@@ -454,6 +551,7 @@ export async function guardarCotizacion(fd: FormData) {
     const { error } = await db.from("quotes").update(fila).eq("id", id);
     if (error)
       throw new Error(`No se pudo guardar la cotización: ${error.message}`);
+    if (items !== null) await reemplazarItems(id, items);
     await sincronizarProyectosCotizacion(id, proyectos, asignado);
     // Cambiar el total cambia si lo cobrado ya alcanza o no.
     await sincronizarEstadoPago(id);
@@ -471,8 +569,33 @@ export async function guardarCotizacion(fd: FormData) {
   if (error || !creada)
     throw new Error(`No se pudo guardar la cotización: ${error?.message ?? ""}`);
 
+  if (items !== null) await reemplazarItems(creada.id, items);
   await sincronizarProyectosCotizacion(creada.id, proyectos, asignado);
   revalidar();
+}
+
+/**
+ * Crea (o reemplaza) el link público de la cotización. Reemplazar invalida
+ * el link anterior: sirve para revocar uno que se mandó por error.
+ */
+export async function generarLinkCotizacion(id: string) {
+  await exigirOwner();
+  const { error } = await supabaseAdmin()
+    .from("quotes")
+    .update({ public_token: randomBytes(18).toString("base64url") })
+    .eq("id", id);
+  if (error) throw new Error(`No se pudo generar el link: ${error.message}`);
+  revalidatePath(`/landing-pages/quotes/${id}`);
+}
+
+export async function revocarLinkCotizacion(id: string) {
+  await exigirOwner();
+  const { error } = await supabaseAdmin()
+    .from("quotes")
+    .update({ public_token: null })
+    .eq("id", id);
+  if (error) throw new Error(`No se pudo desactivar el link: ${error.message}`);
+  revalidatePath(`/landing-pages/quotes/${id}`);
 }
 
 const BUCKET = "propuestas";
@@ -700,7 +823,9 @@ export async function duplicarCotizacion(id: string) {
 
   const { data: original, error: errLeer } = await db
     .from("quotes")
-    .select("*, quote_projects(project_id, allocated_amount)")
+    .select(
+      "*, quote_projects(project_id, allocated_amount), quote_items(position, title, detail, url, amount, project_id)",
+    )
     .eq("id", id)
     .maybeSingle();
 
@@ -737,6 +862,20 @@ export async function duplicarCotizacion(id: string) {
     copia.id,
     vinculos.map((v) => v.project_id),
     Object.fromEntries(vinculos.map((v) => [v.project_id, v.allocated_amount])),
+  );
+
+  const items = ((original.quote_items ?? []) as (ItemNuevo & { position: number })[]).sort(
+    (a, b) => a.position - b.position,
+  );
+  await reemplazarItems(
+    copia.id,
+    items.map((item) => ({
+      title: item.title,
+      detail: item.detail,
+      url: item.url,
+      amount: Number(item.amount),
+      project_id: item.project_id,
+    })),
   );
 
   revalidar();

@@ -7,6 +7,7 @@ import type {
   Cliente,
   Cotizacion,
   GastoFijo,
+  ItemCotizacion,
   Moneda,
   PagoEquipo,
   NotaCliente,
@@ -222,15 +223,36 @@ export async function obtenerCliente(id: string): Promise<Cliente | null> {
   return data;
 }
 
+/** Cotización con sus proyectos e ítems: todo form que la edite los necesita. */
+const SELECT_COTIZACION =
+  "*, quote_projects(project_id, allocated_amount), quote_items(id, position, title, detail, url, amount, project_id)";
+
+type ItemCrudo = Omit<ItemCotizacion, "amount"> & { position: number; amount: number | string };
+
+/** Ordena por posición y normaliza montos (numeric llega como texto o número). */
+function aItems(crudos: ItemCrudo[] | null | undefined): ItemCotizacion[] {
+  return [...(crudos ?? [])]
+    .sort((a, b) => a.position - b.position)
+    .map((i) => ({
+      id: i.id,
+      title: i.title,
+      detail: i.detail,
+      url: i.url,
+      amount: Number(i.amount),
+      project_id: i.project_id,
+    }));
+}
+
 /** Aplana el join de la tabla puente a ids y montos asignados. */
 function conProyectos(
-  fila: Omit<Cotizacion, "project_ids" | "allocated"> & {
+  fila: Omit<Cotizacion, "project_ids" | "allocated" | "items"> & {
     quote_projects?:
       | { project_id: string; allocated_amount?: number | null }[]
       | null;
+    quote_items?: ItemCrudo[] | null;
   },
 ): Cotizacion {
-  const { quote_projects, ...resto } = fila;
+  const { quote_projects, quote_items, ...resto } = fila;
   const vinculos = quote_projects ?? [];
 
   const allocated: Record<string, number> = {};
@@ -244,13 +266,55 @@ function conProyectos(
     ...resto,
     project_ids: vinculos.map((q) => q.project_id),
     allocated,
+    items: aItems(quote_items),
+  };
+}
+
+/** Lo que ve el cliente en el link público. Nada interno: ni cobros ni notas. */
+export interface CotizacionPublica {
+  numero: number;
+  title: string;
+  service: string | null;
+  currency: Moneda;
+  total_amount: number | null;
+  sent_at: string | null;
+  created_at: string;
+  cliente: string | null;
+  items: ItemCotizacion[];
+}
+
+export async function obtenerCotizacionPublica(
+  token: string,
+): Promise<CotizacionPublica | null> {
+  const { data, error } = await supabaseAdmin()
+    .from("quotes")
+    .select(
+      "numero, title, service, currency, total_amount, sent_at, created_at, clients(name), quote_items(id, position, title, detail, url, amount, project_id)",
+    )
+    .eq("public_token", token)
+    .maybeSingle();
+
+  if (error) throw new Error(`No se pudo leer la cotización: ${error.message}`);
+  if (!data) return null;
+
+  const { clients, quote_items, ...resto } = data as typeof data & {
+    clients: { name: string } | { name: string }[] | null;
+    quote_items: ItemCrudo[] | null;
+  };
+  const cliente = Array.isArray(clients) ? clients[0] : clients;
+  return {
+    ...(resto as Omit<CotizacionPublica, "cliente" | "items">),
+    total_amount: resto.total_amount === null ? null : Number(resto.total_amount),
+    cliente: cliente?.name ?? null,
+    // El proyecto es dato interno: no viaja al cliente.
+    items: aItems(quote_items).map((i) => ({ ...i, project_id: null })),
   };
 }
 
 export async function listarCotizaciones(): Promise<Cotizacion[]> {
   const { data, error } = await supabaseAdmin()
     .from("quotes")
-    .select("*, quote_projects(project_id, allocated_amount)")
+    .select(SELECT_COTIZACION)
     .order("numero", { ascending: false });
 
   if (error)
@@ -261,7 +325,7 @@ export async function listarCotizaciones(): Promise<Cotizacion[]> {
 export async function obtenerCotizacion(id: string): Promise<Cotizacion | null> {
   const { data, error } = await supabaseAdmin()
     .from("quotes")
-    .select("*, quote_projects(project_id, allocated_amount)")
+    .select(SELECT_COTIZACION)
     .eq("id", id)
     .maybeSingle();
 
@@ -428,7 +492,7 @@ export async function listarCotizacionesDeProyecto(
 
   const { data, error: errQuotes } = await db
     .from("quotes")
-    .select("*, quote_projects(project_id, allocated_amount)")
+    .select(SELECT_COTIZACION)
     .in("id", ids)
     .order("numero", { ascending: false });
 

@@ -384,8 +384,22 @@ export interface Cotizacion {
   project_ids: string[];
   /** Cuánto del total corresponde a cada proyecto. Ausente = sin asignar. */
   allocated: Record<string, number>;
+  /** Detalle del documento. Con ítems, el total es su suma. */
+  items: ItemCotizacion[];
+  /** Token del link público para el cliente; null = sin link. */
+  public_token: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface ItemCotizacion {
+  id: string;
+  title: string;
+  /** Aclaración que va entre paréntesis después del título. */
+  detail: string | null;
+  url: string | null;
+  amount: number;
+  project_id: string | null;
 }
 
 /**
@@ -530,6 +544,22 @@ export function fechaCotizacion(q: Pick<Cotizacion, "sent_at" | "created_at">): 
 export function fechaCorta(fecha: string): string {
   const [a, m, d] = fecha.split("-");
   return `${d}/${m}/${a}`;
+}
+
+const MESES_DOCUMENTO = [
+  "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
+];
+
+/** AAAA-MM-DD → "26 de Septiembre 2026", como en el documento de cotización. */
+export function fechaDocumento(fecha: string): string {
+  const [a, m, d] = fecha.split("-");
+  return `${Number(d)} de ${MESES_DOCUMENTO[Number(m) - 1] ?? m} ${a}`;
+}
+
+/** Suma de los ítems, redondeada a centavos para no arrastrar error de float. */
+export function totalItems(items: Pick<ItemCotizacion, "amount">[]): number {
+  return Math.round(items.reduce((t, i) => t + i.amount, 0) * 100) / 100;
 }
 
 /**

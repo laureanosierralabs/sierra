@@ -441,6 +441,16 @@
   --color-base-200: var(--border-color-base-200);
   --color-base-300: var(--border-color-base-300);
 
+  /* Documento de cotización público (bg-doc-paper, text-doc-ink, ...). */
+  --color-doc-paper: var(--doc-paper);
+  --color-doc-ink: var(--doc-ink);
+  --color-doc-navy: var(--doc-navy);
+  --color-doc-muted: var(--doc-muted);
+  --color-doc-box: var(--doc-box);
+  --color-doc-rule: var(--doc-rule);
+  --color-doc-link: var(--doc-link);
+  --color-doc-band: var(--doc-band);
+
   /* Shadows: real values (the template aliased them to self-referential vars).
      xl / 2xl / 3xl are NOT overridden so existing modals keep Tailwind's defaults. */
   --shadow-xs: 0 1px 2px 0 rgba(16, 24, 40, 0.05);

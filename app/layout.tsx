@@ -26,8 +26,11 @@ export default async function RootLayout({
   // porque no hay usuario del que mostrar unidades ni rol.
   const pathname = (await headers()).get("x-pathname") ?? "";
   const esAuth = pathname.startsWith("/sign-in") || pathname.startsWith("/sign-up");
+  // La cotización pública la ve el cliente: nunca va dentro del panel, aunque
+  // quien la abra tenga sesión.
+  const esPublica = pathname.startsWith("/q/");
 
-  const acceso = esAuth ? null : await accesoActual();
+  const acceso = esAuth || esPublica ? null : await accesoActual();
   // Un member con una sola unidad ve el nombre de esa unidad, no el del panel:
   // para él esto ES su panel.
   const soloUnidad =

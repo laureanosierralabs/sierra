@@ -6,6 +6,8 @@ const esPublica = createRouteMatcher([
   "/sign-in(.*)",
   "/sign-up(.*)",
   "/sin-acceso",
+  // Cotización que se le manda al cliente: la protege el token del link.
+  "/q/(.*)",
   // Diagnóstico: tiene que responder aunque el login esté roto.
   "/api/health",
 ]);

@@ -15,7 +15,9 @@ import { ESTADOS_COTIZACION, MONEDAS } from "@/lib/landing/tipos";
  *   sent_at           -> vacío o AAAA-MM-DD
  *   alloc_<id>        -> por cada proyecto elegido: vacío o número >= 0, y la
  *                        suma no puede superar el total
- *   client_id, payment_terms, notes, project_ids -> libres
+ *   items             -> JSON del editor de ítems; con ítems, el total y lo
+ *                        asignado los calcula el server
+ *   client_id, service, payment_terms, notes, project_ids -> libres
  *
  * `looseObject` conserva las claves dinámicas `alloc_<id>`.
  */
@@ -24,6 +26,8 @@ export const cotizacionEsquema = z
     id: z.string().optional(),
     title: z.string().trim().min(1, "Falta el título de la cotización"),
     client_id: z.string().optional(),
+    service: z.string().optional(),
+    items: z.string().optional(),
     total_amount: montoOpcional,
     currency: z.enum(MONEDAS, { error: "Moneda inválida" }),
     commercial_status: z.enum(ESTADOS_COTIZACION, { error: "Estado comercial inválido" }),
@@ -34,6 +38,10 @@ export const cotizacionEsquema = z
     project_ids: z.union([z.string(), z.array(z.string())]).optional(),
   })
   .superRefine((v, ctx) => {
+    // Con ítems, el total y lo asignado salen de los ítems y los valida el
+    // server: comparar contra el monto manual daría un error falso.
+    if (typeof v.items === "string" && v.items !== "[]" && v.items !== "") return;
+
     const proyectos = ([] as string[]).concat(v.project_ids ?? []).filter(Boolean);
 
     let suma = 0;
