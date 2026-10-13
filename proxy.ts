@@ -20,6 +20,8 @@ const esPublica = createRouteMatcher([
   // Webhooks de proveedores (MailerLite): los protege el token de la URL y
   // la firma del proveedor, no una sesión.
   "/api/webhooks/(.*)",
+  // Conteo de visitas: lo llama el script de las landings (otros dominios).
+  "/api/t",
 ]);
 
 /**

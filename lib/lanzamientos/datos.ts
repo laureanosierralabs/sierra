@@ -1,7 +1,12 @@
 import "server-only";
 
 import { supabaseAdmin } from "@/lib/landing/supabase";
-import type { Lanzamiento, PaginaLanzamiento, Registro } from "@/lib/lanzamientos/tipos";
+import type {
+  Lanzamiento,
+  PaginaLanzamiento,
+  Registro,
+  VisitaAgregada,
+} from "@/lib/lanzamientos/tipos";
 
 /**
  * Lecturas de lanzamientos. Toda función recibe el `clientId` y filtra por
@@ -14,7 +19,7 @@ import type { Lanzamiento, PaginaLanzamiento, Registro } from "@/lib/lanzamiento
 const COLUMNAS_LANZAMIENTO =
   "id, client_id, name, status, starts_on, ends_on, goal_registrations, created_at";
 const COLUMNAS_PAGINA =
-  "id, launch_id, name, url, thanks_url, whatsapp_url, checkout_url, project_id, mailerlite_group_id, position";
+  "id, launch_id, name, url, thanks_url, whatsapp_url, checkout_url, project_id, mailerlite_group_id, track_key, position";
 const COLUMNAS_REGISTRO =
   "id, page_id, email, name, phone, utm_source, utm_medium, utm_campaign, utm_content, registered_at";
 
@@ -42,6 +47,8 @@ export interface DetalleLanzamiento {
   lanzamiento: Lanzamiento;
   paginas: PaginaLanzamiento[];
   registros: Registro[];
+  /** Visitantes únicos por landing, día y fuente (ya agregados en la base). */
+  visitas: VisitaAgregada[];
   /** `true` si hay más registros que el tope leído (los totales serían parciales). */
   truncado: boolean;
 }
@@ -93,10 +100,19 @@ export async function lanzamientoDeCliente(
     }
   }
 
+  const { data: visitas, error: errVisitas } = await db.rpc("launch_visit_stats", {
+    p_client: clientId,
+    p_launch: id,
+  });
+  // Las visitas son un agregado aparte: si fallan, el panel muestra "—" en
+  // visitantes y conversión, pero los registros se siguen viendo.
+  if (errVisitas) console.error("[lanzamientos] no se pudieron leer las visitas:", errVisitas.message);
+
   return {
     lanzamiento: lanzamiento as unknown as Lanzamiento,
     paginas: (paginas ?? []) as unknown as PaginaLanzamiento[],
     registros,
+    visitas: ((visitas ?? []) as VisitaAgregada[]).map((v) => ({ ...v, visitors: Number(v.visitors) })),
     truncado,
   };
 }

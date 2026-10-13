@@ -379,3 +379,31 @@ export function ConexionMailerlite({
     </div>
   );
 }
+
+/**
+ * Copia el script de visitas de una landing, listo para pegar antes de
+ * `</body>`. La clave va a la vista en el HTML de la landing: no es secreta.
+ */
+export function CopiarScriptVisitas({ trackKey }: { trackKey: string }) {
+  async function copiar() {
+    const script = `<script async src="${window.location.origin}/t.js" data-k="${trackKey}"></script>`;
+    try {
+      await navigator.clipboard.writeText(script);
+      toast.success("Script copiado: pegalo antes de </body> en la landing");
+    } catch {
+      toast.error("No se pudo copiar");
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={copiar}
+      title="Copiar el script de visitas de esta landing"
+      className="inline-flex items-center gap-1 text-xs font-medium text-primary-500 hover:underline [&>svg]:size-3.5"
+    >
+      <Copy1 />
+      Script
+    </button>
+  );
+}

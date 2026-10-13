@@ -33,6 +33,8 @@ export interface PaginaLanzamiento {
   checkout_url: string | null;
   project_id: string | null;
   mailerlite_group_id: string | null;
+  /** Clave pública del script de visitas de esta landing. */
+  track_key: string;
   position: number;
 }
 
@@ -192,4 +194,116 @@ export function registrosDeMailerlite(payload: unknown): RegistroEntrante[] {
     });
   }
   return salida;
+}
+
+/* ───────────── Visitas y conversión ───────────── */
+
+/** Visitantes únicos de una landing en un día, por fuente (lo que devuelve la base). */
+export interface VisitaAgregada {
+  page_id: string;
+  day: string;
+  utm_source: string | null;
+  visitors: number;
+}
+
+export interface ResumenVisitas {
+  /** Suma de visitantes únicos diarios: quien vuelve otro día cuenta de nuevo. */
+  total: number;
+  porPagina: Record<string, number>;
+  /** Por fuente, de mayor a menor. La clave "" son las visitas sin UTM. */
+  porFuente: { fuente: string; visitantes: number }[];
+}
+
+export function resumirVisitas(visitas: VisitaAgregada[]): ResumenVisitas {
+  const porPagina: Record<string, number> = {};
+  const fuentes = new Map<string, number>();
+  let total = 0;
+
+  for (const v of visitas) {
+    const n = Number(v.visitors);
+    total += n;
+    porPagina[v.page_id] = (porPagina[v.page_id] ?? 0) + n;
+    const fuente = v.utm_source ?? "";
+    fuentes.set(fuente, (fuentes.get(fuente) ?? 0) + n);
+  }
+
+  return {
+    total,
+    porPagina,
+    porFuente: [...fuentes.entries()]
+      .map(([fuente, visitantes]) => ({ fuente, visitantes }))
+      .sort((a, b) => b.visitantes - a.visitantes),
+  };
+}
+
+/**
+ * Conversión en porcentaje con un decimal. Null cuando no se puede medir:
+ * - sin visitas, 0 % diría "no convierte" cuando no hay con qué comparar;
+ * - con más registros que visitantes, el script se instaló después de que
+ *   empezaran a entrar registros y el número sería imposible (más de 100 %).
+ *
+ * Es una aproximación: los visitantes son únicos por día (quien vuelve otro
+ * día cuenta de nuevo) y los registros son únicos por lanzamiento.
+ */
+export function conversion(registros: number, visitantes: number): number | null {
+  if (visitantes <= 0 || registros > visitantes) return null;
+  return Math.round((registros / visitantes) * 1000) / 10;
+}
+
+export interface Variante {
+  id: string;
+  visitantes: number;
+  registros: number;
+}
+
+export interface Comparacion {
+  /** La que mejor convierte. */
+  mejor: string;
+  /** La segunda, contra la que se compara. */
+  segunda: string;
+  /** `true` si la diferencia difícilmente sea casualidad (95 % de confianza). */
+  significativa: boolean;
+}
+
+/**
+ * Compara las dos landings que mejor convierten con una prueba z de dos
+ * proporciones. Null si hay menos de dos con visitas: no hay qué comparar.
+ *
+ * Sirve para no escalar una "ganadora" que solo va adelante por azar: con
+ * pocas visitas, diferencias grandes de conversión son normales.
+ *
+ * El umbral 1,96 equivale al 95 % en una prueba a dos colas, que es la que
+ * corresponde: cuál va adelante se mira después de ver los datos.
+ */
+export function compararVariantes(variantes: Variante[]): Comparacion | null {
+  const conDatos = variantes
+    .filter((v) => v.visitantes > 0)
+    .map((v) => ({ ...v, p: Math.min(v.registros / v.visitantes, 1) }))
+    .sort((a, b) => b.p - a.p);
+  if (conDatos.length < 2) return null;
+
+  const [a, b] = conDatos;
+  const conjunta = (a.registros + b.registros) / (a.visitantes + b.visitantes);
+  const error = Math.sqrt(conjunta * (1 - conjunta) * (1 / a.visitantes + 1 / b.visitantes));
+  const z = error > 0 ? (a.p - b.p) / error : 0;
+
+  return { mejor: a.id, segunda: b.id, significativa: z >= 1.96 };
+}
+
+/* Rastreadores y previsualizadores: abren la landing pero no son personas. */
+const BOTS =
+  /bot|crawl|spider|slurp|preview|headless|lighthouse|pingdom|uptime|monitor|facebookexternalhit|facebookcatalog|meta-external|whatsapp|telegram|skype|curl|wget|python|axios|node-fetch|go-http/i;
+
+export function esBot(userAgent: string | null | undefined): boolean {
+  return !userAgent || BOTS.test(userAgent);
+}
+
+/** Dominio de un referrer, sin `www.`. Null si está vacío o no es una URL. */
+export function dominioDe(referrer: string | null | undefined): string | null {
+  if (!referrer) return null;
+  try {
+    return new URL(referrer).hostname.replace(/^www\./, "").slice(0, 120) || null;
+  } catch {
+    return null;
+  }
 }

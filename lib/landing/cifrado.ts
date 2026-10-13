@@ -3,6 +3,7 @@ import "server-only";
 import {
   createCipheriv,
   createDecipheriv,
+  createHmac,
   randomBytes,
   createHash,
 } from "node:crypto";
@@ -57,6 +58,18 @@ export function descifrar(guardado: string): string | null {
     // Clave cambiada o dato corrupto: no romper la página por esto.
     return null;
   }
+}
+
+/**
+ * Huella irreversible de un dato (HMAC-SHA256 con la clave del entorno).
+ * Para identificar sin guardar el dato: sin la clave del servidor no se puede
+ * probar candidatos para volver al original. `uso` separa dominios: la misma
+ * entrada da huellas distintas según para qué se use. Null si falta la clave.
+ */
+export function huella(uso: string, texto: string): string | null {
+  if (!hayClave()) return null;
+  return createHmac("sha256", clave()).update(`${uso}
+${texto}`).digest("hex");
 }
 
 export function hayClave(): boolean {

@@ -7,6 +7,7 @@ import {
   BorrarLanzamiento,
   BorrarPaginaLanzamiento,
   ConexionMailerlite,
+  CopiarScriptVisitas,
   LanzamientoForm,
   PaginaLanzamientoForm,
 } from "@/components/lanzamientos/lanzamiento-gestion";
@@ -99,6 +100,7 @@ export default async function LanzamientoDetalle({ params }: { params: Promise<{
                 </span>
               </span>
               <span className="flex shrink-0 items-center gap-3">
+                <CopiarScriptVisitas trackKey={p.track_key} />
                 <PaginaLanzamientoForm
                   launchId={lanzamiento.id}
                   pagina={p}
