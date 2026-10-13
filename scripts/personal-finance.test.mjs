@@ -96,11 +96,17 @@ test("installment fields remain locked after active or cancelled payment history
     sql,
     /oldrow->>'next_month' is distinct from rowdata->>'next_month'/,
   );
+  // El editor (migrado a components/finanzas-personal) bloquea los campos del
+  // plan de cuotas cuando la obligación ya tiene historial de pagos.
   const ui = readFileSync(
-    new URL("../components/personal-finance.tsx", import.meta.url),
+    new URL("../components/finanzas-personal/editores/entity-editor.tsx", import.meta.url),
     "utf8",
   );
-  assert.match(ui, /readOnly=\{locked\}/);
+  assert.match(ui, /planLocked =[\s\S]*hasObligationPaymentHistory\(row\.id/);
+  assert.match(
+    ui,
+    /planLocked && \["monthly_payment", "next_date", "next_month"\]\.includes\(field\.name\)/,
+  );
 });
 test("untouched optional enum controls serialize valid SQL defaults", () => {
   const cases = [

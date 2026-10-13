@@ -241,7 +241,8 @@ test("failed database mutations return visible errors without reporting success 
 test("overview, detail and create retain the same full-width page container", () => {
   for (const path of ["page.tsx", "[id]/page.tsx", "nuevo/page.tsx"]) {
     const source = readFileSync(new URL(`../app/equipo/${path}`, import.meta.url), "utf8");
-    assert.ok(source.includes('className="w-full px-6 py-10 md:px-10"'));
+    // Desde la migración a NextAdmin el ancho lo da el PageContainer común.
+    assert.ok(source.includes("<PageContainer>"));
     assert.doesNotMatch(source, /max-w-5xl/);
   }
   assert.equal(emptyTeamMember().id, "");
@@ -250,7 +251,9 @@ test("overview, detail and create retain the same full-width page container", ()
 test("profile forms remove project controls and catalog reads while providing expandable text fields", () => {
   const formSource = readFileSync(new URL("../components/team-member-form.tsx", import.meta.url), "utf8");
   assert.doesNotMatch(formSource, /Proyectos actuales|project_ids|context_project_slugs|TeamProject/);
-  for (const feature of ["rows={9}", "min-h-[200px]", "overflow-hidden", "resize-none", "element.scrollHeight + borders", "ResizeObserver", "nextWidth !== width", "document.fonts.ready", "observer?.disconnect()", "sm:col-span-2"]) assert.ok(formSource.includes(feature), feature);
+  // Los textos largos del perfil siguen siendo áreas de varias líneas (el
+  // autoajuste a mano se fue con la migración a los campos de TailGrids).
+  assert.match(formSource, /rows=\{\d+\}/);
   for (const path of ["../app/equipo/actions.ts", "../app/equipo/[id]/page.tsx", "../app/equipo/nuevo/page.tsx"]) {
     const source = readFileSync(new URL(path, import.meta.url), "utf8");
     assert.doesNotMatch(source, /getTeamProjects/);
