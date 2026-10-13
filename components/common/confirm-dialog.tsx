@@ -64,7 +64,15 @@ export function ConfirmDialog({
     setError(null);
     startTransition(async () => {
       try {
-        await onConfirm();
+        // Igual que en useZodForm: `{ error }` devuelto se muestra tal cual
+        // (un Error lanzado llega sin mensaje en producción).
+        const resultado = await onConfirm();
+        const devuelto = (resultado as { error?: unknown } | undefined)?.error;
+        if (typeof devuelto === "string" && devuelto) {
+          setError(devuelto);
+          toast.error(devuelto);
+          return;
+        }
         if (successMessage) toast.success(successMessage);
         onOpenChange(false);
       } catch (e) {

@@ -13,7 +13,7 @@ export function BorrarBoton({
   etiqueta = "Borrar",
   advertencia,
 }: {
-  onConfirmar: () => Promise<void>;
+  onConfirmar: () => Promise<void | { error: string }>;
   etiqueta?: string;
   advertencia?: string;
 }) {

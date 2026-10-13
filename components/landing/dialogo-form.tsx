@@ -72,7 +72,7 @@ export function DialogoForm({
 }: {
   titulo: string;
   etiquetaAbrir?: string;
-  action: (fd: FormData) => Promise<void>;
+  action: (fd: FormData) => Promise<void | { error: string }>;
   /** Validación opcional del lado cliente (feedback inmediato; el server sigue validando). */
   schema?: ZodType;
   /** Con `schema`, conviene la forma función para pintar `form.fieldProps(...)`. */

@@ -74,8 +74,9 @@ export function PortalCliente({ clientId, estado }: { clientId: string; estado: 
             onPress={() =>
               iniciar(async () => {
                 try {
-                  await habilitarPortal(clientId);
-                  toast.success("Portal habilitado");
+                  const resultado = await habilitarPortal(clientId);
+                  if (resultado?.error) toast.error(resultado.error);
+                  else toast.success("Portal habilitado");
                 } catch (e) {
                   toast.error(e instanceof Error ? e.message : "No se pudo habilitar el portal");
                 }

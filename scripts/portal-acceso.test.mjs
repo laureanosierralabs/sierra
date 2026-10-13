@@ -46,9 +46,13 @@ test("las acciones del panel rechazan usuarios de cliente", () => {
   const acciones = leer("../app/landing-pages/acciones.ts");
   assert.match(acciones, /async function exigirSesion\(\) \{[\s\S]*?if \(esCliente\) throw new Error/);
   const portal = leer("../app/landing-pages/portal-acciones.ts");
-  // Toda acción exportada del portal pasa por exigirOwner.
-  const exportadas = [...portal.matchAll(/export async function (\w+)\([^)]*\) \{\n\s*await exigirOwner\(\)/g)];
-  assert.equal(exportadas.length, (portal.match(/export async function/g) ?? []).length);
+  // Toda acción exportada del portal empieza por exigirOwner.
+  const accionesPortal = portal.replace(/\r\n/g, "\n").split("export async function ").slice(1);
+  assert.equal(accionesPortal.length, 4);
+  for (const cuerpo of accionesPortal) {
+    const inicio = cuerpo.slice(cuerpo.indexOf("{\n") + 1).trimStart();
+    assert.match(inicio, /^(const ownerId = )?await exigirOwner\(\);/, cuerpo.slice(0, 40));
+  }
 });
 
 test("la invitación al portal se consume: quitar el acceso no se deshace solo", () => {

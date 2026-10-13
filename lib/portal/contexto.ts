@@ -13,48 +13,61 @@ export interface ContextoPortal {
   clientId: string;
   clienteNombre: string;
   orgId: string;
-  orgSlug: string;
+  slug: string;
   /** El owner viendo el portal de un cliente (soporte / vista previa). */
   vistaInterna: boolean;
 }
 
-export interface OrgPortal {
-  id: string;
+/** Un portal al que el usuario puede entrar. */
+export interface PortalDisponible {
   slug: string;
   nombre: string;
 }
 
+type FilaPortal = {
+  client_id: string;
+  clerk_org_id: string;
+  slug: string;
+  clients: { name: string } | { name: string }[] | null;
+};
+
+const nombreDe = (f: FilaPortal) =>
+  (Array.isArray(f.clients) ? f.clients[0]?.name : f.clients?.name) ?? f.slug;
+
 /**
- * Organizaciones (clientes) a las que pertenece el usuario de cliente.
+ * Ids de las organizaciones de Clerk de las que el usuario de cliente es
+ * miembro. La identidad vive en Clerk; el slug y el cliente, en client_orgs.
  *
  * Una invitación al portal no puede crear la membresía (el usuario todavía no
  * existe), así que lleva `portalOrgId` en la metadata y la membresía se crea
- * acá, la primera vez que entra. Es idempotente: si ya es miembro, no hace nada.
+ * acá, la primera vez que entra.
  */
-export const organizacionesDelUsuario = cache(async (): Promise<OrgPortal[]> => {
+const organizacionesDelUsuario = cache(async (): Promise<string[]> => {
   const usuario = await usuarioActual();
   const acceso = await accesoActual();
   if (!usuario || !acceso.esCliente) return [];
 
   const clerk = await clerkClient();
   const listar = async () =>
-    (await clerk.users.getOrganizationMembershipList({ userId: usuario.id, limit: 100 })).data;
+    (await clerk.users.getOrganizationMembershipList({ userId: usuario.id, limit: 100 })).data.map(
+      (m) => m.organization.id,
+    );
 
-  let membresias = await listar();
+  let ids = await listar();
 
   // `portalOrgId` es de UN solo uso: se consume en la primera visita. Si
   // quedara en la metadata, quitarle el acceso desde el panel no serviría:
   // la próxima visita lo volvería a sumar.
   const pendiente = (usuario.publicMetadata as { portalOrgId?: unknown }).portalOrgId;
   if (typeof pendiente === "string") {
-    if (!membresias.some((m) => m.organization.id === pendiente)) {
+    if (!ids.includes(pendiente)) {
       try {
         await clerk.organizations.createOrganizationMembership({
           organizationId: pendiente,
           userId: usuario.id,
           role: "org:member",
         });
-        membresias = await listar();
+        ids = await listar();
       } catch (e) {
         // Organización borrada o membresía creada en paralelo: se sigue con
         // lo que haya, sin bloquear el resto de sus organizaciones.
@@ -67,9 +80,28 @@ export const organizacionesDelUsuario = cache(async (): Promise<OrgPortal[]> => 
       .catch((e) => console.error("[portal] no se pudo consumir portalOrgId:", e));
   }
 
-  return membresias
-    .map((m) => ({ id: m.organization.id, slug: m.organization.slug ?? "", nombre: m.organization.name }))
-    .filter((o) => o.slug)
+  return ids;
+});
+
+/**
+ * Portales que el usuario puede abrir: los de sus organizaciones si es de un
+ * cliente, todos si es el owner (vista interna), ninguno si es member.
+ */
+export const portalesDisponibles = cache(async (): Promise<PortalDisponible[]> => {
+  const acceso = await accesoActual();
+  if (!acceso.esCliente && !acceso.esOwner) return [];
+
+  let consulta = supabaseAdmin().from("client_orgs").select("client_id, clerk_org_id, slug, clients(name)");
+  if (acceso.esCliente) {
+    const ids = await organizacionesDelUsuario();
+    if (ids.length === 0) return [];
+    consulta = consulta.in("clerk_org_id", ids);
+  }
+
+  const { data, error } = await consulta;
+  if (error) throw new Error("No se pudieron cargar los portales");
+  return ((data ?? []) as FilaPortal[])
+    .map((f) => ({ slug: f.slug, nombre: nombreDe(f) }))
     .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
 });
 
@@ -77,43 +109,32 @@ export const organizacionesDelUsuario = cache(async (): Promise<OrgPortal[]> => 
  * Resuelve el cliente de `/portal/<slug>`. Null = no existe o no le
  * corresponde (la página responde 404 en los dos casos, sin revelar cuál).
  *
- * - Usuario de cliente: solo organizaciones de las que es miembro.
- * - Owner: cualquier organización vinculada a un cliente (vista interna).
+ * - Usuario de cliente: solo si es miembro de la organización de ese portal.
+ * - Owner: cualquier portal (vista interna).
  * - Member del equipo: nunca.
  */
 export const contextoPortal = cache(async (slug: string): Promise<ContextoPortal | null> => {
   const acceso = await accesoActual();
-  let org: OrgPortal | null = null;
-
-  if (acceso.esCliente) {
-    org = (await organizacionesDelUsuario()).find((o) => o.slug === slug) ?? null;
-  } else if (acceso.esOwner) {
-    try {
-      const clerk = await clerkClient();
-      const o = await clerk.organizations.getOrganization({ slug });
-      org = { id: o.id, slug: o.slug ?? slug, nombre: o.name };
-    } catch {
-      org = null;
-    }
-  }
-  if (!org) return null;
+  if (!acceso.esCliente && !acceso.esOwner) return null;
 
   const { data, error } = await supabaseAdmin()
     .from("client_orgs")
-    .select("client_id, clients(name)")
-    .eq("clerk_org_id", org.id)
+    .select("client_id, clerk_org_id, slug, clients(name)")
+    .eq("slug", slug)
     .maybeSingle();
   if (error) throw new Error("No se pudo cargar el portal");
   if (!data) return null;
+  const fila = data as FilaPortal;
 
-  const cliente = (data as { clients: { name: string } | { name: string }[] | null }).clients;
-  const nombre = (Array.isArray(cliente) ? cliente[0]?.name : cliente?.name) ?? org.nombre;
+  if (acceso.esCliente && !(await organizacionesDelUsuario()).includes(fila.clerk_org_id)) {
+    return null;
+  }
 
   return {
-    clientId: data.client_id as string,
-    clienteNombre: nombre,
-    orgId: org.id,
-    orgSlug: org.slug,
+    clientId: fila.client_id,
+    clienteNombre: nombreDe(fila),
+    orgId: fila.clerk_org_id,
+    slug: fila.slug,
     vistaInterna: !acceso.esCliente,
   };
 });

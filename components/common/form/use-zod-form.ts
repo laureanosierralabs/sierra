@@ -17,7 +17,10 @@ interface UseZodFormOptions {
    * validación de verdad sigue en la server action: nunca se omite allá.
    */
   schema?: ZodType;
-  /** La server action existente. Puede lanzar `Error`: el mensaje se muestra. */
+  /**
+   * La server action. Puede devolver `{ error }` (se muestra tal cual, también
+   * en producción) o lanzar `Error` (en producción Next reemplaza el mensaje).
+   */
   action: (formData: FormData) => Promise<unknown>;
   /** Toast de éxito. `null` lo desactiva (por ejemplo si la action redirige). */
   successMessage?: string | null;
@@ -75,7 +78,16 @@ export function useZodForm({
 
       startTransition(async () => {
         try {
-          await action(formData);
+          // En producción Next oculta el mensaje de un Error lanzado en el
+          // servidor. Una action que quiere mostrar su motivo lo devuelve
+          // como `{ error }` en vez de lanzarlo.
+          const resultado = await action(formData);
+          const devuelto = (resultado as { error?: unknown } | undefined)?.error;
+          if (typeof devuelto === "string" && devuelto) {
+            setFormError(devuelto);
+            toast.error(devuelto);
+            return;
+          }
           if (successMessage) toast.success(successMessage);
           onSuccess?.();
         } catch (e) {
