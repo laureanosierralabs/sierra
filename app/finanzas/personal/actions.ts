@@ -1,9 +1,15 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { supabaseAdmin } from "@/lib/landing/supabase";
-import { financeRpc, requireFinanceOwner } from "@/lib/personal-finance-server";
 import {
+  financeRpc,
+  loadPersonalFinance,
+  requireFinanceOwner,
+} from "@/lib/personal-finance-server";
+import {
+  accountBalance,
   entityFields,
+  money,
   parseEntity,
   parseMoney,
   today,
@@ -14,6 +20,47 @@ import {
 } from "@/lib/personal-finance";
 
 const text = (fd: FormData, key: string) => String(fd.get(key) ?? "").trim();
+
+/**
+ * La base rechaza reservar más de lo que la cuenta tiene libre, pero su
+ * mensaje no trae números. Acá se arma el motivo con los saldos reales y, si
+ * otra cuenta de la misma moneda alcanza, se la nombra: el error más común es
+ * elegir una cuenta distinta de donde está la plata.
+ */
+async function explicarReservaInsuficiente(fd: FormData): Promise<string> {
+  const respaldo = "No alcanza el saldo libre de esa cuenta para reservar ese monto.";
+  try {
+    const data = await loadPersonalFinance();
+    const cuenta = data.accounts.find((a) => a.id === text(fd, "account_id"));
+    if (!cuenta) return respaldo;
+
+    const propio = text(fd, "id");
+    const reservadoEn = (id: string) =>
+      data.contributions
+        .filter((c) => c.account_id === id && c.id !== propio)
+        .reduce((n, c) => n + Number(c.amount), 0);
+    const libreEn = (a: FinanceRow) => accountBalance(a, data.movements) - reservadoEn(a.id);
+
+    const saldo = accountBalance(cuenta, data.movements);
+    const reservado = reservadoEn(cuenta.id);
+    const pedido = parseMoney(text(fd, "amount"));
+    const moneda = String(cuenta.currency);
+
+    const alternativas = data.accounts
+      .filter((a) => a.id !== cuenta.id && a.active && a.currency === cuenta.currency)
+      .filter((a) => libreEn(a) >= pedido)
+      .map((a) => `${a.name} (${money(libreEn(a), moneda)} libres)`);
+
+    return [
+      `${cuenta.name} no tiene saldo libre suficiente: tiene ${money(saldo, moneda)}`,
+      reservado > 0 ? `, de los cuales ${money(reservado, moneda)} ya están reservados para objetivos` : "",
+      `. Libres: ${money(saldo - reservado, moneda)}; querés reservar ${money(pedido, moneda)}.`,
+      alternativas.length > 0 ? ` Con saldo suficiente: ${alternativas.join(", ")}.` : "",
+    ].join("");
+  } catch {
+    return respaldo;
+  }
+}
 async function historicalQuote(
   owner: string,
   fd: FormData,
@@ -152,10 +199,11 @@ export async function mutateFinance(
     revalidatePath("/finanzas/personal");
     return { ok: true };
   } catch (error) {
-    return {
-      ok: false,
-      error: error instanceof Error ? error.message : "No se pudo guardar.",
-    };
+    const mensaje = error instanceof Error ? error.message : "No se pudo guardar.";
+    if (mensaje.includes("Allocation exceeds available cash")) {
+      return { ok: false, error: await explicarReservaInsuficiente(fd) };
+    }
+    return { ok: false, error: mensaje };
   }
 }
 export async function seedFinance(): Promise<{ ok: boolean; error?: string }> {
