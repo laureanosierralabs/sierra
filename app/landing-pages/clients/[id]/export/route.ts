@@ -1,4 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
+import { accesoActual } from "@/lib/landing/auth";
 import {
   listarCotizaciones,
   listarNotasCliente,
@@ -34,6 +35,10 @@ export async function GET(
 ) {
   const { userId } = await auth();
   if (!userId) return new Response("No autorizado", { status: 401 });
+  // La ficha completa (accesos, transcripciones) es del owner, igual que el
+  // export de finanzas.
+  const { esOwner } = await accesoActual();
+  if (!esOwner) return new Response("Solo el owner puede exportar la ficha", { status: 403 });
 
   const { id } = await params;
   const cliente = await obtenerCliente(id);

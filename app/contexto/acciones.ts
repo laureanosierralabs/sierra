@@ -1,8 +1,38 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { auth } from "@clerk/nextjs/server";
 import { slugify } from "@/lib/escritura";
+import { accesoActual } from "@/lib/landing/auth";
 import { supabaseAdmin } from "@/lib/landing/supabase";
+import { UNIDADES, type Unidad } from "@/lib/unidades";
+
+/**
+ * Sesión + acceso a la unidad. Una Server Action se puede invocar aunque la
+ * pantalla esté oculta, así que el permiso se verifica acá y no en la UI.
+ * Una unidad desconocida queda solo para el owner.
+ */
+async function exigirUnidad(unidad: string | null | undefined) {
+  const { userId } = await auth();
+  if (!userId) throw new Error("No autorizado");
+  const { esOwner, unidades } = await accesoActual();
+  if (esOwner) return;
+  const conocida = (UNIDADES as readonly string[]).includes(unidad ?? "");
+  if (!conocida || !unidades.includes(unidad as Unidad))
+    throw new Error("No tenés acceso a esta unidad");
+}
+
+/** La unidad sale de la base, nunca del form: si no, se podría declarar cualquiera. */
+async function unidadDe(tabla: "context_projects" | "context_clients", slug: string) {
+  const { data, error } = await supabaseAdmin()
+    .from(tabla)
+    .select("unidad")
+    .eq("slug", slug)
+    .maybeSingle();
+  if (error) throw new Error(`No se pudo leer: ${error.message}`);
+  if (!data) throw new Error("No existe");
+  return data.unidad as string;
+}
 
 const ESTADOS_PROYECTO = [
   "activo",
@@ -30,6 +60,7 @@ function hoy(): string {
 export async function editarProyecto(fd: FormData) {
   const slug = texto(fd, "slug");
   if (!slug) throw new Error("Falta el proyecto");
+  await exigirUnidad(await unidadDe("context_projects", slug));
 
   const estado = texto(fd, "estado");
   if (estado && !ESTADOS_PROYECTO.includes(estado)) {
@@ -88,6 +119,7 @@ export async function cambiarEstadoCliente(
   unidad: string,
 ) {
   if (!ESTADOS_CLIENTE.includes(estado)) throw new Error("Estado inválido");
+  await exigirUnidad(await unidadDe("context_clients", slug));
 
   const { error } = await supabaseAdmin()
     .from("context_clients")
@@ -103,6 +135,7 @@ export async function crearProyecto(fd: FormData) {
   const unidad = texto(fd, "unidad");
   if (!nombre) throw new Error("Falta el nombre");
   if (!unidad) throw new Error("Falta la unidad");
+  await exigirUnidad(unidad);
 
   const entrega = texto(fd, "entrega");
   if (entrega && !/^\d{4}-\d{2}-\d{2}$/.test(entrega)) {
@@ -122,7 +155,9 @@ export async function crearProyecto(fd: FormData) {
     estado_actual: "Sin comenzar.",
   });
 
-  if (error) throw new Error(`No se pudo crear: ${error.message}`);
+  // 23505 = slug repetido: el mensaje crudo de Postgres revelaría que existe en otra unidad.
+  if (error)
+    throw new Error(error.code === "23505" ? "Ya existe uno con ese nombre" : "No se pudo crear");
 
   revalidatePath(`/unidad/${unidad}`);
   revalidatePath("/");
@@ -133,6 +168,7 @@ export async function crearCliente(fd: FormData) {
   const unidad = texto(fd, "unidad");
   if (!nombre) throw new Error("Falta el nombre");
   if (!unidad) throw new Error("Falta la unidad");
+  await exigirUnidad(unidad);
 
   const { error } = await supabaseAdmin().from("context_clients").insert({
     slug: slugify(nombre),
@@ -142,6 +178,8 @@ export async function crearCliente(fd: FormData) {
     contexto: texto(fd, "contexto") || null,
   });
 
-  if (error) throw new Error(`No se pudo crear: ${error.message}`);
+  // 23505 = slug repetido: el mensaje crudo de Postgres revelaría que existe en otra unidad.
+  if (error)
+    throw new Error(error.code === "23505" ? "Ya existe uno con ese nombre" : "No se pudo crear");
   revalidatePath(`/unidad/${unidad}`);
 }

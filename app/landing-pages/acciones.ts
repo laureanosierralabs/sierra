@@ -115,7 +115,7 @@ function url(fd: FormData, campo: string, nombre = "La URL"): string | null {
   try {
     parsed = new URL(v);
   } catch {
-    throw new Error(`${nombre} no es válida`);
+    throw new Error(`${nombre}: no es una dirección válida`);
   }
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
     throw new Error(`${nombre} debe empezar con http:// o https://`);
@@ -731,7 +731,7 @@ export async function borrarPortada(projectId: string) {
 
 /** Sube el PDF de la propuesta al bucket privado y lo vincula a la cotización. */
 export async function subirDocumento(fd: FormData) {
-  await exigirSesion();
+  await exigirOwner();
 
   const quoteId = texto(fd, "quote_id");
   if (!quoteId) throw new Error("Falta la cotización");
@@ -777,7 +777,7 @@ export async function subirDocumento(fd: FormData) {
 }
 
 export async function borrarDocumento(quoteId: string) {
-  await exigirSesion();
+  await exigirOwner();
   const db = supabaseAdmin();
 
   const { data } = await db
@@ -804,7 +804,7 @@ export async function borrarDocumento(quoteId: string) {
  * acceso, así que la propuesta de un cliente no queda expuesta.
  */
 export async function urlDocumento(quoteId: string): Promise<string | null> {
-  await exigirSesion();
+  await exigirOwner();
   const db = supabaseAdmin();
 
   const { data } = await db
@@ -1619,7 +1619,7 @@ function revalidarTarea(taskId: string) {
 }
 
 export async function guardarAjuste(clave: string, valor: string) {
-  await exigirSesion();
+  await exigirOwner();
 
   const limpio = valor.trim();
   // Validar acá también: el valor viaja como link clickeable después.
@@ -1715,18 +1715,49 @@ export async function revelarCredencial(
   id: string,
   tabla: "project" | "client" = "project",
 ): Promise<string | null> {
-  await exigirSesion();
+  const userId = await exigirSesion();
+  const db = supabaseAdmin();
 
-  const { data, error } = await supabaseAdmin()
+  const { data, error } = await db
     .from(tabla === "client" ? "client_resources" : "project_resources")
-    .select("secret_encrypted")
+    .select(tabla === "client" ? "secret_encrypted, client_id" : "secret_encrypted, project_id")
     .eq("id", id)
     .maybeSingle();
 
-  if (error) throw new Error(`No se pudo leer: ${error.message}`);
-  if (!data?.secret_encrypted) return null;
+  if (error) throw new Error("No se pudo leer la credencial");
 
-  return descifrar(data.secret_encrypted);
+  // Una contraseña de cliente es lo más sensible del panel: el owner la ve
+  // siempre; un member, solo si trabaja en ese proyecto (o en alguno de ese
+  // cliente, para las credenciales del cliente).
+  const { esOwner } = await accesoActual();
+  if (!esOwner) {
+    const fila = (data ?? {}) as { client_id?: string; project_id?: string };
+    let proyectos: string[] = [];
+    if (fila.project_id) {
+      proyectos = [fila.project_id];
+    } else if (fila.client_id) {
+      const { data: delCliente } = await db
+        .from("projects")
+        .select("id")
+        .eq("client_id", fila.client_id);
+      proyectos = (delCliente ?? []).map((p) => p.id);
+    }
+    const { data: asignado } = proyectos.length
+      ? await db
+          .from("project_assignees")
+          .select("project_id")
+          .eq("user_id", userId)
+          .in("project_id", proyectos)
+          .limit(1)
+      : { data: [] };
+    if (!asignado?.length)
+      throw new Error("Solo quien está asignado al proyecto puede ver esta credencial");
+  }
+
+  // El chequeo va antes: así una credencial inexistente y una ajena no se
+  // distinguen para un member.
+  const secreto = (data as { secret_encrypted?: string | null } | null)?.secret_encrypted;
+  return secreto ? descifrar(secreto) : null;
 }
 
 export async function guardarNotaCliente(fd: FormData) {

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { accesoActual } from "@/lib/landing/auth";
 import {
   ArrowLeft,
   Briefcase4,
@@ -63,9 +64,12 @@ export default async function ClienteDetalle({
 }) {
   const { id } = await params;
 
+  // Lo comercial es del owner: a un member ni se le cargan las cotizaciones.
+  const { esOwner } = await accesoActual();
+
   const [cliente, cotizaciones, proyectos, accesos, notas] = await Promise.all([
     obtenerCliente(id),
-    listarCotizaciones(),
+    esOwner ? listarCotizaciones() : Promise.resolve([]),
     listarProyectos(),
     listarRecursosCliente(id),
     listarNotasCliente(id),
@@ -93,14 +97,16 @@ export default async function ClienteDetalle({
         descripcion={cliente.company ?? undefined}
         accion={
           <span className="flex items-center gap-3">
-            <EnlaceBoton
-              href={`/landing-pages/clients/${cliente.id}/export`}
-              descarga
-              titulo="Descargar ficha en Markdown"
-              icono={<Download1 />}
-            >
-              Exportar
-            </EnlaceBoton>
+            {esOwner && (
+              <EnlaceBoton
+                href={`/landing-pages/clients/${cliente.id}/export`}
+                descarga
+                titulo="Descargar ficha en Markdown"
+                icono={<Download1 />}
+              >
+                Exportar
+              </EnlaceBoton>
+            )}
             <ClienteForm cliente={cliente} />
           </span>
         }
@@ -179,30 +185,32 @@ export default async function ClienteDetalle({
 
         <NotasCliente clientId={cliente.id} notas={notas} />
 
-        <SeccionCard titulo="Cotizaciones" cantidad={susCotizaciones.length}>
-          {susCotizaciones.length === 0 ? (
-            <Vacio>Sin cotizaciones.</Vacio>
-          ) : (
-            susCotizaciones.map((q) => (
-              <div key={q.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
-                <span className="flex min-w-0 items-center gap-2">
-                  <span className="truncate text-sm text-text-primary">{q.title}</span>
-                  {q.proposal_url && (
-                    <EnlaceExterno href={q.proposal_url}>
-                      <span className="sr-only">Abrir propuesta</span>
-                    </EnlaceExterno>
-                  )}
-                </span>
-                <span className="flex shrink-0 items-center gap-2">
-                  <span className="text-sm tabular-nums text-text-secondary">
-                    {formatearMonto(q.total_amount, q.currency)}
+        {esOwner && (
+          <SeccionCard titulo="Cotizaciones" cantidad={susCotizaciones.length}>
+            {susCotizaciones.length === 0 ? (
+              <Vacio>Sin cotizaciones.</Vacio>
+            ) : (
+              susCotizaciones.map((q) => (
+                <div key={q.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
+                  <span className="flex min-w-0 items-center gap-2">
+                    <span className="truncate text-sm text-text-primary">{q.title}</span>
+                    {q.proposal_url && (
+                      <EnlaceExterno href={q.proposal_url}>
+                        <span className="sr-only">Abrir propuesta</span>
+                      </EnlaceExterno>
+                    )}
                   </span>
-                  <EstadoCotizacionPill estado={q.commercial_status} />
-                </span>
-              </div>
-            ))
-          )}
-        </SeccionCard>
+                  <span className="flex shrink-0 items-center gap-2">
+                    <span className="text-sm tabular-nums text-text-secondary">
+                      {formatearMonto(q.total_amount, q.currency)}
+                    </span>
+                    <EstadoCotizacionPill estado={q.commercial_status} />
+                  </span>
+                </div>
+              ))
+            )}
+          </SeccionCard>
+        )}
 
         <SeccionCard titulo="Proyectos" cantidad={susProyectos.length}>
           {susProyectos.length === 0 ? (
