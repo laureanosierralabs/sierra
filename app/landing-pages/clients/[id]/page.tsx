@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { accesoActual } from "@/lib/landing/auth";
 import { estadoPortalCliente } from "@/lib/portal/admin";
 import { PortalCliente } from "@/components/landing/portal-cliente";
+import { LanzamientosCliente } from "@/components/lanzamientos/lanzamientos-cliente";
+import { lanzamientosDeCliente } from "@/lib/lanzamientos/datos";
 import {
   ArrowLeft,
   Briefcase4,
@@ -69,7 +71,7 @@ export default async function ClienteDetalle({
   // Lo comercial es del owner: a un member ni se le cargan las cotizaciones.
   const { esOwner } = await accesoActual();
 
-  const [cliente, cotizaciones, proyectos, accesos, notas, portal] = await Promise.all([
+  const [cliente, cotizaciones, proyectos, accesos, notas, portal, lanzamientos] = await Promise.all([
     obtenerCliente(id),
     esOwner ? listarCotizaciones() : Promise.resolve([]),
     listarProyectos(),
@@ -78,6 +80,12 @@ export default async function ClienteDetalle({
     // undefined = no se pudo consultar a Clerk: la tarjeta no se muestra (si
     // no, un fallo se vería como "sin portal" y ofrecería habilitarlo de nuevo).
     esOwner ? estadoPortalCliente(id).catch(() => undefined) : Promise.resolve(undefined),
+    esOwner
+      ? lanzamientosDeCliente(id).catch((e) => {
+          console.error("[clientes] no se pudieron leer los lanzamientos:", e);
+          return [];
+        })
+      : Promise.resolve([]),
   ]);
 
   if (!cliente) notFound();
@@ -189,6 +197,8 @@ export default async function ClienteDetalle({
         />
 
         <NotasCliente clientId={cliente.id} notas={notas} />
+
+        {esOwner && <LanzamientosCliente clientId={cliente.id} lanzamientos={lanzamientos} />}
 
         {esOwner && portal !== undefined && (
           <PortalCliente clientId={cliente.id} estado={portal} />

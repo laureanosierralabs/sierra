@@ -69,8 +69,12 @@ test("el portal no lee datos del panel sin filtro de cliente", () => {
   for (const ruta of ["../lib/portal/datos.ts", "../app/portal/[org]/page.tsx", "../app/portal/page.tsx"]) {
     assert.doesNotMatch(leer(ruta), /@\/lib\/landing\/datos/, ruta);
   }
-  const datos = leer("../lib/portal/datos.ts");
-  for (const [, cuerpo] of datos.matchAll(/export async function \w+\(ctx: ContextoPortal\)[^{]*\{([\s\S]*?)\n\}/g)) {
-    assert.match(cuerpo, /\.eq\("client_id", ctx\.clientId\)/);
+  // Toda lectura exportada del portal recibe el contexto y usa su cliente.
+  const datos = leer("../lib/portal/datos.ts").replace(/\r\n/g, "\n");
+  const lecturas = datos.split("export async function ").slice(1);
+  assert.ok(lecturas.length >= 3);
+  for (const f of lecturas) {
+    assert.match(f, /^\w+\(\s*ctx: ContextoPortal/, f.slice(0, 40));
+    assert.match(f.slice(0, f.indexOf("\n}\n")), /ctx\.clientId/, f.slice(0, 40));
   }
 });

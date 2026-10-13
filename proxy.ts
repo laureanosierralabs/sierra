@@ -17,6 +17,9 @@ const esPublica = createRouteMatcher([
   "/q/(.*)",
   // Diagnóstico: tiene que responder aunque el login esté roto.
   "/api/health",
+  // Webhooks de proveedores (MailerLite): los protege el token de la URL y
+  // la firma del proveedor, no una sesión.
+  "/api/webhooks/(.*)",
 ]);
 
 /**

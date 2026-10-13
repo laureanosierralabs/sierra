@@ -2,6 +2,12 @@ import "server-only";
 
 import { supabaseAdmin } from "@/lib/landing/supabase";
 import type { EstadoPago, Moneda } from "@/lib/landing/tipos";
+import {
+  lanzamientoDeCliente,
+  lanzamientosDeCliente,
+  type DetalleLanzamiento,
+  type LanzamientoConTotal,
+} from "@/lib/lanzamientos/datos";
 import type { ContextoPortal } from "@/lib/portal/contexto";
 
 /**
@@ -10,6 +16,19 @@ import type { ContextoPortal } from "@/lib/portal/contexto";
  * `lib/landing/datos.ts` desde el portal: esas consultas son del panel y no
  * filtran por cliente.
  */
+
+/** Lanzamientos del cliente, con su total de registros. */
+export async function lanzamientosPortal(ctx: ContextoPortal): Promise<LanzamientoConTotal[]> {
+  return lanzamientosDeCliente(ctx.clientId);
+}
+
+/** Null si el lanzamiento no existe o es de otro cliente (mismo 404 en los dos casos). */
+export async function lanzamientoPortal(
+  ctx: ContextoPortal,
+  id: string,
+): Promise<DetalleLanzamiento | null> {
+  return lanzamientoDeCliente(ctx.clientId, id);
+}
 
 export interface CotizacionPortal {
   numero: number;
