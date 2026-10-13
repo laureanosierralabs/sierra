@@ -4,7 +4,7 @@ import { Inter } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { AppShell } from "@/components/common/app-shell";
 import { accesoActual } from "@/lib/landing/auth";
-import { DEFINICIONES } from "@/lib/unidades";
+import { DEFINICIONES, esRutaPortal } from "@/lib/unidades";
 import Providers from "./providers";
 import "./globals.css";
 
@@ -26,9 +26,9 @@ export default async function RootLayout({
   // porque no hay usuario del que mostrar unidades ni rol.
   const pathname = (await headers()).get("x-pathname") ?? "";
   const esAuth = pathname.startsWith("/sign-in") || pathname.startsWith("/sign-up");
-  // La cotización pública la ve el cliente: nunca va dentro del panel, aunque
-  // quien la abra tenga sesión.
-  const esPublica = pathname.startsWith("/q/");
+  // La cotización pública y el portal los ve el cliente: nunca van dentro del
+  // panel interno, aunque quien los abra sea del equipo.
+  const esPublica = pathname.startsWith("/q/") || esRutaPortal(pathname);
 
   const acceso = esAuth || esPublica ? null : await accesoActual();
   // Un member con una sola unidad ve el nombre de esa unidad, no el del panel:
@@ -49,7 +49,8 @@ export default async function RootLayout({
             signInFallbackRedirectUrl="/"
             signUpFallbackRedirectUrl="/"
           >
-            {acceso ? (
+            {/* Un usuario de cliente nunca ve el panel, ni por error de ruteo. */}
+            {acceso && !acceso.esCliente ? (
               <AppShell
                 esOwner={acceso.esOwner}
                 unidades={acceso.unidades}

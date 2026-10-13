@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { accesoActual } from "@/lib/landing/auth";
-import { parsearUnidades } from "@/lib/unidades";
+import { esUsuarioCliente, parsearUnidades } from "@/lib/unidades";
 
 /**
  * Gestión del equipo. Todo pasa por acá y todo exige owner: un member no
@@ -17,6 +17,19 @@ async function exigirOwner() {
   if (!esOwner) throw new Error("Solo el owner puede gestionar el equipo");
 
   return userId;
+}
+
+/**
+ * Las cuentas de clientes se gestionan desde el portal de cada cliente: acá
+ * no se les cambia el rol ni se las borra, aunque llegue su id.
+ */
+async function exigirDelEquipo(userId: string) {
+  const client = await clerkClient();
+  const usuario = await client.users.getUser(userId).catch(() => null);
+  if (!usuario) throw new Error("El usuario no existe");
+  if (esUsuarioCliente(usuario.publicMetadata)) {
+    throw new Error("Es una cuenta de cliente: se gestiona desde la ficha del cliente");
+  }
 }
 
 export async function invitarMiembro(fd: FormData) {
@@ -35,6 +48,17 @@ export async function invitarMiembro(fd: FormData) {
   }
 
   const client = await clerkClient();
+
+  // Una invitación pendiente al portal para el mismo email no se pisa con
+  // una del equipo: `ignoreExisting` podría dejar viva la de cliente.
+  const { data: pendientes } = await client.invitations.getInvitationList({
+    status: "pending",
+    limit: 100,
+  });
+  const previa = pendientes.find((i) => i.emailAddress.toLowerCase() === email.toLowerCase());
+  if (previa && esUsuarioCliente(previa.publicMetadata)) {
+    throw new Error("Ese email tiene una invitación pendiente al portal de un cliente. Revocala primero.");
+  }
 
   try {
     await client.invitations.createInvitation({
@@ -70,6 +94,7 @@ export async function cambiarAcceso(fd: FormData) {
   }
 
   const client = await clerkClient();
+  await exigirDelEquipo(userId);
   await client.users.updateUserMetadata(userId, {
     publicMetadata:
       rol === "owner" ? { role: "owner" } : { role: "member", units: unidades },
@@ -96,6 +121,7 @@ export async function quitarMiembro(userId: string) {
   }
 
   const client = await clerkClient();
+  await exigirDelEquipo(userId);
   await client.users.deleteUser(userId);
 
   revalidatePath("/landing-pages/team");

@@ -41,10 +41,16 @@ import {
   type TipoRecurso,
 } from "@/lib/landing/tipos";
 
-/** Toda mutación pasa por acá: sin sesión de Clerk no se escribe nada. */
+/**
+ * Toda mutación pasa por acá: sesión de Clerk Y usuario del equipo. Un
+ * usuario de cliente tiene sesión pero vive en el portal: aunque invocara
+ * una de estas acciones a mano, acá rebota.
+ */
 async function exigirSesion() {
   const { userId } = await auth();
   if (!userId) throw new Error("No autorizado");
+  const { esCliente } = await accesoActual();
+  if (esCliente) throw new Error("No autorizado");
   return userId;
 }
 

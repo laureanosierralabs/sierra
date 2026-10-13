@@ -1,6 +1,13 @@
 import { clerkClient, clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
-import { NextResponse } from "next/server";
-import { parsearUnidades, puedeVerRuta, rutaInicial } from "@/lib/unidades";
+import { NextResponse, type NextRequest } from "next/server";
+import {
+  RUTA_PORTAL,
+  esRutaPortal,
+  esUsuarioCliente,
+  parsearUnidades,
+  puedeVerRuta,
+  rutaInicial,
+} from "@/lib/unidades";
 
 const esPublica = createRouteMatcher([
   "/sign-in(.*)",
@@ -12,16 +19,20 @@ const esPublica = createRouteMatcher([
   "/api/health",
 ]);
 
+/**
+ * Deja pasar la request con la ruta actual en un header. El RootLayout es
+ * server component y la necesita para no envolver en el panel interno las
+ * pantallas que no son del panel (auth, cotización pública, portal). No hay
+ * API server-side para leer el pathname en un layout.
+ */
+function seguir(req: NextRequest) {
+  const headers = new Headers(req.headers);
+  headers.set("x-pathname", req.nextUrl.pathname);
+  return NextResponse.next({ request: { headers } });
+}
+
 export default clerkMiddleware(async (auth, req) => {
-  if (esPublica(req)) {
-    // El RootLayout es server component y necesita saber la ruta actual para
-    // ocultar el Sidebar en /sign-in y /sign-up (no hay route group propio
-    // para esas pantallas). No hay API server-side para leer el pathname en
-    // un layout, así que viaja por header seteado acá.
-    const headers = new Headers(req.headers);
-    headers.set("x-pathname", req.nextUrl.pathname);
-    return NextResponse.next({ request: { headers } });
-  }
+  if (esPublica(req)) return seguir(req);
 
   const { userId } = await auth();
   // redirectToSignIn() manda a la pantalla alojada de Clerk. Acá se redirige
@@ -38,9 +49,10 @@ export default clerkMiddleware(async (auth, req) => {
   // El token de sesión de Core 3 no incluye publicMetadata, así que el rol se
   // lee del usuario. Verificado: los claims solo traen azp/exp/iss/sid/sub/v.
   //
-  // Una excepción acá tumba toda la request y el host responde 404 sin pista
-  // de qué pasó. Ante un fallo de Clerk se deja pasar: la página igual valida
-  // sesión del lado del servidor.
+  // Sin el rol no se sabe si es del equipo o un cliente, así que ante un
+  // fallo de Clerk se corta (antes se dejaba pasar: con usuarios de clientes
+  // eso abriría el panel interno). Se responde y no se lanza: una excepción
+  // acá tumba la request y el host contesta 404 sin pista de qué pasó.
   let metadata: { role?: unknown; units?: unknown } | undefined;
   try {
     const cliente = await clerkClient();
@@ -48,7 +60,15 @@ export default clerkMiddleware(async (auth, req) => {
     metadata = usuario.publicMetadata as typeof metadata;
   } catch (e) {
     console.error("[proxy] no se pudo leer el usuario de Clerk:", e);
-    return;
+    return new NextResponse("No se pudo verificar tu acceso. Probá de nuevo en un momento.", {
+      status: 503,
+    });
+  }
+
+  // Un usuario de cliente vive en el portal y en ningún otro lado.
+  if (esUsuarioCliente(metadata)) {
+    if (esRutaPortal(req.nextUrl.pathname)) return seguir(req);
+    return NextResponse.redirect(new URL(RUTA_PORTAL, req.url));
   }
 
   const esOwner = metadata?.role === "owner";
@@ -57,10 +77,10 @@ export default clerkMiddleware(async (auth, req) => {
   // de que este campo existiera.
   const unidades = declaradas.length > 0 ? declaradas : ["landing-pages" as const];
 
-  if (puedeVerRuta(esOwner, unidades, req.nextUrl.pathname)) return;
+  if (puedeVerRuta(esOwner, unidades, req.nextUrl.pathname)) return seguir(req);
 
   const destino = rutaInicial(esOwner, unidades);
-  if (req.nextUrl.pathname === destino) return;
+  if (req.nextUrl.pathname === destino) return seguir(req);
   return NextResponse.redirect(new URL(destino, req.url));
 });
 

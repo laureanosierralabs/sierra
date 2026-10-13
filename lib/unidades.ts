@@ -128,3 +128,20 @@ export function rutaInicial(esOwner: boolean, unidades: Unidad[]): string {
   const primera = unidades[0];
   return primera ? DEFINICIONES[primera].href : "/sin-acceso";
 }
+
+/* ───────────── Portal de clientes ───────────── */
+
+export const RUTA_PORTAL = "/portal";
+
+export function esRutaPortal(pathname: string): boolean {
+  return pathname === RUTA_PORTAL || pathname.startsWith(`${RUTA_PORTAL}/`);
+}
+
+/**
+ * Usuario de un cliente: entra por una invitación del panel que fija
+ * `role: "client"`. Tiene que ser explícito: un usuario sin rol es del equipo
+ * (member), y un cliente nunca puede heredar ese acceso por defecto.
+ */
+export function esUsuarioCliente(metadata: unknown): boolean {
+  return (metadata as { role?: unknown } | undefined)?.role === "client";
+}
