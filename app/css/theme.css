@@ -450,6 +450,7 @@
   --color-doc-rule: var(--doc-rule);
   --color-doc-link: var(--doc-link);
   --color-doc-band: var(--doc-band);
+  --color-doc-pay: var(--doc-pay);
 
   /* Shadows: real values (the template aliased them to self-referential vars).
      xl / 2xl / 3xl are NOT overridden so existing modals keep Tailwind's defaults. */

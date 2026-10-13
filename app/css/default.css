@@ -9,6 +9,8 @@
   --doc-rule: #bdbdbd;
   --doc-link: #1a56db;
   --doc-band: #0a0ac2;
+  /* Botón Pagar: más claro que el navy para que sea lo primero que se ve. */
+  --doc-pay: #3758f9;
 
   --primary-50: #eff3ff;
   --primary-100: #dae2ff;

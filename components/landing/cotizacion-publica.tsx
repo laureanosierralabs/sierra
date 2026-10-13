@@ -104,7 +104,7 @@ export function BarraPago({ cotizacion }: { cotizacion: CotizacionPublica }) {
             href={cotizacion.payment_url ?? undefined}
             target="_blank"
             rel="noreferrer"
-            className="rounded-xl bg-doc-navy px-8 py-3 text-base font-semibold text-doc-paper transition-opacity hover:opacity-90"
+            className="rounded-xl bg-doc-pay px-8 py-3 text-base font-semibold text-doc-paper shadow-md transition-opacity hover:opacity-90"
           >
             Pagar
           </a>
