@@ -178,6 +178,19 @@ Otros datos de la base:
 
 **Efecto a tener en cuenta (R3):** un member que hoy no figura como asignado a un proyecto deja de poder ver sus credenciales. Hay que revisar las asignaciones del equipo antes del deploy.
 
+### Estado de la fase 1 (identidad y tenancy, 2026-10-14)
+
+| Pieza | Detalle |
+|---|---|
+| Rol `client` | Solo por invitación del owner desde la ficha del cliente (`publicMetadata.role = "client"`). Un usuario sin rol sigue siendo del equipo; un cliente nunca hereda ese acceso |
+| Middleware | El cliente queda confinado a `/portal/*`. Si Clerk falla, responde 503 (antes dejaba pasar) |
+| Acciones internas | `exigirSesion` rechaza clientes; las acciones del equipo no tocan cuentas de clientes |
+| Tenancy | `client_orgs` (cliente ↔ Organización de Clerk). El cliente va en la URL (`/portal/<slug>`) y la membresía se valida en el servidor en cada request. Un growth operator con varias marcas elige entre ellas |
+| Capa de datos | `lib/portal/*`: toda lectura recibe el contexto y filtra por `client_id`; nunca importa `lib/landing/datos.ts` (verificado por test) |
+| Contenido V1 | Cotizaciones compartidas (las que tienen link público) |
+| Revisión adversarial | Encontró que quitar un acceso se deshacía en la siguiente visita (la invitación quedaba como permiso permanente): corregido y cubierto por test |
+| Pendiente | Políticas RLS por organización (fase 2), lanzamientos/QA/métricas (fases 4-5) |
+
 ## 6. Qué reutilizar, qué extender y qué construir
 
 | Reutilizar tal cual | Extender | Construir nuevo |
