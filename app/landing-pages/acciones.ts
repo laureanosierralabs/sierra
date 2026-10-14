@@ -1883,6 +1883,8 @@ export async function guardarRecursoCliente(fd: FormData) {
 
   if (error) throw new Error(`No se pudo guardar: ${error.message}`);
   revalidatePath(`/landing-pages/clients/${clientId}`);
+  // También se ven en cada proyecto de la marca.
+  revalidatePath("/landing-pages/projects", "layout");
 }
 
 export async function borrarRecursoCliente(id: string, clientId: string) {
@@ -1895,6 +1897,7 @@ export async function borrarRecursoCliente(id: string, clientId: string) {
 
   if (error) throw new Error(`No se pudo borrar: ${error.message}`);
   revalidatePath(`/landing-pages/clients/${clientId}`);
+  revalidatePath("/landing-pages/projects", "layout");
 }
 
 export async function borrarRecurso(id: string, projectId: string) {

@@ -8,6 +8,7 @@ import {
   listarCotizacionesDeProyecto,
   listarProyectos,
   listarRecursos,
+  listarRecursosCliente,
   listarTareasDeProyecto,
   obtenerProyecto,
 } from "@/lib/landing/datos";
@@ -47,13 +48,16 @@ export default async function ProyectoDetalle({
 
   // Lo cotizado es información del owner: ni se consulta para un Builder.
   // Al revés, lo que el Builder cobra por este proyecto es solo suyo.
-  const [cotizaciones, misAcuerdosDelProyecto] = await Promise.all([
+  const [cotizaciones, misAcuerdosDelProyecto, accesosCliente] = await Promise.all([
     acceso.esOwner ? listarCotizacionesDeProyecto(id) : Promise.resolve([]),
     acceso.esOwner
       ? Promise.resolve([])
       : misAcuerdos()
           .then((lista) => lista.filter((a) => a.proyectos.some((p) => p.id === id)))
           .catch(() => []),
+    // Los accesos de la marca (el Gmail, el hosting, MailerLite) se cargan una
+    // vez en el cliente y se ven en todos sus proyectos.
+    proyecto.client_id ? listarRecursosCliente(proyecto.client_id) : Promise.resolve([]),
   ]);
 
   const clientePor = new Map(clientes.map((c) => [c.id, c.name]));
@@ -138,6 +142,15 @@ export default async function ProyectoDetalle({
           miembros={miembros}
           proyectos={proyectos}
         />
+
+        {proyecto.client_id && (
+          <Recursos
+            duenoId={proyecto.client_id}
+            tabla="client"
+            titulo={`Accesos de ${clientePor.get(proyecto.client_id) ?? "la marca"}`}
+            recursos={accesosCliente}
+          />
+        )}
 
         <Recursos duenoId={proyecto.id} recursos={recursos} />
 
