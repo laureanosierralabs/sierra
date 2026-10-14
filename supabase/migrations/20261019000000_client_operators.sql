@@ -1,13 +1,15 @@
 -- Marca y operador/a.
 --
 -- El cliente de un proyecto es la MARCA (Aida Qui, Pilar Sousa): ahí viven
--- sus landings, lanzamientos, proyecto conectado y portal. La persona detrás
--- de la marca (su growth operator: Oriana, Ismael) es otro cliente, que la
--- opera y suele ser quien paga (cliente de las cotizaciones). Hasta ahora los
--- proyectos se cargaban a nombre de quien paga, así que agrupar por cliente
--- mostraba "Oriana" con las landings de Aida adentro.
+-- sus landings, cotizaciones (la marca es quien paga), accesos, lanzamientos,
+-- proyecto conectado y portal. La persona que la opera (su growth operator:
+-- Oriana, Ismael) es otro cliente, enlazado con operated_by. Hasta ahora todo
+-- se cargaba a nombre del operador, así que agrupar por cliente mostraba
+-- "Oriana" con las landings de Aida adentro.
 --
 -- Rollback:
+--   update quotes q set client_id = c.operated_by
+--     from clients c where q.client_id = c.id and c.operated_by is not null;
 --   update projects p set client_id = c.operated_by
 --     from clients c where p.client_id = c.id and c.operated_by is not null;
 --   alter table clients drop column operated_by;
@@ -25,15 +27,15 @@ create index if not exists clients_operated_by_idx
   on clients (operated_by)
   where operated_by is not null;
 
--- Solo se mueven PROYECTOS. Lanzamientos, proyectos conectados y portal que
--- se hayan creado a nombre del operador quedan donde están: se recrean a
--- nombre de la marca (eran pruebas).
+-- Se mueven PROYECTOS y las COTIZACIONES cuyos proyectos son todos de la
+-- marca. Una cotización sin proyectos vinculados queda donde está (se cambia
+-- a mano). Lanzamientos, proyectos conectados y portal creados a nombre del
+-- operador tampoco se mueven: se recrean a nombre de la marca (eran pruebas).
 --
 -- Datos (indicado por Laureano, 2026-10-15): Aida Qui es la marca operada por
 -- Oriana Safenreider; Pilar Sousa, la marca operada por Ismael El Haddar. Sus
 -- proyectos pasan a la marca (los nombres terminan en "| Aida Qui" / "| Pilar
--- Sousa"). Las cotizaciones NO se tocan: quien paga sigue siendo el operador.
--- Idempotente: correrla dos veces no crea ni mueve nada de más.
+-- Sousa"). Idempotente: correrla dos veces no crea ni mueve nada de más.
 do $$
 declare
   oriana uuid;
@@ -57,11 +59,31 @@ begin
     update clients set operated_by = oriana where id = aida and operated_by is null;
     update projects set client_id = aida
       where client_id = oriana and name ilike '%| aida qui%';
+    update quotes q set client_id = aida
+      where q.client_id = oriana
+        and exists (select 1 from quote_projects qp where qp.quote_id = q.id)
+        and not exists (
+          select 1 from quote_projects qp join projects p on p.id = qp.project_id
+          where qp.quote_id = q.id and p.client_id is distinct from aida
+        );
   end if;
 
   if ismael is not null and pilar is not null then
     update clients set operated_by = ismael where id = pilar and operated_by is null;
     update projects set client_id = pilar
       where client_id = ismael and name ilike '%| pilar sousa%';
+    update quotes q set client_id = pilar
+      where q.client_id = ismael
+        and exists (select 1 from quote_projects qp where qp.quote_id = q.id)
+        and not exists (
+          select 1 from quote_projects qp join projects p on p.id = qp.project_id
+          where qp.quote_id = q.id and p.client_id is distinct from pilar
+        );
   end if;
+
+  -- Una landing de lanzamiento solo puede apuntar a un proyecto de su mismo
+  -- cliente: si el proyecto se mudó, se desvincula (el lanzamiento sigue).
+  update launch_pages lp set project_id = null
+    from projects p
+    where p.id = lp.project_id and p.client_id is distinct from lp.client_id;
 end $$;

@@ -28,7 +28,8 @@ import {
   listarRecursosCliente,
   obtenerCliente,
 } from "@/lib/landing/datos";
-import { formatearMonto, LABEL_ORIGEN, urlInstagram, urlWhatsapp } from "@/lib/landing/tipos";
+import { formatearMonto, LABEL_ORIGEN, nombreCliente, urlInstagram, urlWhatsapp } from "@/lib/landing/tipos";
+import { AgregarProyectos } from "@/components/landing/agregar-proyectos";
 import {
   EstadoClientePill,
   EstadoCotizacionPill,
@@ -110,6 +111,7 @@ export default async function ClienteDetalle({
   // Marca y operador/a: quién opera esta marca, y qué marcas opera este cliente.
   const operador = cliente.operated_by ? (todos.find((c) => c.id === cliente.operated_by) ?? null) : null;
   const marcas = todos.filter((c) => c.operated_by === cliente.id);
+  const nombrePor = new Map(todos.map((c) => [c.id, c.name]));
 
   const susCotizaciones = cotizaciones.filter((q) => q.client_id === id);
   const susProyectos = proyectos.filter((p) => p.client_id === id);
@@ -276,7 +278,20 @@ export default async function ClienteDetalle({
           </SeccionCard>
         )}
 
-        <SeccionCard titulo="Proyectos" cantidad={susProyectos.length}>
+        <SeccionCard
+          titulo="Proyectos"
+          cantidad={susProyectos.length}
+          accion={
+            esOwner && (
+              <AgregarProyectos
+                clientId={cliente.id}
+                proyectos={proyectos
+                  .filter((p) => p.client_id !== id)
+                  .map((p) => ({ id: p.id, name: p.name, cliente: nombreCliente(p, nombrePor) }))}
+              />
+            )
+          }
+        >
           {susProyectos.length === 0 ? (
             <Vacio>Sin proyectos.</Vacio>
           ) : (

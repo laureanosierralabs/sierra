@@ -1887,6 +1887,64 @@ export async function guardarRecursoCliente(fd: FormData) {
   revalidatePath("/landing-pages/projects", "layout");
 }
 
+/**
+ * Cuelga varios proyectos de un cliente (la marca) de una vez. Es lo que se
+ * hace al ordenar: las landings de Aida cargadas a nombre de Oriana pasan a
+ * Aida. La marca es quien paga, así que también pasan las cotizaciones cuyos
+ * proyectos quedan todos en ella (mismo criterio que la migración de marcas).
+ */
+export async function moverProyectosACliente(fd: FormData): Promise<void | { error: string }> {
+  await exigirSesion();
+  const { esOwner } = await accesoActual();
+  if (!esOwner) return { error: "Solo el owner puede mover proyectos entre clientes" };
+
+  const clientId = texto(fd, "client_id");
+  const proyectos = varios(fd, "project_ids");
+  if (!clientId) return { error: "Falta el cliente" };
+  if (proyectos.length === 0) return { error: "Elegí al menos un proyecto" };
+
+  const db = supabaseAdmin();
+  const { data: cliente } = await db.from("clients").select("id").eq("id", clientId).maybeSingle();
+  if (!cliente) return { error: "El cliente no existe" };
+
+  const { error } = await db
+    .from("projects")
+    .update({ client_id: clientId, updated_at: new Date().toISOString() })
+    .in("id", proyectos);
+
+  if (error) return { error: `No se pudieron mover los proyectos: ${error.message}` };
+
+  // Cotizaciones de esos proyectos: pasan solo si todos sus proyectos son ya
+  // de la marca (una que cubre proyectos de dos clientes queda como estaba).
+  const { data: vinculos } = await db.from("quote_projects").select("quote_id").in("project_id", proyectos);
+  const cotizaciones = [...new Set((vinculos ?? []).map((v) => v.quote_id as string))];
+  if (cotizaciones.length > 0) {
+    const { data: todos, error: errorVinculos } = await db
+      .from("quote_projects")
+      .select("quote_id, projects(client_id)")
+      .in("quote_id", cotizaciones);
+    if (errorVinculos) return { error: "Se movieron los proyectos, pero no se pudieron revisar sus cotizaciones" };
+    const ajenas = new Set(
+      (todos ?? [])
+        .filter((v) => (v.projects as unknown as { client_id: string | null } | null)?.client_id !== clientId)
+        .map((v) => v.quote_id as string),
+    );
+    const mover = cotizaciones.filter((q) => !ajenas.has(q));
+    if (mover.length > 0) {
+      const { error: errorCotizaciones } = await db.from("quotes").update({ client_id: clientId }).in("id", mover);
+      if (errorCotizaciones) return { error: "Se movieron los proyectos, pero no sus cotizaciones" };
+    }
+  }
+
+  // Una landing de lanzamiento solo apunta a proyectos de su mismo cliente.
+  await db.from("launch_pages").update({ project_id: null }).in("project_id", proyectos).neq("client_id", clientId);
+
+  revalidar();
+  // La ficha de la marca y la del cliente del que salieron.
+  revalidatePath("/landing-pages/clients", "layout");
+  revalidatePath("/landing-pages/projects", "layout");
+}
+
 export async function borrarRecursoCliente(id: string, clientId: string) {
   await exigirSesion();
 
