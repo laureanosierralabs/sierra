@@ -5,6 +5,8 @@ import { estadoPortalCliente } from "@/lib/portal/admin";
 import { PortalCliente } from "@/components/landing/portal-cliente";
 import { LanzamientosCliente } from "@/components/lanzamientos/lanzamientos-cliente";
 import { lanzamientosDeCliente } from "@/lib/lanzamientos/datos";
+import { ProyectosConectados } from "@/components/sitios/proyectos-conectados";
+import { rutasDeSitio, sitiosDeCliente } from "@/lib/sitios/datos";
 import {
   ArrowLeft,
   Briefcase4,
@@ -71,7 +73,7 @@ export default async function ClienteDetalle({
   // Lo comercial es del owner: a un member ni se le cargan las cotizaciones.
   const { esOwner } = await accesoActual();
 
-  const [cliente, cotizaciones, proyectos, accesos, notas, portal, lanzamientos] = await Promise.all([
+  const [cliente, cotizaciones, proyectos, accesos, notas, portal, lanzamientos, conectados] = await Promise.all([
     obtenerCliente(id),
     esOwner ? listarCotizaciones() : Promise.resolve([]),
     listarProyectos(),
@@ -86,6 +88,18 @@ export default async function ClienteDetalle({
           return [];
         })
       : Promise.resolve([]),
+    // Proyectos conectados con sus landings detectadas. Si falla, la ficha
+    // se sigue viendo (la tarjeta no aparece).
+    esOwner
+      ? sitiosDeCliente(id)
+          .then((sitios) =>
+            Promise.all(sitios.map(async (sitio) => ({ sitio, rutas: await rutasDeSitio(id, sitio.id) }))),
+          )
+          .catch((e) => {
+            console.error("[clientes] no se pudieron leer los proyectos conectados:", e);
+            return null;
+          })
+      : Promise.resolve(null),
   ]);
 
   if (!cliente) notFound();
@@ -197,6 +211,10 @@ export default async function ClienteDetalle({
         />
 
         <NotasCliente clientId={cliente.id} notas={notas} />
+
+        {esOwner && conectados && (
+          <ProyectosConectados clientId={cliente.id} proyectos={conectados} />
+        )}
 
         {esOwner && <LanzamientosCliente clientId={cliente.id} lanzamientos={lanzamientos} />}
 

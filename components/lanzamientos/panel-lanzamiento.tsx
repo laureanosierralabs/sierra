@@ -15,6 +15,17 @@ import {
 
 const SERIE = [{ key: "registros", name: "Registros", color: CHART_COLORS.net }];
 
+/** Ingresos por moneda: sumar USD con ARS daría un número sin sentido. */
+function ingresosPorMoneda(compras: { amount: number | null; currency: string | null }[]) {
+  const total = new Map<string, number>();
+  for (const c of compras) {
+    if (c.amount === null) continue;
+    const moneda = c.currency ?? "—";
+    total.set(moneda, (total.get(moneda) ?? 0) + c.amount);
+  }
+  return [...total.entries()];
+}
+
 const corta = (dia: string) => `${dia.slice(8)}/${dia.slice(5, 7)}`;
 const numero = (n: number) => n.toLocaleString("es-AR");
 const porcentaje = (p: number | null) => (p === null ? "—" : `${p.toLocaleString("es-AR")}%`);
@@ -35,7 +46,7 @@ export function PanelLanzamiento({
   /** Link de descarga CSV de los registros; sin él no se muestra el botón. */
   exportarHref?: string;
 }) {
-  const { lanzamiento, paginas, registros, visitas, truncado } = detalle;
+  const { lanzamiento, paginas, registros, visitas, compras, truncado } = detalle;
   const resumen = resumirRegistros(registros);
   const trafico = resumirVisitas(visitas);
   const ritmo = ritmoHaciaMeta(lanzamiento, resumen.total);
@@ -112,6 +123,29 @@ export function PanelLanzamiento({
           tone={ritmo && ritmo.faltan > 0 ? "warning" : "violet"}
         />
       </div>
+
+      {compras.length > 0 && (
+        <Card className="flex flex-wrap items-center gap-x-8 gap-y-3">
+          <div>
+            <p className="text-sm font-medium text-text-tertiary">Ventas</p>
+            <p className="text-xl font-semibold text-text-primary tabular-nums">{numero(compras.length)}</p>
+          </div>
+          {ingresosPorMoneda(compras).map(([moneda, total]) => (
+            <div key={moneda}>
+              <p className="text-sm font-medium text-text-tertiary">Ingresos ({moneda})</p>
+              <p className="text-xl font-semibold text-text-primary tabular-nums">
+                {total.toLocaleString("es-AR", { maximumFractionDigits: 2 })}
+              </p>
+            </div>
+          ))}
+          <div>
+            <p className="text-sm font-medium text-text-tertiary">Registros que compraron</p>
+            <p className="text-xl font-semibold text-text-primary tabular-nums">
+              {porcentaje(conversion(compras.length, resumen.total))}
+            </p>
+          </div>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-5">
         <div className="xl:col-span-3">

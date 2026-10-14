@@ -1,0 +1,127 @@
+/**
+ * Prompt para integrar el Sierra Launch Kit en el repo de un cliente con
+ * Claude Code. Puro (sin I/O): el panel le pasa el código actual del kit
+ * (public/kit/*), así el prompt nunca queda desactualizado respecto del kit.
+ */
+export function promptIntegracion({
+  urlPanel,
+  proyecto,
+  dominio,
+  kitServidor,
+  kitNavegador,
+}: {
+  urlPanel: string;
+  proyecto: string;
+  dominio: string | null;
+  kitServidor: string;
+  kitNavegador: string;
+}): string {
+  const bloque = (lenguaje: string, codigo: string) => ["```" + lenguaje, codigo.trimEnd(), "```"].join("\n");
+
+  return [
+    `# Integrar el Sierra Launch Kit en este proyecto (${proyecto}${dominio ? ` · ${dominio}` : ""})`,
+    "",
+    "Objetivo: que el panel de sierra labs reciba en vivo las visitas de TODAS las landings de este repo y cada registro (lead) y compra, para mostrárselos al cliente durante sus lanzamientos.",
+    "",
+    "## Reglas (no negociables)",
+    "- No cambies el comportamiento existente: los formularios, MailerLite, GoHighLevel, Stripe y cualquier automatización tienen que seguir funcionando exactamente igual.",
+    "- Llamá a `registrarLead` / `registrarCompra` DESPUÉS de que la integración existente guardó el dato con éxito, siempre con `await` (en Vercel, una llamada sin esperar se puede cortar al terminar la función). El kit nunca lanza errores y corta a los 4 segundos: no rompe ni traba el formulario.",
+    "- `SIERRA_INGEST_SECRET` es solo de servidor: nunca lo uses en un componente cliente ni lo prefijes con `NEXT_PUBLIC_`.",
+    "- No toques diseño, textos ni estilos. No agregues dependencias.",
+    "- No hagas commit, push ni deploy: al terminar, mostrame el resumen y esperá mi confirmación.",
+    "",
+    "## 1. Copiá estos dos archivos tal cual",
+    "",
+    "`lib/sierra.ts` (si el proyecto usa `src/`, ponelo en `src/lib/sierra.ts`):",
+    "",
+    bloque("ts", kitServidor),
+    "",
+    "`components/sierra-tracking.tsx` (o `src/components/…`):",
+    "",
+    bloque("tsx", kitNavegador),
+    "",
+    "Ajustá solo los imports si el alias del proyecto no es `@/`.",
+    "",
+    "## 2. Visitas: una sola vez, en el layout raíz",
+    "",
+    "Agregá `<SierraTracking />` dentro de `<body>` en el layout raíz (`app/layout.tsx`). Con eso todas las rutas del proyecto, actuales y futuras, quedan medidas.",
+    "",
+    "## 3. Inventario antes de tocar formularios",
+    "",
+    "Listá:",
+    "1. Todas las landings (rutas de `app/**/page.tsx`).",
+    "2. Todos los formularios de registro: archivo, ruta donde aparecen y cómo se procesan (server action, route handler, fetch a una API externa, formulario embebido de MailerLite o GoHighLevel).",
+    "3. Dónde se procesan los pagos (webhook de Stripe, checkout de GoHighLevel, otro).",
+    "",
+    "## 4. Registros",
+    "",
+    "Para cada formulario procesado por código de este repo:",
+    "- **Formulario con server action / FormData:** agregá `<SierraCampos />` dentro del `<form>` y, en la acción, después del guardado exitoso:",
+    "",
+    bloque(
+      "ts",
+      [
+        'import { atribucionDe, registrarLead } from "@/lib/sierra";',
+        "",
+        "await registrarLead({",
+        "  email,",
+        "  name,          // si el formulario lo pide",
+        "  phone,         // si el formulario lo pide",
+        "  ...atribucionDe(formData), // ruta y UTM que agrega <SierraCampos />",
+        "});",
+      ].join("\n"),
+    ),
+    "",
+    "- **Formulario que envía por fetch/JSON:** en el cliente, sumá `...leerAtribucion()` (de `components/sierra-tracking`) al cuerpo del pedido; en el route handler, pasá `path` y `utm` a `registrarLead`.",
+    "- **Formulario embebido de MailerLite/GoHighLevel (no pasa por este repo):** no lo toques; anotalo en el resumen (esos se conectan desde el panel con el webhook del proveedor).",
+    "",
+    "## 5. Compras",
+    "",
+    "Si hay webhook de Stripe en este repo, en el evento de pago confirmado (por ejemplo `checkout.session.completed`):",
+    "",
+    bloque(
+      "ts",
+      [
+        'import { registrarCompra } from "@/lib/sierra";',
+        "",
+        "await registrarCompra({",
+        "  id: event.id,                                  // idempotencia: Stripe reintenta",
+        "  amount: (session.amount_total ?? 0) / 100,",
+        "  currency: (session.currency ?? \"usd\").toUpperCase(),",
+        "  email: session.customer_details?.email ?? null,",
+        "  path: session.metadata?.sl_path ?? null,",
+        "  utm: {",
+        "    utm_source: session.metadata?.utm_source,",
+        "    utm_medium: session.metadata?.utm_medium,",
+        "    utm_campaign: session.metadata?.utm_campaign,",
+        "    utm_content: session.metadata?.utm_content,",
+        "  },",
+        "});",
+      ].join("\n"),
+    ),
+    "",
+    "Y donde se crea la sesión de checkout, agregá a `metadata` la ruta y los UTM (`sl_path`, `utm_source`, `utm_medium`, `utm_campaign`, `utm_content`) que vienen del formulario, para atribuir la compra a la landing. Si los pagos van por GoHighLevel u otra plataforma sin código acá, anotalo en el resumen.",
+    "",
+    "## 6. Variables de entorno",
+    "",
+    "Agregá a `.env.example` (sin valores) y recordame cargarlas en Vercel (Production y Preview):",
+    "",
+    bloque(
+      "bash",
+      [
+        `NEXT_PUBLIC_SIERRA_URL=${urlPanel}`,
+        "NEXT_PUBLIC_SIERRA_SITE_KEY=",
+        "SIERRA_INGEST_SECRET=",
+      ].join("\n"),
+    ),
+    "",
+    "## 7. Verificación y resumen",
+    "",
+    "Corré el typecheck, el lint y el build del proyecto. Después mostrame:",
+    "- archivos creados y modificados;",
+    "- landings detectadas;",
+    "- formularios integrados (y los que NO, con el motivo);",
+    "- cómo quedaron los pagos;",
+    "- cualquier duda antes de commitear.",
+  ].join("\n");
+}

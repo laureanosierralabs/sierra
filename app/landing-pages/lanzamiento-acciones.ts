@@ -8,6 +8,7 @@ import { accesoActual } from "@/lib/landing/auth";
 import { cifrar, hayClave } from "@/lib/landing/cifrado";
 import { supabaseAdmin } from "@/lib/landing/supabase";
 import { ESTADOS_LANZAMIENTO, type EstadoLanzamiento } from "@/lib/lanzamientos/tipos";
+import { normalizarRuta } from "@/lib/sitios/tipos";
 
 /**
  * Gestión de lanzamientos desde el panel. Todo exige owner. Los fallos se
@@ -152,15 +153,34 @@ export async function guardarPaginaLanzamiento(fd: FormData): Promise<Resultado>
     if (!proyecto) return { error: "Ese proyecto no es de este cliente" };
   }
 
+  // Ruta de un proyecto conectado: el proyecto tiene que ser de ESTE cliente.
+  const siteId = opcional(fd, "site_id");
+  const ruta = siteId ? normalizarRuta(texto(fd, "path")) : null;
+  if (siteId) {
+    if (!ruta) return { error: "Indicá la ruta de la landing en el proyecto (por ejemplo /registro-a)" };
+    const { data: sitio } = await db
+      .from("client_sites")
+      .select("id")
+      .eq("id", siteId)
+      .eq("client_id", clientId)
+      .maybeSingle();
+    if (!sitio) return { error: "Ese proyecto conectado no es de este cliente" };
+  }
+
   const fila = {
     name: nombre,
     ...links,
+    site_id: siteId,
+    path: ruta,
     project_id: projectId,
-    mailerlite_group_id: opcional(fd, "mailerlite_group_id"),
+    // Con proyecto conectado, los registros llegan por el kit: el grupo de
+    // MailerLite duplicaría a cada persona.
+    mailerlite_group_id: siteId ? null : opcional(fd, "mailerlite_group_id"),
   };
 
   const id = texto(fd, "id");
-  const repetido = "Ese grupo de MailerLite ya está asignado a otra landing de este lanzamiento";
+  const repetido =
+    "Ese grupo de MailerLite o esa ruta del proyecto ya está asignada a otra landing de este lanzamiento";
 
   if (id) {
     const { error } = await db.from("launch_pages").update(fila).eq("id", id).eq("launch_id", launchId);

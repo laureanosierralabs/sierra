@@ -22,6 +22,8 @@ const esPublica = createRouteMatcher([
   "/api/webhooks/(.*)",
   // Conteo de visitas: lo llama el script de las landings (otros dominios).
   "/api/t",
+  // Conversiones de proyectos conectados: las protege la firma del kit.
+  "/api/ingest",
 ]);
 
 /**

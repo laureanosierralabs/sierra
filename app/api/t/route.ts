@@ -1,6 +1,7 @@
 import { huella } from "@/lib/landing/cifrado";
 import { supabaseAdmin } from "@/lib/landing/supabase";
 import { diaDe, dominioDe, esBot } from "@/lib/lanzamientos/tipos";
+import { normalizarRuta } from "@/lib/sitios/tipos";
 
 export const dynamic = "force-dynamic";
 
@@ -55,12 +56,35 @@ export async function POST(req: Request) {
   if (esBot(userAgent)) return listo();
   if (Number(req.headers.get("content-length") ?? 0) > MAX_BYTES) return listo();
 
-  let datos: { k?: unknown; r?: unknown; u?: Record<string, unknown> };
+  let datos: { k?: unknown; s?: unknown; p?: unknown; r?: unknown; u?: Record<string, unknown> };
   try {
     const cuerpo = await req.text();
     if (cuerpo.length > MAX_BYTES) return listo();
     datos = JSON.parse(cuerpo);
   } catch {
+    return listo();
+  }
+
+  // En Vercel el primer valor de x-forwarded-for es la IP del visitante (la
+  // plataforma lo pisa: no lo controla quien hace el pedido).
+  const ip = (req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim();
+  const dia = diaDe(new Date());
+  const u = (datos?.u ?? {}) as Record<string, unknown>;
+  const campos = {
+    day: dia,
+    utm_source: utm(u.utm_source),
+    utm_medium: utm(u.utm_medium),
+    utm_campaign: utm(u.utm_campaign),
+    utm_content: utm(u.utm_content),
+    referrer_host: dominioDe(typeof datos?.r === "string" ? datos.r : null),
+  };
+
+  // Proyecto conectado con el kit: clave del sitio + ruta. Cualquier landing
+  // del proyecto se mide sola desde su primera visita.
+  if (typeof datos?.s === "string") {
+    const ruta = normalizarRuta(datos.p);
+    if (!/^[a-f0-9]{32}$/.test(datos.s) || !ruta) return listo();
+    await contarVisitaDeSitio(datos.s, ruta, ip, userAgent, campos);
     return listo();
   }
 
@@ -75,10 +99,6 @@ export async function POST(req: Request) {
     .maybeSingle();
   if (!pagina) return listo();
 
-  // En Vercel el primer valor de x-forwarded-for es la IP del visitante (la
-  // plataforma lo pisa: no lo controla quien hace el pedido).
-  const ip = (req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim();
-  const dia = diaDe(new Date());
   const base = `${pagina.launch_id}|${dia}|${ip}`;
   const ipHash = huella("visita-ip", base)?.slice(0, 32);
   const visitante = huella("visita", `${base}|${userAgent}`)?.slice(0, 32);
@@ -93,25 +113,64 @@ export async function POST(req: Request) {
     .eq("ip_hash", ipHash);
   if ((count ?? 0) >= MAX_POR_IP) return listo();
 
-  const u = (datos.u ?? {}) as Record<string, unknown>;
   // El primer aviso del día gana: recargar la página no suma visitas.
   const { error } = await db.from("launch_visits").upsert(
     {
       launch_id: pagina.launch_id,
       page_id: pagina.id,
       client_id: pagina.client_id,
-      day: dia,
       visitor_hash: visitante,
       ip_hash: ipHash,
-      utm_source: utm(u.utm_source),
-      utm_medium: utm(u.utm_medium),
-      utm_campaign: utm(u.utm_campaign),
-      utm_content: utm(u.utm_content),
-      referrer_host: dominioDe(typeof datos.r === "string" ? datos.r : null),
+      ...campos,
     },
     { onConflict: "page_id,visitor_hash,day", ignoreDuplicates: true },
   );
   if (error) console.error("[visitas] no se pudo guardar:", error.message);
 
   return listo();
+}
+
+/** Misma lógica que una landing suelta, pero por sitio + ruta (site_visits). */
+async function contarVisitaDeSitio(
+  claveSitio: string,
+  ruta: string,
+  ip: string,
+  userAgent: string | null,
+  campos: Record<string, string | null>,
+) {
+  const db = supabaseAdmin();
+  const { data: sitio } = await db
+    .from("client_sites")
+    .select("id, client_id")
+    .eq("site_key", claveSitio)
+    .maybeSingle();
+  if (!sitio) return;
+
+  const base = `${sitio.id}|${campos.day}|${ip}`;
+  const ipHash = huella("visita-ip", base)?.slice(0, 32);
+  const visitante = huella("visita", `${base}|${userAgent}`)?.slice(0, 32);
+  if (!ipHash || !visitante) return;
+
+  // El tope cuenta en TODO el proyecto, no por ruta: la ruta la elige quien
+  // manda el aviso, y con un tope por ruta una IP podría inventar rutas sin fin.
+  const { count } = await db
+    .from("site_visits")
+    .select("id", { count: "exact", head: true })
+    .eq("site_id", sitio.id)
+    .eq("day", campos.day)
+    .eq("ip_hash", ipHash);
+  if ((count ?? 0) >= MAX_POR_IP) return;
+
+  const { error } = await db.from("site_visits").upsert(
+    {
+      site_id: sitio.id,
+      client_id: sitio.client_id,
+      path: ruta,
+      visitor_hash: visitante,
+      ip_hash: ipHash,
+      ...campos,
+    },
+    { onConflict: "site_id,path,visitor_hash,day", ignoreDuplicates: true },
+  );
+  if (error) console.error("[visitas] no se pudo guardar la visita del sitio:", error.message);
 }

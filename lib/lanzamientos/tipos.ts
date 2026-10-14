@@ -35,7 +35,19 @@ export interface PaginaLanzamiento {
   mailerlite_group_id: string | null;
   /** Clave pública del script de visitas de esta landing. */
   track_key: string;
+  /** Ruta de un proyecto conectado (Sierra Launch Kit); null = landing suelta. */
+  site_id: string | null;
+  path: string | null;
   position: number;
+}
+
+/** Una compra confirmada, avisada por el servidor de un proyecto conectado. */
+export interface Compra {
+  id: string;
+  page_id: string | null;
+  amount: number | null;
+  currency: string | null;
+  occurred_at: string;
 }
 
 export interface Registro {

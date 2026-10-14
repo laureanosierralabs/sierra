@@ -58,6 +58,12 @@ const paginaEsquema = z.object({
   checkout_url: linkOpcional,
   mailerlite_group_id: z.string().optional(),
   project_id: z.string().optional(),
+  site_id: z.string().optional(),
+  path: z
+    .string()
+    .trim()
+    .regex(/^(\/\S*)?$/, "La ruta empieza con / (por ejemplo /registro-a)")
+    .optional(),
 });
 
 const OPCIONES_ESTADO = ESTADOS_LANZAMIENTO.map((e) => ({
@@ -136,21 +142,32 @@ export function BorrarLanzamiento({ id }: { id: string }) {
   );
 }
 
-/** "Sin proyecto" viaja como cadena vacía. */
+/** "Sin proyecto" y "landing suelta" viajan como cadena vacía. */
 function guardarPagina(fd: FormData) {
   if (fd.get("project_id") === SIN_OPCION) fd.set("project_id", "");
+  if (fd.get("site_id") === SIN_OPCION) fd.set("site_id", "");
   return guardarPaginaLanzamiento(fd);
+}
+
+/** Proyecto conectado del cliente, con las rutas que ya detectó. */
+export interface SitioParaLanding {
+  id: string;
+  name: string;
+  rutas: string[];
 }
 
 export function PaginaLanzamientoForm({
   launchId,
   pagina,
   proyectos,
+  sitios = [],
 }: {
   launchId: string;
   pagina?: PaginaLanzamiento;
   proyectos: { id: string; name: string }[];
+  sitios?: SitioParaLanding[];
 }) {
+  const rutasConocidas = [...new Set(sitios.flatMap((s) => s.rutas))];
   const opcionesProyecto = [
     { value: SIN_OPCION, label: "Sin proyecto" },
     ...proyectos.map((p) => ({ value: p.id, label: p.name })),
@@ -176,6 +193,37 @@ export function PaginaLanzamientoForm({
             placeholder="Registro A"
             defaultValue={pagina?.name ?? ""}
           />
+          {sitios.length > 0 && (
+            <div className="grid grid-cols-1 gap-4 rounded-lg border border-card-border p-3 sm:grid-cols-2">
+              <FormSelectField
+                {...form.fieldProps("site_id")}
+                label="Proyecto conectado"
+                description="Con el kit instalado, visitas y registros llegan solos por la ruta."
+                options={[
+                  { value: SIN_OPCION, label: "Ninguno (landing suelta)" },
+                  ...sitios.map((s) => ({ value: s.id, label: s.name })),
+                ]}
+                defaultValue={pagina?.site_id ?? SIN_OPCION}
+              />
+              <label className="flex flex-col gap-1.5">
+                <span className="text-sm font-medium text-input-label-text">Ruta</span>
+                <input
+                  name="path"
+                  list={`rutas-${launchId}`}
+                  placeholder="/registro-a"
+                  defaultValue={pagina?.path ?? ""}
+                  onChange={() => form.clearError("path")}
+                  className="rounded-lg border border-card-border bg-input-background px-4 py-2.5 text-title-50 outline-none duration-300 placeholder:text-input-placeholder-text focus:border-input-primary-focus-border focus:ring-4 focus:ring-input-primary-focus-border/20"
+                />
+                <datalist id={`rutas-${launchId}`}>
+                  {rutasConocidas.map((r) => (
+                    <option key={r} value={r} />
+                  ))}
+                </datalist>
+                {form.errors.path && <span className="text-sm text-input-error">{form.errors.path}</span>}
+              </label>
+            </div>
+          )}
           <FormTextField
             {...form.fieldProps("url")}
             label="URL de la landing"
@@ -186,7 +234,7 @@ export function PaginaLanzamientoForm({
             {...form.fieldProps("mailerlite_group_id")}
             label="Grupo de MailerLite (id)"
             placeholder="123456789012345678"
-            description="El grupo al que esta landing suma a quien se registra. Así se sabe de qué landing vino cada persona."
+            description="Solo para landings sueltas (sin proyecto conectado): el grupo al que suma a quien se registra."
             defaultValue={pagina?.mailerlite_group_id ?? ""}
           />
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

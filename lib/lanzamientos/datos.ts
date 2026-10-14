@@ -1,12 +1,15 @@
 import "server-only";
 
 import { supabaseAdmin } from "@/lib/landing/supabase";
-import type {
-  Lanzamiento,
-  PaginaLanzamiento,
-  Registro,
-  VisitaAgregada,
+import {
+  diaDe,
+  type Compra,
+  type Lanzamiento,
+  type PaginaLanzamiento,
+  type Registro,
+  type VisitaAgregada,
 } from "@/lib/lanzamientos/tipos";
+import { conversionesDeRutas, visitasDeRutas } from "@/lib/sitios/datos";
 
 /**
  * Lecturas de lanzamientos. Toda función recibe el `clientId` y filtra por
@@ -19,7 +22,7 @@ import type {
 const COLUMNAS_LANZAMIENTO =
   "id, client_id, name, status, starts_on, ends_on, goal_registrations, created_at";
 const COLUMNAS_PAGINA =
-  "id, launch_id, name, url, thanks_url, whatsapp_url, checkout_url, project_id, mailerlite_group_id, track_key, position";
+  "id, launch_id, name, url, thanks_url, whatsapp_url, checkout_url, project_id, mailerlite_group_id, track_key, site_id, path, position";
 const COLUMNAS_REGISTRO =
   "id, page_id, email, name, phone, utm_source, utm_medium, utm_campaign, utm_content, registered_at";
 
@@ -49,6 +52,8 @@ export interface DetalleLanzamiento {
   registros: Registro[];
   /** Visitantes únicos por landing, día y fuente (ya agregados en la base). */
   visitas: VisitaAgregada[];
+  /** Compras confirmadas de las landings de proyectos conectados. */
+  compras: Compra[];
   /** `true` si hay más registros que el tope leído (los totales serían parciales). */
   truncado: boolean;
 }
@@ -108,11 +113,68 @@ export async function lanzamientoDeCliente(
   // visitantes y conversión, pero los registros se siguen viendo.
   if (errVisitas) console.error("[lanzamientos] no se pudieron leer las visitas:", errVisitas.message);
 
+  const l = lanzamiento as unknown as Lanzamiento;
+  const listaPaginas = (paginas ?? []) as unknown as PaginaLanzamiento[];
+  const visitasTotales = ((visitas ?? []) as VisitaAgregada[]).map((v) => ({
+    ...v,
+    visitors: Number(v.visitors),
+  }));
+  const compras: Compra[] = [];
+
+  // Landings que son rutas de un proyecto conectado: sus datos viven por
+  // proyecto y ruta, y se suman entre las fechas del lanzamiento.
+  const desde = l.starts_on ?? diaDe(l.created_at);
+  const hasta = l.ends_on ?? diaDe(new Date());
+  const porSitio = new Map<string, Map<string, string>>();
+  for (const p of listaPaginas) {
+    if (!p.site_id || !p.path) continue;
+    const rutas = porSitio.get(p.site_id) ?? new Map<string, string>();
+    rutas.set(p.path, p.id);
+    porSitio.set(p.site_id, rutas);
+  }
+
+  for (const [siteId, paginaPorRuta] of porSitio) {
+    const rutas = [...paginaPorRuta.keys()];
+    try {
+      const [vis, conv] = await Promise.all([
+        visitasDeRutas(clientId, siteId, rutas, desde, hasta),
+        conversionesDeRutas(clientId, siteId, rutas, desde, hasta),
+      ]);
+      for (const v of vis) {
+        const pageId = paginaPorRuta.get(v.path);
+        if (pageId) visitasTotales.push({ page_id: pageId, day: v.day, utm_source: v.utm_source, visitors: v.visitors });
+      }
+      for (const c of conv) {
+        const pageId = c.path ? (paginaPorRuta.get(c.path) ?? null) : null;
+        if (c.kind === "purchase") {
+          compras.push({ id: c.id, page_id: pageId, amount: c.amount, currency: c.currency, occurred_at: c.occurred_at });
+        } else if (c.email) {
+          registros.push({
+            id: c.id,
+            page_id: pageId,
+            email: c.email,
+            name: c.name,
+            phone: c.phone,
+            utm_source: c.utm_source,
+            utm_medium: c.utm_medium,
+            utm_campaign: c.utm_campaign,
+            utm_content: c.utm_content,
+            registered_at: c.occurred_at,
+          });
+        }
+      }
+    } catch (e) {
+      console.error("[lanzamientos] no se pudieron leer los datos del proyecto conectado:", e);
+    }
+  }
+  registros.sort((a, b) => b.registered_at.localeCompare(a.registered_at));
+
   return {
-    lanzamiento: lanzamiento as unknown as Lanzamiento,
-    paginas: (paginas ?? []) as unknown as PaginaLanzamiento[],
+    lanzamiento: l,
+    paginas: listaPaginas,
     registros,
-    visitas: ((visitas ?? []) as VisitaAgregada[]).map((v) => ({ ...v, visitors: Number(v.visitors) })),
+    visitas: visitasTotales,
+    compras,
     truncado,
   };
 }

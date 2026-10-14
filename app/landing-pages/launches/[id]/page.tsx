@@ -22,6 +22,7 @@ import {
   lanzamientoDeCliente,
 } from "@/lib/lanzamientos/datos";
 import { LABEL_ESTADO_LANZAMIENTO } from "@/lib/lanzamientos/tipos";
+import { rutasDeSitio, sitiosDeCliente } from "@/lib/sitios/datos";
 
 export const dynamic = "force-dynamic";
 
@@ -34,13 +35,25 @@ export default async function LanzamientoDetalle({ params }: { params: Promise<{
   const clientId = await clienteDeLanzamiento(id);
   if (!clientId) notFound();
 
-  const [detalle, conexion, cliente, proyectos, portal] = await Promise.all([
+  const [detalle, conexion, cliente, proyectos, portal, sitios] = await Promise.all([
     lanzamientoDeCliente(clientId, id),
     conexionDeLanzamiento(clientId, id),
     obtenerCliente(clientId),
     listarProyectos(),
     supabaseAdmin().from("client_orgs").select("slug").eq("client_id", clientId).maybeSingle(),
+    sitiosDeCliente(clientId)
+      .then((lista) =>
+        Promise.all(
+          lista.map(async (s) => ({
+            id: s.id,
+            name: s.name,
+            rutas: (await rutasDeSitio(clientId, s.id)).map((r) => r.path),
+          })),
+        ),
+      )
+      .catch(() => []),
   ]);
+  const nombreSitio = new Map(sitios.map((s) => [s.id, s.name]));
   if (!detalle || !conexion) notFound();
 
   const { lanzamiento, paginas } = detalle;
@@ -95,23 +108,29 @@ export default async function LanzamientoDetalle({ params }: { params: Promise<{
               <span className="min-w-0">
                 <span className="block truncate text-sm font-medium text-text-primary">{p.name}</span>
                 <span className="block truncate text-xs text-text-tertiary">
-                  {p.mailerlite_group_id ? `Grupo ${p.mailerlite_group_id}` : "Sin grupo: no cuenta registros"}
+                  {p.site_id
+                    ? `${nombreSitio.get(p.site_id) ?? "Proyecto conectado"} · ruta ${p.path}`
+                    : p.mailerlite_group_id
+                      ? `Grupo ${p.mailerlite_group_id}`
+                      : "Sin grupo ni proyecto: no cuenta registros"}
                   {p.url ? ` · ${p.url}` : ""}
                 </span>
               </span>
               <span className="flex shrink-0 items-center gap-3">
-                <CopiarScriptVisitas trackKey={p.track_key} />
+                {/* Con proyecto conectado las visitas llegan por el kit: no hace falta el script suelto. */}
+                {!p.site_id && <CopiarScriptVisitas trackKey={p.track_key} />}
                 <PaginaLanzamientoForm
                   launchId={lanzamiento.id}
                   pagina={p}
                   proyectos={proyectosDelCliente}
+                  sitios={sitios}
                 />
                 <BorrarPaginaLanzamiento id={p.id} />
               </span>
             </div>
           ))}
           <div className="px-4 py-3">
-            <PaginaLanzamientoForm launchId={lanzamiento.id} proyectos={proyectosDelCliente} />
+            <PaginaLanzamientoForm launchId={lanzamiento.id} proyectos={proyectosDelCliente} sitios={sitios} />
           </div>
         </SeccionCard>
 
