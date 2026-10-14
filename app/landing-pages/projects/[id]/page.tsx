@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { formatearMonto } from "@/lib/landing/tipos";
+import { Card } from "@/components/tailgrids/core/card";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "@tailgrids/icons";
 import {
@@ -10,6 +12,7 @@ import {
   obtenerProyecto,
 } from "@/lib/landing/datos";
 import { accesoActual, listarMiembros } from "@/lib/landing/auth";
+import { misAcuerdos } from "@/lib/landing/mis-cobros";
 import { PageHeader } from "@/components/landing/ui";
 import { ProyectoForm } from "@/components/landing/proyecto-form";
 import { DuplicarProyecto } from "@/components/landing/duplicar-proyecto";
@@ -43,9 +46,15 @@ export default async function ProyectoDetalle({
   if (!proyecto) notFound();
 
   // Lo cotizado es información del owner: ni se consulta para un Builder.
-  const cotizaciones = acceso.esOwner
-    ? await listarCotizacionesDeProyecto(id)
-    : [];
+  // Al revés, lo que el Builder cobra por este proyecto es solo suyo.
+  const [cotizaciones, misAcuerdosDelProyecto] = await Promise.all([
+    acceso.esOwner ? listarCotizacionesDeProyecto(id) : Promise.resolve([]),
+    acceso.esOwner
+      ? Promise.resolve([])
+      : misAcuerdos()
+          .then((lista) => lista.filter((a) => a.proyectos.some((p) => p.id === id)))
+          .catch(() => []),
+  ]);
 
   const clientePor = new Map(clientes.map((c) => [c.id, c.name]));
   const nombreMiembro = new Map(miembros.map((m) => [m.id, m.nombre]));
@@ -88,6 +97,39 @@ export default async function ProyectoDetalle({
         verCotizacion={acceso.esOwner}
         recursos={recursos}
       />
+
+      {misAcuerdosDelProyecto.length > 0 && (
+        <Card className="mb-8 flex flex-col gap-2">
+          <h2 className="text-sm font-semibold text-text-primary">Tu acuerdo en este proyecto</h2>
+          {misAcuerdosDelProyecto.map((a) => {
+            const pendiente = Math.max((a.total_amount ?? 0) - a.amount_paid, 0);
+            return (
+              <div key={a.id} className="flex flex-wrap items-center justify-between gap-3 text-sm">
+                <span className="min-w-0 truncate text-text-secondary">
+                  {a.title}
+                  {a.proyectos.length > 1 ? (
+                    <span className="text-text-tertiary"> · cubre {a.proyectos.length} proyectos</span>
+                  ) : null}
+                </span>
+                <span className="flex items-center gap-4 tabular-nums">
+                  <span>{formatearMonto(a.total_amount, a.currency)}</span>
+                  <span className="text-badge-success-text">
+                    cobrado {formatearMonto(a.amount_paid, a.currency)}
+                  </span>
+                  {pendiente > 0 && (
+                    <span className="text-badge-warning-text">
+                      falta {formatearMonto(pendiente, a.currency)}
+                    </span>
+                  )}
+                </span>
+              </div>
+            );
+          })}
+          <Link href="/landing-pages/mis-cobros" className="self-start text-xs font-medium text-primary-500 hover:underline">
+            Ver todos mis cobros
+          </Link>
+        </Card>
+      )}
 
       <div className="flex flex-col gap-8">
         <GestionProyecto

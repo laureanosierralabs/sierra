@@ -17,6 +17,7 @@ export const acuerdoEsquema = z.object({
   id: z.string().optional(),
   title: z.string().trim().min(1, "Falta el título del acuerdo"),
   member_name: z.string().trim().min(1, "Falta a quién se le paga"),
+  member_user_id: z.string().optional(),
   project_ids: z.union([z.string(), z.array(z.string())]).optional(),
   total_amount: montoOpcional,
   currency: z.enum(MONEDAS, { error: "Moneda inválida" }),

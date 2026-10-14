@@ -3,11 +3,12 @@
 import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { auth } from "@clerk/nextjs/server";
+import { auth, clerkClient } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/landing/supabase";
 import { accesoActual } from "@/lib/landing/auth";
 import { cifrar, descifrar } from "@/lib/landing/cifrado";
 import { slugify } from "@/lib/escritura";
+import { esUsuarioCliente } from "@/lib/unidades";
 import { plantillaDe } from "@/lib/landing/plantillas";
 import {
   CATEGORIAS_GASTO,
@@ -1330,8 +1331,40 @@ export async function guardarAcuerdo(fd: FormData) {
 
   const proyectos = varios(fd, "project_ids");
 
+  // La cuenta vinculada decide quién ve el acuerdo en "Mis cobros": tiene que
+  // ser del equipo (nunca un cliente) y existir. Se valida solo si cambia: si
+  // no, un problema con Clerk trabaría editar el monto o el título.
+  const cuenta = opcional(fd, "member_user_id");
+  const idAcuerdo = opcional(fd, "id");
+  let cuentaActual: string | null = null;
+  if (idAcuerdo) {
+    const { data: actual } = await supabaseAdmin()
+      .from("team_agreements")
+      .select("member_user_id")
+      .eq("id", idAcuerdo)
+      .maybeSingle();
+    cuentaActual = (actual?.member_user_id as string | null | undefined) ?? null;
+  }
+  if (cuenta && cuenta !== cuentaActual) {
+    let usuario;
+    try {
+      usuario = await (await clerkClient()).users.getUser(cuenta);
+    } catch (e) {
+      const status = (e as { status?: number } | null)?.status;
+      throw new Error(
+        status === 404
+          ? "La cuenta elegida ya no existe"
+          : "No se pudo verificar la cuenta en este momento. Probá de nuevo.",
+      );
+    }
+    if (esUsuarioCliente(usuario.publicMetadata)) {
+      throw new Error("La cuenta elegida es de un cliente, no del equipo");
+    }
+  }
+
   const fila = {
     member_name: miembro,
+    member_user_id: cuenta,
     title: titulo,
     total_amount: monto(fd, "total_amount"),
     currency: unaDe<Moneda>(texto(fd, "currency"), MONEDAS, "Moneda"),

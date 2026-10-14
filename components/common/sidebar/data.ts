@@ -34,7 +34,9 @@ const UNIDADES_OWNER: Unidad[] = ["landing-pages", "marca-personal", "synous-ai"
 
 /** Secciones de una unidad según rol: las `owner` no las ve un Builder. */
 function seccionesDe(unidad: Unidad, esOwner: boolean) {
-  return (DEFINICIONES[unidad].secciones ?? []).filter((s) => esOwner || !s.owner);
+  return (DEFINICIONES[unidad].secciones ?? []).filter((s) =>
+    esOwner ? !s.soloEquipo : !s.owner,
+  );
 }
 
 function entradaUnidad(unidad: Unidad, esOwner: boolean): NavEntry {

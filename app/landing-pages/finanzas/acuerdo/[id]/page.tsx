@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { listarMiembros } from "@/lib/landing/auth";
 import { notFound } from "next/navigation";
 import {
   ArrowLeft,
@@ -35,11 +36,12 @@ export default async function AcuerdoDetalle({
 }) {
   const { id } = await params;
 
-  const [acuerdo, proyectos, clientes, pagos] = await Promise.all([
+  const [acuerdo, proyectos, clientes, pagos, miembros] = await Promise.all([
     obtenerAcuerdo(id),
     listarProyectos(),
     listarClientes(),
     listarPagosEquipo(id),
+    listarMiembros().catch(() => []),
   ]);
 
   if (!acuerdo) notFound();
@@ -63,7 +65,7 @@ export default async function AcuerdoDetalle({
         descripcion={`${codigoAcuerdo(acuerdo.numero)} · ${acuerdo.member_name}`}
         accion={
           <span className="flex items-center gap-3">
-            <AcuerdoForm proyectos={proyectos} clientes={clientes} acuerdo={acuerdo} />
+            <AcuerdoForm proyectos={proyectos} clientes={clientes} miembros={miembros} acuerdo={acuerdo} />
             <BorrarAcuerdo id={acuerdo.id} redirigirA="/landing-pages/finanzas" />
           </span>
         }

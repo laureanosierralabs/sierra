@@ -415,6 +415,8 @@ export interface AcuerdoEquipo {
   id: string;
   numero: number;
   member_name: string;
+  /** Cuenta de la persona en el panel (Clerk). Con ella ve el acuerdo en "Mis cobros". */
+  member_user_id: string | null;
   title: string;
   total_amount: number | null;
   currency: Moneda;

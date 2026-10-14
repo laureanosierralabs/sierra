@@ -27,6 +27,8 @@ export interface DefinicionUnidad {
     icono: string;
     /** Solo el owner la ve. */
     owner?: boolean;
+    /** Solo la ve el equipo, no el owner (por ejemplo, sus cobros). */
+    soloEquipo?: boolean;
   }[];
 }
 
@@ -41,6 +43,7 @@ export const DEFINICIONES: Record<Unidad, DefinicionUnidad> = {
       { href: "/landing-pages/projects", label: "Proyectos", icono: "FolderKanban" },
       { href: "/landing-pages/tasks", label: "Tareas", icono: "ListChecks" },
       { href: "/landing-pages/clients", label: "Clientes", icono: "Users" },
+      { href: "/landing-pages/mis-cobros", label: "Mis cobros", icono: "Wallet", soloEquipo: true },
       {
         href: "/landing-pages/quotes",
         label: "Cotizaciones",
