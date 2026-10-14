@@ -9,7 +9,7 @@ test("la migración de marcas mueve proyectos y sus cotizaciones, y es idempoten
   // Un cliente no puede operarse a sí mismo.
   assert.match(sql, /check \(operated_by is null or operated_by <> id\)/);
   // Solo se mueven proyectos de la marca indicada, desde su operador.
-  assert.match(sql, /update projects set client_id = aida\s+where client_id = oriana and name ilike '%\| aida qui%'/);
+  assert.match(sql, /update projects set client_id = aida\s+where client_id = oriana and \(name ilike '%\| aida qui%' or name ilike '%\| academia adn%'\)/);
   assert.match(sql, /update projects set client_id = pilar\s+where client_id = ismael and name ilike '%\| pilar sousa%'/);
   // La marca paga: pasa una cotización solo si TODOS sus proyectos son de la marca.
   assert.match(sql, /update quotes q set client_id = aida\s+where q\.client_id = oriana/);

@@ -34,8 +34,9 @@ create index if not exists clients_operated_by_idx
 --
 -- Datos (indicado por Laureano, 2026-10-15): Aida Qui es la marca operada por
 -- Oriana Safenreider; Pilar Sousa, la marca operada por Ismael El Haddar. Sus
--- proyectos pasan a la marca (los nombres terminan en "| Aida Qui" / "| Pilar
--- Sousa"). Idempotente: correrla dos veces no crea ni mueve nada de más.
+-- proyectos pasan a la marca (los nombres terminan en "| Aida Qui" o
+-- "| Academia ADN" / "| Pilar Sousa"). Idempotente: correrla dos veces no
+-- crea ni mueve nada de más.
 do $$
 declare
   oriana uuid;
@@ -57,8 +58,9 @@ begin
       returning id into aida;
     end if;
     update clients set operated_by = oriana where id = aida and operated_by is null;
+    -- "| Academia ADN" es la academia de Aida (páginas de registro).
     update projects set client_id = aida
-      where client_id = oriana and name ilike '%| aida qui%';
+      where client_id = oriana and (name ilike '%| aida qui%' or name ilike '%| academia adn%');
     update quotes q set client_id = aida
       where q.client_id = oriana
         and exists (select 1 from quote_projects qp where qp.quote_id = q.id)
