@@ -349,10 +349,20 @@ export async function guardarCliente(fd: FormData) {
   };
 
   const id = opcional(fd, "id");
+
+  // La operadora solo se toca si el formulario la manda: los forms que no la
+  // muestran (tarjetas, tabla) no la borran al guardar.
+  const operador: { operated_by?: string | null } = {};
+  if (fd.has("operated_by")) {
+    const op = opcional(fd, "operated_by");
+    if (op && op === id) throw new Error("Un cliente no puede operarse a sí mismo");
+    operador.operated_by = op;
+  }
+
   const db = supabaseAdmin();
   const { error } = id
-    ? await db.from("clients").update(fila).eq("id", id)
-    : await db.from("clients").insert(fila);
+    ? await db.from("clients").update({ ...fila, ...operador }).eq("id", id)
+    : await db.from("clients").insert({ ...fila, ...operador });
 
   if (error) throw new Error(`No se pudo guardar el cliente: ${error.message}`);
   revalidar();

@@ -357,6 +357,11 @@ export interface Cliente {
   website: string | null;
   drive_url: string | null;
   notes: string | null;
+  /**
+   * Quién opera esta marca (su growth operator, otro cliente). La marca es el
+   * cliente de los proyectos; el operador suele ser quien paga.
+   */
+  operated_by: string | null;
   created_at: string;
   updated_at: string;
 }

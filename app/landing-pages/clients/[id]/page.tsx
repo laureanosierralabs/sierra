@@ -18,8 +18,10 @@ import {
   Instagram,
   Phone,
   Target3,
+  UserMultiple1,
 } from "@tailgrids/icons";
 import {
+  listarClientes,
   listarCotizaciones,
   listarNotasCliente,
   listarProyectos,
@@ -73,7 +75,7 @@ export default async function ClienteDetalle({
   // Lo comercial es del owner: a un member ni se le cargan las cotizaciones.
   const { esOwner } = await accesoActual();
 
-  const [cliente, cotizaciones, proyectos, accesos, notas, portal, lanzamientos, conectados] = await Promise.all([
+  const [cliente, cotizaciones, proyectos, accesos, notas, portal, lanzamientos, conectados, todos] = await Promise.all([
     obtenerCliente(id),
     esOwner ? listarCotizaciones() : Promise.resolve([]),
     listarProyectos(),
@@ -100,9 +102,14 @@ export default async function ClienteDetalle({
             return null;
           })
       : Promise.resolve(null),
+    listarClientes(),
   ]);
 
   if (!cliente) notFound();
+
+  // Marca y operador/a: quién opera esta marca, y qué marcas opera este cliente.
+  const operador = cliente.operated_by ? (todos.find((c) => c.id === cliente.operated_by) ?? null) : null;
+  const marcas = todos.filter((c) => c.operated_by === cliente.id);
 
   const susCotizaciones = cotizaciones.filter((q) => q.client_id === id);
   const susProyectos = proyectos.filter((p) => p.client_id === id);
@@ -134,7 +141,7 @@ export default async function ClienteDetalle({
                 Exportar
               </EnlaceBoton>
             )}
-            <ClienteForm cliente={cliente} />
+            <ClienteForm cliente={cliente} operadores={todos} />
           </span>
         }
       />
@@ -145,6 +152,26 @@ export default async function ClienteDetalle({
             <Propiedad icono={CheckCircle1} label="Estado">
               <EstadoClientePill estado={cliente.status} />
             </Propiedad>
+
+            {operador && (
+              <Propiedad icono={UserMultiple1} label="Operado por">
+                <Link href={`/landing-pages/clients/${operador.id}`} className="font-medium hover:underline">
+                  {operador.name}
+                </Link>
+              </Propiedad>
+            )}
+
+            {marcas.length > 0 && (
+              <Propiedad icono={UserMultiple1} label="Opera">
+                <span className="flex flex-wrap gap-x-2">
+                  {marcas.map((m) => (
+                    <Link key={m.id} href={`/landing-pages/clients/${m.id}`} className="font-medium hover:underline">
+                      {m.name}
+                    </Link>
+                  ))}
+                </span>
+              </Propiedad>
+            )}
 
             <Propiedad icono={Target3} label="Origen">
               {cliente.source ? (

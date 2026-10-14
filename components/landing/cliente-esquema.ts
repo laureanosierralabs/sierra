@@ -39,4 +39,5 @@ export const clienteEsquema = z.object({
   website: urlOpcional,
   drive_url: urlOpcional,
   notes: z.string().optional(),
+  operated_by: z.string().optional(),
 });

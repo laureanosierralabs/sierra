@@ -324,7 +324,11 @@ function calcularMargenes(
   for (const a of acuerdos) {
     for (const pid of a.project_ids) {
       const p = proyectoPor.get(pid);
-      const c = p?.client_id ? clientePor.get(p.client_id) : null;
+      // El proyecto es de la marca (Aida); el ingreso, de quien paga (Oriana).
+      // El costo se imputa a quien paga, para que ingreso y costo de un mismo
+      // cliente queden en la misma fila.
+      const marca = p?.client_id ? clientePor.get(p.client_id) : null;
+      const c = marca?.operated_by ? (clientePor.get(marca.operated_by) ?? marca) : marca;
       const nombre = c ? (c.company ?? c.name) : "Sin cliente";
       const actual = porCliente.get(nombre) ?? {
         ingreso: 0,

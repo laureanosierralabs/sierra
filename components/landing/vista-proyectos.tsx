@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { EmptyState } from "@/components/common/empty-state";
 import { FiltroBotones, type OpcionFiltro } from "@/components/landing/filtro-botones";
 import { FiltroSelect } from "@/components/landing/filtro-select";
@@ -23,6 +24,10 @@ const TODOS = "todos";
 const TODAS = "todas";
 
 type Filtro = GrupoProyecto | typeof TODOS;
+type Agrupar = "cliente" | "estado";
+
+const POR_CLIENTE = { valor: "cliente", etiqueta: "Agrupar por cliente" };
+const POR_ESTADO = [{ valor: "estado", etiqueta: "Agrupar por estado" }];
 
 export function VistaProyectos({
   proyectos,
@@ -42,6 +47,7 @@ export function VistaProyectos({
   const [filtro, setFiltro] = useState<Filtro>(TODOS);
   const [empresa, setEmpresa] = useState<string>(TODAS);
   const [tipoPagina, setTipoPagina] = useState<string>(TODOS);
+  const [agrupar, setAgrupar] = useState<Agrupar>("cliente");
 
   const clientePor = useMemo(() => new Map(clientes.map((c) => [c.id, c.name])), [clientes]);
   const empresaPor = useMemo(() => new Map(clientes.map((c) => [c.id, c.company])), [clientes]);
@@ -76,6 +82,28 @@ export function VistaProyectos({
         })).filter((g) => g.items.length > 0)
       : [];
 
+  // Por cliente: un bloque por marca con todos sus proyectos (y quién la
+  // opera). Respeta los filtros de estado, empresa y tipo.
+  const porCliente = (() => {
+    const operadorDe = new Map(clientes.map((c) => [c.id, c.operated_by]));
+    const mapa = new Map<string, Proyecto[]>();
+    for (const p of visibles) {
+      const clave = p.client_id ?? "";
+      mapa.set(clave, [...(mapa.get(clave) ?? []), p]);
+    }
+    return [...mapa.entries()]
+      .map(([id, items]) => {
+        const operador = id ? operadorDe.get(id) : null;
+        return {
+          id,
+          nombre: id ? (clientePor.get(id) ?? "Cliente") : "Sin cliente",
+          operador: operador ? (clientePor.get(operador) ?? null) : null,
+          items,
+        };
+      })
+      .sort((a, b) => (a.id === "" ? 1 : b.id === "" ? -1 : a.nombre.localeCompare(b.nombre, "es")));
+  })();
+
   const opcionesGrupo: OpcionFiltro<Filtro>[] = [
     { valor: TODOS, etiqueta: "Todos", cantidad: porEmpresa.length },
     ...GRUPOS_PROYECTO.map((g) => ({
@@ -104,6 +132,14 @@ export function VistaProyectos({
           onChange={setFiltro}
         />
 
+        <FiltroSelect
+          etiqueta="Agrupar proyectos"
+          valor={agrupar}
+          onChange={(v) => setAgrupar(v as Agrupar)}
+          todos={POR_CLIENTE}
+          opciones={POR_ESTADO}
+        />
+
         {empresas.length > 0 && (
           <FiltroSelect
             etiqueta="Filtrar por empresa"
@@ -128,7 +164,33 @@ export function VistaProyectos({
         )}
       </div>
 
-      {filtro === TODOS ? (
+      {agrupar === "cliente" ? (
+        <div className="flex flex-col gap-8">
+          {porCliente.map((g) => (
+            <section key={g.id || "sin-cliente"} aria-label={g.nombre}>
+              <div className="mb-3 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                {g.id ? (
+                  <Link
+                    href={`/landing-pages/clients/${g.id}`}
+                    className="text-sm font-semibold text-title-50 hover:underline"
+                  >
+                    {g.nombre}
+                  </Link>
+                ) : (
+                  <h2 className="text-sm font-semibold text-title-50">{g.nombre}</h2>
+                )}
+                {g.operador && (
+                  <span className="text-xs text-text-tertiary">operado por {g.operador}</span>
+                )}
+                <span className="text-xs tabular-nums text-text-tertiary">{g.items.length}</span>
+              </div>
+              <ListaProyectos vista={vista} proyectos={g.items} datos={datos} />
+            </section>
+          ))}
+
+          {porCliente.length === 0 && <EmptyState title="No hay proyectos con estos filtros" />}
+        </div>
+      ) : filtro === TODOS ? (
         <div className="flex flex-col gap-8">
           {grupos.map((g) => (
             <section key={g.id} aria-label={g.label}>

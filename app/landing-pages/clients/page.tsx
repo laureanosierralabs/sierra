@@ -13,7 +13,7 @@ export default async function ClientesPage() {
       <PageHeader
         titulo="Clientes"
         descripcion={`${clientes.length} ${clientes.length === 1 ? "contacto" : "contactos"}`}
-        accion={<ClienteForm />}
+        accion={<ClienteForm operadores={clientes} />}
       />
 
       <ClientesTabla clientes={clientes} />

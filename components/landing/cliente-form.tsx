@@ -28,10 +28,21 @@ const OPCIONES_ORIGEN = [
 /** Mismo FormData que antes: "sin definir" viaja como cadena vacía. */
 function guardar(fd: FormData) {
   if (fd.get("source") === SIN_OPCION) fd.set("source", "");
+  if (fd.get("operated_by") === SIN_OPCION) fd.set("operated_by", "");
   return guardarCliente(fd);
 }
 
-export function ClienteForm({ cliente }: { cliente?: Cliente }) {
+export function ClienteForm({
+  cliente,
+  operadores,
+}: {
+  cliente?: Cliente;
+  /**
+   * Clientes que pueden operar esta marca. Sin esta lista el campo no se
+   * muestra y la operadora guardada no se toca.
+   */
+  operadores?: Pick<Cliente, "id" | "name">[];
+}) {
   const editar = Boolean(cliente);
 
   return (
@@ -118,6 +129,21 @@ export function ClienteForm({ cliente }: { cliente?: Cliente }) {
               defaultValue={cliente?.website ?? ""}
             />
           </div>
+
+          {operadores && (
+            <FormSelectField
+              {...form.fieldProps("operated_by")}
+              label="Operado/a por"
+              description="La persona detrás de la marca (su growth operator). Suele ser quien paga las cotizaciones."
+              options={[
+                { value: SIN_OPCION, label: "Nadie (la marca se opera sola)" },
+                ...operadores
+                  .filter((o) => o.id !== cliente?.id)
+                  .map((o) => ({ value: o.id, label: o.name })),
+              ]}
+              defaultValue={cliente?.operated_by ?? SIN_OPCION}
+            />
+          )}
 
           <FormTextField
             {...form.fieldProps("drive_url")}
