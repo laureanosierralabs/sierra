@@ -66,6 +66,28 @@ async function exigirOwner() {
   return userId;
 }
 
+/**
+ * Los recursos de un proyecto (y sus contraseñas) los gestiona el owner o
+ * quien está asignado a ese proyecto. Mismo criterio que para revelarlos.
+ */
+async function exigirGestionDeProyecto(userId: string, projectId: string) {
+  const { esOwner } = await accesoActual();
+  if (esOwner) return;
+  const { data } = await supabaseAdmin()
+    .from("project_assignees")
+    .select("project_id")
+    .eq("user_id", userId)
+    .eq("project_id", projectId)
+    .limit(1);
+  if (!data?.length) throw new Error("Solo quien está asignado al proyecto puede cambiar sus recursos");
+}
+
+/** Los accesos de un cliente valen para todos sus proyectos: los gestiona el owner. */
+async function exigirOwnerDeAccesos() {
+  const { esOwner } = await accesoActual();
+  if (!esOwner) throw new Error("Solo el owner gestiona los accesos del cliente");
+}
+
 function texto(fd: FormData, campo: string): string {
   return String(fd.get(campo) ?? "").trim();
 }
@@ -1719,10 +1741,11 @@ export async function guardarAnotaciones(projectId: string, contenido: string) {
 }
 
 export async function guardarRecurso(fd: FormData) {
-  await exigirSesion();
+  const userId = await exigirSesion();
 
   const projectId = texto(fd, "project_id");
   if (!projectId) throw new Error("Falta el proyecto");
+  await exigirGestionDeProyecto(userId, projectId);
 
   const nombre = texto(fd, "name");
   if (!nombre) throw new Error("Falta el nombre del recurso");
@@ -1749,7 +1772,8 @@ export async function guardarRecurso(fd: FormData) {
   const id = opcional(fd, "id");
   const db = supabaseAdmin();
   const { error } = id
-    ? await db.from("project_resources").update(fila).eq("id", id)
+    ? // El recurso tiene que ser de ESE proyecto: el id viene del navegador.
+      await db.from("project_resources").update(fila).eq("id", id).eq("project_id", projectId)
     : await db.from("project_resources").insert(fila);
 
   if (error) throw new Error(`No se pudo guardar el recurso: ${error.message}`);
@@ -1851,6 +1875,7 @@ export async function borrarNotaCliente(id: string, clientId: string) {
 
 export async function guardarRecursoCliente(fd: FormData) {
   await exigirSesion();
+  await exigirOwnerDeAccesos();
 
   const clientId = texto(fd, "client_id");
   if (!clientId) throw new Error("Falta el cliente");
@@ -1878,7 +1903,7 @@ export async function guardarRecursoCliente(fd: FormData) {
   const id = opcional(fd, "id");
   const db = supabaseAdmin();
   const { error } = id
-    ? await db.from("client_resources").update(fila).eq("id", id)
+    ? await db.from("client_resources").update(fila).eq("id", id).eq("client_id", clientId)
     : await db.from("client_resources").insert(fila);
 
   if (error) throw new Error(`No se pudo guardar: ${error.message}`);
@@ -1947,11 +1972,13 @@ export async function moverProyectosACliente(fd: FormData): Promise<void | { err
 
 export async function borrarRecursoCliente(id: string, clientId: string) {
   await exigirSesion();
+  await exigirOwnerDeAccesos();
 
   const { error } = await supabaseAdmin()
     .from("client_resources")
     .delete()
-    .eq("id", id);
+    .eq("id", id)
+    .eq("client_id", clientId);
 
   if (error) throw new Error(`No se pudo borrar: ${error.message}`);
   revalidatePath(`/landing-pages/clients/${clientId}`);
@@ -1959,12 +1986,14 @@ export async function borrarRecursoCliente(id: string, clientId: string) {
 }
 
 export async function borrarRecurso(id: string, projectId: string) {
-  await exigirSesion();
+  const userId = await exigirSesion();
+  await exigirGestionDeProyecto(userId, projectId);
 
   const { error } = await supabaseAdmin()
     .from("project_resources")
     .delete()
-    .eq("id", id);
+    .eq("id", id)
+    .eq("project_id", projectId);
 
   if (error) throw new Error(`No se pudo borrar el recurso: ${error.message}`);
   revalidatePath(`/landing-pages/projects/${projectId}`);

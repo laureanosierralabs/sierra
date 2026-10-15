@@ -237,6 +237,7 @@ export default async function ClienteDetalle({
           tabla="client"
           titulo="Accesos del cliente"
           recursos={accesos}
+          editable={esOwner}
         />
 
         <NotasCliente clientId={cliente.id} notas={notas} />

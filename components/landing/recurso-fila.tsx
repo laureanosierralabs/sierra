@@ -53,10 +53,12 @@ export function RecursoFila({
   recurso: r,
   duenoId,
   tabla,
+  editable = true,
 }: {
   recurso: RecursoVista;
   duenoId: string;
   tabla: "project" | "client";
+  editable?: boolean;
 }) {
   const icono = iconoDe(r);
   const conCredenciales = Boolean(r.username || r.tieneSecreto);
@@ -102,15 +104,19 @@ export function RecursoFila({
               {r.notes}
             </span>
           )}
-          <RecursoForm duenoId={duenoId} tabla={tabla} recurso={r} />
-          <BorrarBoton
-            etiqueta="Borrar recurso"
-            onConfirmar={() =>
-              tabla === "client"
-                ? borrarRecursoCliente(r.id, duenoId)
-                : borrarRecurso(r.id, duenoId)
-            }
-          />
+          {editable && (
+            <>
+              <RecursoForm duenoId={duenoId} tabla={tabla} recurso={r} />
+              <BorrarBoton
+                etiqueta="Borrar recurso"
+                onConfirmar={() =>
+                  tabla === "client"
+                    ? borrarRecursoCliente(r.id, duenoId)
+                    : borrarRecurso(r.id, duenoId)
+                }
+              />
+            </>
+          )}
         </span>
       </div>
 

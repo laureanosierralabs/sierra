@@ -18,11 +18,14 @@ export function Recursos({
   tabla = "project",
   titulo = "Recursos del proyecto",
   recursos,
+  editable = true,
 }: {
   duenoId: string;
   tabla?: "project" | "client";
   titulo?: string;
   recursos: RecursoVista[];
+  /** Sin permiso para gestionarlos: se ven (y se revelan si corresponde), sin editar ni borrar. */
+  editable?: boolean;
 }) {
   const [filtro, setFiltro] = useState<Filtro>("todos");
 
@@ -44,7 +47,7 @@ export function Recursos({
     <section>
       <SeccionTitulo
         icono={Link1AngularRight}
-        accion={<RecursoForm duenoId={duenoId} tabla={tabla} />}
+        accion={editable ? <RecursoForm duenoId={duenoId} tabla={tabla} /> : undefined}
       >
         {titulo}
       </SeccionTitulo>
@@ -66,7 +69,7 @@ export function Recursos({
         <Card className="overflow-hidden p-0">
           <ul className="divide-y divide-card-border">
             {visibles.map((r) => (
-              <RecursoFila key={r.id} recurso={r} duenoId={duenoId} tabla={tabla} />
+              <RecursoFila key={r.id} recurso={r} duenoId={duenoId} tabla={tabla} editable={editable} />
             ))}
           </ul>
         </Card>

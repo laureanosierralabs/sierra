@@ -12,7 +12,7 @@ import {
   listarTareasDeProyecto,
   obtenerProyecto,
 } from "@/lib/landing/datos";
-import { accesoActual, listarMiembros } from "@/lib/landing/auth";
+import { accesoActual, listarMiembros, usuarioActual } from "@/lib/landing/auth";
 import { misAcuerdos } from "@/lib/landing/mis-cobros";
 import { PageHeader } from "@/components/landing/ui";
 import { ProyectoForm } from "@/components/landing/proyecto-form";
@@ -61,6 +61,9 @@ export default async function ProyectoDetalle({
   ]);
 
   const clientePor = new Map(clientes.map((c) => [c.id, c.name]));
+  // Mismo criterio que las acciones: el owner o quien está asignado.
+  const usuario = await usuarioActual();
+  const puedeGestionar = acceso.esOwner || (usuario ? proyecto.assignee_ids.includes(usuario.id) : false);
   const nombreMiembro = new Map(miembros.map((m) => [m.id, m.nombre]));
   const responsables =
     proyecto.assignee_ids
@@ -149,10 +152,11 @@ export default async function ProyectoDetalle({
             tabla="client"
             titulo={`Accesos de ${clientePor.get(proyecto.client_id) ?? "la marca"}`}
             recursos={accesosCliente}
+            editable={acceso.esOwner}
           />
         )}
 
-        <Recursos duenoId={proyecto.id} recursos={recursos} />
+        <Recursos duenoId={proyecto.id} recursos={recursos} editable={puedeGestionar} />
 
         {cotizaciones.length > 0 && <ProyectoCotizaciones cotizaciones={cotizaciones} />}
 
