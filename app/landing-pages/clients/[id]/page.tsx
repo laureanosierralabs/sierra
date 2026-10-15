@@ -30,6 +30,10 @@ import {
 } from "@/lib/landing/datos";
 import { formatearMonto, LABEL_ORIGEN, nombreCliente, urlInstagram, urlWhatsapp } from "@/lib/landing/tipos";
 import { AgregarProyectos } from "@/components/landing/agregar-proyectos";
+import { NuevaAprobacion } from "@/components/pedidos/pedido-formularios";
+import { ListaPedidos } from "@/components/pedidos/pedido-ui";
+import { crearAprobacion } from "@/app/landing-pages/pedidos-acciones";
+import { pedidosDeCliente } from "@/lib/pedidos/datos";
 import {
   EstadoClientePill,
   EstadoCotizacionPill,
@@ -76,7 +80,7 @@ export default async function ClienteDetalle({
   // Lo comercial es del owner: a un member ni se le cargan las cotizaciones.
   const { esOwner } = await accesoActual();
 
-  const [cliente, cotizaciones, proyectos, accesos, notas, portal, lanzamientos, conectados, todos] = await Promise.all([
+  const [cliente, cotizaciones, proyectos, accesos, notas, portal, lanzamientos, conectados, todos, pedidos] = await Promise.all([
     obtenerCliente(id),
     esOwner ? listarCotizaciones() : Promise.resolve([]),
     listarProyectos(),
@@ -104,6 +108,10 @@ export default async function ClienteDetalle({
           })
       : Promise.resolve(null),
     listarClientes(),
+    pedidosDeCliente(id).catch((e) => {
+      console.error("[clientes] no se pudieron leer los pedidos:", e);
+      return [];
+    }),
   ]);
 
   if (!cliente) notFound();
@@ -247,6 +255,24 @@ export default async function ClienteDetalle({
         )}
 
         {esOwner && <LanzamientosCliente clientId={cliente.id} lanzamientos={lanzamientos} />}
+
+        <SeccionCard
+          titulo="Pedidos"
+          cantidad={pedidos.length}
+          accion={
+            <NuevaAprobacion
+              action={crearAprobacion}
+              clientId={cliente.id}
+              lanzamientos={lanzamientos.map((l) => ({ id: l.id, name: l.name }))}
+            />
+          }
+        >
+          <ListaPedidos
+            pedidos={pedidos}
+            href={(p) => `/landing-pages/pedidos/${p}`}
+            vacio="Sin pedidos. El cliente los crea desde su portal; vos podés pedirle una aprobación."
+          />
+        </SeccionCard>
 
         {esOwner && portal !== undefined && (
           <PortalCliente clientId={cliente.id} estado={portal} />

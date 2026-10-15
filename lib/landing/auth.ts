@@ -63,7 +63,7 @@ export const usuarioActual = cache(async () => {
   return cliente.users.getUser(userId);
 });
 
-function nombreDe(u: {
+export function nombreDe(u: {
   firstName: string | null;
   lastName: string | null;
   emailAddresses: { emailAddress: string }[];

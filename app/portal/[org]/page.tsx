@@ -12,6 +12,8 @@ import {
 } from "@/lib/landing/tipos";
 import { contextoPortal } from "@/lib/portal/contexto";
 import { cotizacionesCompartidas, lanzamientosPortal } from "@/lib/portal/datos";
+import { pedidosDeCliente } from "@/lib/pedidos/datos";
+import { estaCerrado } from "@/lib/pedidos/tipos";
 import { LABEL_ESTADO_LANZAMIENTO } from "@/lib/lanzamientos/tipos";
 import { Badge } from "@/components/tailgrids/core/badge";
 
@@ -26,14 +28,21 @@ export default async function PortalCliente({ params }: { params: Promise<{ org:
   // Inexistente o ajeno: el mismo 404, sin revelar cuál de los dos es.
   if (!ctx) notFound();
 
-  const [lanzamientos, cotizaciones] = await Promise.all([
+  const [lanzamientos, cotizaciones, pedidos] = await Promise.all([
     // Si los lanzamientos fallan, las cotizaciones se siguen viendo.
     lanzamientosPortal(ctx).catch((e) => {
       console.error("[portal] no se pudieron leer los lanzamientos:", e);
       return [];
     }),
     cotizacionesCompartidas(ctx),
+    // Los pedidos son un extra del inicio: si fallan, el resto se ve igual.
+    pedidosDeCliente(ctx.clientId).catch((e) => {
+      console.error("[portal] no se pudieron leer los pedidos:", e);
+      return [];
+    }),
   ]);
+  const porAprobar = pedidos.filter((p) => p.kind === "aprobacion" && p.status === "abierta").length;
+  const abiertos = pedidos.filter((p) => !estaCerrado(p.status)).length;
 
   return (
     <>
@@ -44,6 +53,30 @@ export default async function PortalCliente({ params }: { params: Promise<{ org:
       )}
 
       <h1 className="mb-6 text-xl font-semibold text-text-primary">{ctx.clienteNombre}</h1>
+
+      <section className="mb-8">
+        <h2 className="mb-3 text-sm font-semibold text-text-secondary">Pedidos</h2>
+        <Link
+          href={`/portal/${ctx.slug}/pedidos`}
+          className="flex items-center justify-between gap-4 rounded-xl border border-card-border bg-card-background px-5 py-4 transition-colors hover:bg-background-gray-secondary"
+        >
+          <span className="min-w-0">
+            {porAprobar > 0 ? (
+              <span className="block text-sm font-semibold text-badge-warning-text">
+                {porAprobar === 1 ? "1 pedido espera tu aprobación" : `${porAprobar} pedidos esperan tu aprobación`}
+              </span>
+            ) : (
+              <span className="block text-sm font-medium text-text-primary">
+                {abiertos === 0 ? "No hay pedidos abiertos" : `${abiertos} ${abiertos === 1 ? "pedido abierto" : "pedidos abiertos"}`}
+              </span>
+            )}
+            <span className="block text-sm text-text-tertiary">
+              Reportá un problema o pedí un cambio, y seguí su estado acá.
+            </span>
+          </span>
+          <span className="shrink-0 text-sm font-medium text-primary-500">Ver pedidos →</span>
+        </Link>
+      </section>
 
       <section className="mb-8">
         <h2 className="mb-3 text-sm font-semibold text-text-secondary">Lanzamientos</h2>

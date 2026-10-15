@@ -2,6 +2,7 @@ import Image from "next/image";
 import {
   Buildings11,
   CheckCircle1,
+  Comment1,
   DashboardSquare1,
   FileText,
   Folder1,
@@ -34,6 +35,7 @@ const ICONOS = {
   UserCog: IdCard,
   Wallet: Wallet2,
   ChartLine: TrendUp2,
+  Inbox: Comment1,
 } as const;
 
 /** Unidades con logo propio en vez de ícono. */

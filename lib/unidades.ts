@@ -43,6 +43,7 @@ export const DEFINICIONES: Record<Unidad, DefinicionUnidad> = {
       { href: "/landing-pages/projects", label: "Proyectos", icono: "FolderKanban" },
       { href: "/landing-pages/tasks", label: "Tareas", icono: "ListChecks" },
       { href: "/landing-pages/clients", label: "Clientes", icono: "Users" },
+      { href: "/landing-pages/pedidos", label: "Pedidos", icono: "Inbox" },
       { href: "/landing-pages/mis-cobros", label: "Mis cobros", icono: "Wallet", soloEquipo: true },
       {
         href: "/landing-pages/quotes",
