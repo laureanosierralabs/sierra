@@ -14,6 +14,7 @@ import {
   PaginaLanzamientoForm,
 } from "@/components/lanzamientos/lanzamiento-gestion";
 import { PanelLanzamiento } from "@/components/lanzamientos/panel-lanzamiento";
+import { VerificarLandings } from "@/components/lanzamientos/verificar-landings";
 import { accesoActual } from "@/lib/landing/auth";
 import { listarProyectos, obtenerCliente } from "@/lib/landing/datos";
 import { supabaseAdmin } from "@/lib/landing/supabase";
@@ -30,6 +31,8 @@ import { Badge } from "@/components/tailgrids/core/badge";
 import { rutasDeSitio, sitiosDeCliente } from "@/lib/sitios/datos";
 
 export const dynamic = "force-dynamic";
+// "Verificar landings" (server action de esta página) pide varias URLs ajenas.
+export const maxDuration = 60;
 
 /**
  * Un lanzamiento, para el owner. Dos pestañas con propósito distinto:
@@ -153,6 +156,7 @@ export default async function LanzamientoDetalle({
             cantidad={paginas.length}
             accion={
               <span className="flex flex-wrap items-center gap-2">
+                {paginas.length > 0 && <VerificarLandings launchId={lanzamiento.id} />}
                 <ElegirLandings launchId={lanzamiento.id} proyectos={paraElegir} />
                 <PaginaLanzamientoForm launchId={lanzamiento.id} proyectos={proyectosDelCliente} sitios={sitios} />
               </span>
