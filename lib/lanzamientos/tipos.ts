@@ -20,6 +20,8 @@ export interface Lanzamiento {
   starts_on: string | null;
   ends_on: string | null;
   goal_registrations: number | null;
+  /** Conclusiones del reporte de cierre (las escribe el owner). */
+  closing_notes: string | null;
   created_at: string;
 }
 

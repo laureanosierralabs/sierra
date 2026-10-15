@@ -20,7 +20,7 @@ import { conversionesDeRutas, visitasDeRutas } from "@/lib/sitios/datos";
  * secreto del webhook, que nunca salen de `conexionDeLanzamiento`.
  */
 const COLUMNAS_LANZAMIENTO =
-  "id, client_id, name, status, starts_on, ends_on, goal_registrations, created_at";
+  "id, client_id, name, status, starts_on, ends_on, goal_registrations, closing_notes, created_at";
 const COLUMNAS_PAGINA =
   "id, launch_id, name, url, thanks_url, whatsapp_url, checkout_url, project_id, mailerlite_group_id, track_key, site_id, path, kind, position";
 const COLUMNAS_REGISTRO =

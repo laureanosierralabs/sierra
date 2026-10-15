@@ -14,8 +14,8 @@ export const metadata: Metadata = {
  */
 export default function PortalLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen flex-col bg-background-gray-secondary">
-      <header className="border-b border-card-border bg-card-background">
+    <div className="flex min-h-screen flex-col bg-background-gray-secondary print:bg-white">
+      <header className="border-b border-card-border bg-card-background print:hidden">
         <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
           <Link href="/portal" aria-label="Inicio del portal">
             <Image
@@ -30,7 +30,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
           <UserProfileButton />
         </div>
       </header>
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 sm:px-6">{children}</main>
+      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 sm:px-6 print:max-w-none print:p-0">{children}</main>
     </div>
   );
 }

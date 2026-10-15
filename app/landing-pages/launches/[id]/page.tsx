@@ -8,6 +8,7 @@ import {
   BorrarPaginaLanzamiento,
   ConexionMailerlite,
   CopiarScriptVisitas,
+  ConclusionesForm,
   ElegirLandings,
   ImportarRegistros,
   LanzamientoForm,
@@ -202,6 +203,30 @@ export default async function LanzamientoDetalle({
                 </div>
               ))
             )}
+          </SeccionCard>
+
+          <SeccionCard
+            titulo="Reporte de cierre"
+            accion={
+              slugPortal ? (
+                <a
+                  href={`/portal/${slugPortal}/lanzamientos/${lanzamiento.id}/reporte`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 text-sm font-medium text-primary-500 hover:underline [&>svg]:size-4"
+                >
+                  <ExpandArrowTopRightSquare1 />
+                  Ver reporte
+                </a>
+              ) : undefined
+            }
+          >
+            {!slugPortal && (
+              <p className="px-4 pt-4 text-sm text-text-tertiary">
+                El reporte se ve en el portal del cliente: habilitalo en su ficha para verlo y descargarlo en PDF.
+              </p>
+            )}
+            <ConclusionesForm launchId={lanzamiento.id} valor={lanzamiento.closing_notes} />
           </SeccionCard>
 
           <SeccionCard titulo="Fuentes de datos">

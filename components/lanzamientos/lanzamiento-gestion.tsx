@@ -9,6 +9,9 @@ import { BorrarBoton } from "@/components/landing/borrar-boton";
 import { DialogoForm, Select } from "@/components/landing/dialogo-form";
 import { SIN_OPCION } from "@/components/landing/proyecto-esquema";
 import { Button } from "@/components/tailgrids/core/button";
+import { TextArea } from "@/components/tailgrids/core/text-area";
+import { FormError } from "@/components/common/form/form-error";
+import { useZodForm } from "@/components/common/form/use-zod-form";
 import { Checkbox } from "@/components/tailgrids/core/checkbox";
 import {
   leerRegistros,
@@ -23,6 +26,7 @@ import {
   borrarPaginaLanzamiento,
   conectarMailerlite,
   desconectarMailerlite,
+  guardarConclusiones,
   importarRegistros,
   guardarLanzamiento,
   guardarPaginaLanzamiento,
@@ -687,5 +691,33 @@ export function ImportarRegistros({
     <DialogoForm titulo="Importar registros" etiquetaAbrir="Importar registros" action={importarRegistros}>
       <CamposImportacion launchId={launchId} paginas={paginas} />
     </DialogoForm>
+  );
+}
+
+/** Conclusiones del reporte de cierre: se escriben acá y el cliente las lee en su reporte. */
+export function ConclusionesForm({ launchId, valor }: { launchId: string; valor: string | null }) {
+  const form = useZodForm({ action: guardarConclusiones });
+  return (
+    <form onSubmit={form.onSubmit} className="flex flex-col gap-3 px-4 py-4">
+      <input type="hidden" name="launch_id" value={launchId} />
+      <label className="flex flex-col gap-1.5">
+        <span className="text-sm font-medium text-input-label-text">Conclusiones y próximos pasos</span>
+        <TextArea
+          name="closing_notes"
+          rows={6}
+          maxLength={10_000}
+          defaultValue={valor ?? ""}
+          placeholder={"Qué funcionó, qué no y qué haríamos distinto en el próximo lanzamiento.\nEj.: la Activación V2 convirtió 30% más: la usamos de base."}
+          className="w-full"
+        />
+        <span className="text-xs text-text-tertiary">
+          Es la única parte del reporte que se escribe a mano: el resto sale solo de los datos.
+        </span>
+      </label>
+      <FormError message={form.formError} />
+      <Button type="submit" className="self-end" isDisabled={form.pending}>
+        {form.pending ? "Guardando…" : "Guardar conclusiones"}
+      </Button>
+    </form>
   );
 }

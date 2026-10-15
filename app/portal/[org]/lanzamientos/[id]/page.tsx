@@ -38,6 +38,12 @@ export default async function PortalLanzamiento({
         <Badge color={lanzamiento.status === "activo" ? "success" : "gray"} size="sm">
           {LABEL_ESTADO_LANZAMIENTO[lanzamiento.status]}
         </Badge>
+        <Link
+          href={`/portal/${ctx.slug}/lanzamientos/${lanzamiento.id}/reporte`}
+          className="ml-auto text-sm font-medium text-primary-500 hover:underline"
+        >
+          {lanzamiento.status === "cerrado" ? "Reporte de cierre" : "Reporte (parcial)"}
+        </Link>
         {lanzamiento.starts_on && (
           <span className="text-sm tabular-nums text-text-tertiary">
             {fechaCorta(lanzamiento.starts_on)}

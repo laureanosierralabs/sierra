@@ -487,6 +487,29 @@ export async function desconectarMailerlite(fd: FormData): Promise<Resultado | {
   };
 }
 
+/** Conclusiones y próximos pasos del reporte de cierre (las lee el cliente). */
+export async function guardarConclusiones(fd: FormData): Promise<Resultado | { aviso: string }> {
+  await exigirOwner();
+
+  const launchId = texto(fd, "launch_id");
+  const notas = texto(fd, "closing_notes");
+  if (!launchId) return { error: "Falta el lanzamiento" };
+  if (notas.length > 10_000) return { error: "Las conclusiones son muy largas (máximo 10.000 caracteres)" };
+
+  const db = supabaseAdmin();
+  const { data, error } = await db
+    .from("launches")
+    .update({ closing_notes: notas || null, updated_at: new Date().toISOString() })
+    .eq("id", launchId)
+    .select("client_id")
+    .maybeSingle();
+  if (error) return { error: "No se pudieron guardar las conclusiones" };
+  if (!data) return { error: "El lanzamiento no existe" };
+
+  revalidar(data.client_id as string, launchId);
+  return { aviso: "Conclusiones guardadas: ya se ven en el reporte" };
+}
+
 export async function borrarPaginaLanzamiento(id: string): Promise<Resultado> {
   await exigirOwner();
   const { data, error } = await supabaseAdmin()

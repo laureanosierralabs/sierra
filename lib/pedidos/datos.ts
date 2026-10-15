@@ -23,6 +23,18 @@ export async function pedidosDeCliente(clientId: string): Promise<Pedido[]> {
   return (data ?? []) as Pedido[];
 }
 
+/** Pedidos de un lanzamiento (para su reporte de cierre). */
+export async function pedidosDeLanzamiento(clientId: string, launchId: string): Promise<Pedido[]> {
+  const { data, error } = await supabaseAdmin()
+    .from("client_requests")
+    .select(COLUMNAS)
+    .eq("client_id", clientId)
+    .eq("launch_id", launchId)
+    .order("created_at");
+  if (error) throw new Error("No se pudieron leer los pedidos del lanzamiento");
+  return (data ?? []) as Pedido[];
+}
+
 export interface DetallePedido {
   pedido: Pedido;
   comentarios: ComentarioPedido[];
