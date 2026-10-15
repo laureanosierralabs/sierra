@@ -3,7 +3,6 @@
 import { useMemo } from "react";
 import type { ColumnDef, SortingState } from "@tanstack/react-table";
 import { DataTable } from "@/components/common/data-table/data-table";
-import type { DataTableFacet } from "@/components/common/data-table/types";
 import { EmptyState } from "@/components/common/empty-state";
 import type { PaginaLanzamiento, Registro } from "@/lib/lanzamientos/tipos";
 
@@ -20,14 +19,29 @@ const FECHA_HORA = new Intl.DateTimeFormat("es-AR", {
   minute: "2-digit",
 });
 
-/** Quién se registró: buscable, filtrable por landing y paginado. */
+function columnaLanding(nombrePagina: Map<string, string>): ColumnDef<Registro> {
+  return {
+    id: "landing",
+    header: "Landing",
+    accessorFn: (r) => (r.page_id ? (nombrePagina.get(r.page_id) ?? "") : ""),
+    cell: ({ getValue }) => getValue<string>() || SIN_DATO,
+  };
+}
+
+/**
+ * Quién se registró: buscable y paginado. La landing se elige en el filtro
+ * del panel (gobierna toda la vista); con una sola elegida, la columna
+ * Landing sobra y no se muestra.
+ */
 export function RegistrosTabla({
   registros,
   paginas,
+  mostrarLanding = true,
   acciones,
 }: {
   registros: Registro[];
   paginas: Pick<PaginaLanzamiento, "id" | "name">[];
+  mostrarLanding?: boolean;
   acciones?: React.ReactNode;
 }) {
   const nombrePagina = useMemo(() => new Map(paginas.map((p) => [p.id, p.name])), [paginas]);
@@ -53,12 +67,7 @@ export function RegistrosTabla({
         cell: ({ row }) =>
           row.original.phone ? <span className="tabular-nums">{row.original.phone}</span> : SIN_DATO,
       },
-      {
-        id: "landing",
-        header: "Landing",
-        accessorFn: (r) => (r.page_id ? (nombrePagina.get(r.page_id) ?? "") : ""),
-        cell: ({ getValue }) => getValue<string>() || SIN_DATO,
-      },
+      ...(mostrarLanding ? [columnaLanding(nombrePagina)] : []),
       {
         id: "fuente",
         header: "Fuente",
@@ -85,21 +94,7 @@ export function RegistrosTabla({
         ),
       },
     ],
-    [nombrePagina],
-  );
-
-  const facets = useMemo<DataTableFacet[]>(
-    () =>
-      paginas.length > 1
-        ? [
-            {
-              columnId: "landing",
-              label: "Landing",
-              options: paginas.map((p) => ({ label: p.name, value: p.name })),
-            },
-          ]
-        : [],
-    [paginas],
+    [nombrePagina, mostrarLanding],
   );
 
   return (
@@ -110,7 +105,6 @@ export function RegistrosTabla({
       getRowId={OBTENER_ID}
       searchable
       searchPlaceholder="Buscar por nombre, email o teléfono…"
-      facets={facets}
       paginate
       pageSize={25}
       initialSorting={MAS_NUEVOS_PRIMERO}

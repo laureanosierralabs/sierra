@@ -46,10 +46,7 @@ export default async function PortalLanzamiento({
         )}
       </div>
 
-      <PanelLanzamiento
-        detalle={detalle}
-        exportarHref={`/portal/${ctx.slug}/lanzamientos/${lanzamiento.id}/export`}
-      />
+      <PanelLanzamiento detalle={detalle} />
     </>
   );
 }

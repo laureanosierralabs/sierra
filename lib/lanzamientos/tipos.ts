@@ -74,6 +74,8 @@ export interface Registro {
   utm_campaign: string | null;
   utm_content: string | null;
   registered_at: string;
+  /** Columnas extra de un CSV importado (respuestas de un formulario, etc.). */
+  extra: Record<string, string> | null;
 }
 
 const DIA_BA = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Argentina/Buenos_Aires" });

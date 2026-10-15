@@ -332,15 +332,23 @@ export async function importarRegistros(fd: FormData): Promise<Resultado | { avi
   // Un email que ya entró a este lanzamiento (por MailerLite o por otra
   // importación) no se vuelve a contar.
   const yaRegistrados = new Set<string>();
+  // Importados antes sin datos extra: reimportar el archivo los completa.
+  const importadosSinExtra = new Set<string>();
   for (let desde = 0; ; desde += 1000) {
     const { data: lote, error: errorLectura } = await db
       .from("launch_registrations")
-      .select("email")
+      .select("email, source, extra")
       .eq("launch_id", launchId)
       .eq("client_id", clientId)
       .range(desde, desde + 999);
     if (errorLectura) return { error: "No se pudieron leer los registros actuales" };
-    for (const f of lote ?? []) yaRegistrados.add(String(f.email).toLowerCase());
+    for (const f of lote ?? []) {
+      const email = String(f.email).toLowerCase();
+      yaRegistrados.add(email);
+      if (f.source === "import" && Object.keys((f.extra as object | null) ?? {}).length === 0) {
+        importadosSinExtra.add(email);
+      }
+    }
     if ((lote ?? []).length < 1000) break;
   }
 
@@ -348,11 +356,17 @@ export async function importarRegistros(fd: FormData): Promise<Resultado | { avi
   const vistos = new Set<string>(yaRegistrados);
   let yaEstaban = 0;
   const filas = [];
+  const completar: { email: string; extra: Record<string, string> }[] = [];
   for (const crudo of crudos) {
     const r = registroValido((crudo ?? {}) as Record<string, unknown>);
     if (!r) continue;
     if (vistos.has(r.email)) {
-      if (yaRegistrados.has(r.email)) yaEstaban++;
+      if (yaRegistrados.has(r.email)) {
+        yaEstaban++;
+        if (importadosSinExtra.delete(r.email) && Object.keys(r.extra).length > 0) {
+          completar.push({ email: r.email, extra: r.extra });
+        }
+      }
       continue;
     }
     vistos.add(r.email);
@@ -365,14 +379,33 @@ export async function importarRegistros(fd: FormData): Promise<Resultado | { avi
       name: r.name,
       phone: r.phone,
       utm_source: r.utm_source,
+      extra: r.extra,
       source: "import",
       registered_at: r.registered_at ?? ahora,
     });
   }
+  // Solo se completa lo que estaba vacío: nunca se pisan datos ya guardados.
+  let completados = 0;
+  for (let i = 0; i < completar.length; i += 25) {
+    const tanda = await Promise.all(
+      completar.slice(i, i + 25).map((c) =>
+        db
+          .from("launch_registrations")
+          .update({ extra: c.extra })
+          .eq("launch_id", launchId)
+          .eq("client_id", clientId)
+          .eq("external_id", `import:${c.email}`)
+          .eq("extra", "{}"),
+      ),
+    );
+    completados += tanda.filter((t) => !t.error).length;
+  }
+  const conCompletados = completados > 0 ? ` y se completaron los datos extra de ${completados}` : "";
+
   if (filas.length === 0) {
-    return yaEstaban > 0
-      ? { aviso: "Todos esos emails ya estaban en el lanzamiento: no se importó nada" }
-      : { error: "Ninguna fila tiene un email válido" };
+    if (yaEstaban === 0) return { error: "Ninguna fila tiene un email válido" };
+    revalidar(clientId, launchId);
+    return { aviso: `Todos esos emails ya estaban en el lanzamiento${conCompletados || ": no se importó nada"}` };
   }
 
   let nuevos = 0;
@@ -392,7 +425,7 @@ export async function importarRegistros(fd: FormData): Promise<Resultado | { avi
   // Lo que el upsert ignoró (una importación en paralelo) también ya estaba.
   yaEstaban += filas.length - nuevos;
   return {
-    aviso: `${nuevos} registros importados${yaEstaban > 0 ? ` (${yaEstaban} ya estaban)` : ""}`,
+    aviso: `${nuevos} registros importados${yaEstaban > 0 ? ` (${yaEstaban} ya estaban)` : ""}${conCompletados}`,
   };
 }
 

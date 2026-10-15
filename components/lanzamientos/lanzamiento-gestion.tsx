@@ -13,6 +13,7 @@ import { Checkbox } from "@/components/tailgrids/core/checkbox";
 import {
   leerRegistros,
   TOPE_ARCHIVO_BYTES,
+  TOPE_ENVIO_BYTES,
   TOPE_IMPORTACION,
   type ResultadoImportacion,
 } from "@/lib/lanzamientos/importar";
@@ -553,6 +554,7 @@ function CamposImportacion({
   // Se serializa una vez al leer el archivo, no en cada render. Vacío si se
   // pasa del tope: el servidor lo rechazaría igual y así no viaja de más.
   const [payload, setPayload] = useState("");
+  const [demasiado, setDemasiado] = useState(false);
 
   async function elegir(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
@@ -561,16 +563,20 @@ function CamposImportacion({
     if (f.size > TOPE_ARCHIVO_BYTES) {
       setLeido(null);
       setPayload("");
+      setDemasiado(false);
       toast.error("El archivo pesa más de 5 MB: dividilo en partes");
       return;
     }
     const resultado = leerRegistros(await f.text());
-    setLeido(resultado);
-    setPayload(
+    const json =
       resultado.registros.length > 0 && resultado.registros.length <= TOPE_IMPORTACION
         ? JSON.stringify(resultado.registros)
-        : "",
-    );
+        : "";
+    // Con muchas columnas extra el envío pesa más que las filas: también tiene tope.
+    const pesado = new Blob([json]).size > TOPE_ENVIO_BYTES;
+    setLeido(resultado);
+    setDemasiado(pesado);
+    setPayload(pesado ? "" : json);
   }
 
   const nombreColumna = (i: number) => (leido && i >= 0 ? leido.encabezados[i] : null);
@@ -623,6 +629,14 @@ function CamposImportacion({
                   {nombreColumna(leido.columnas.utm_source) &&
                     ` · fuente = ${nombreColumna(leido.columnas.utm_source)}`}
                 </li>
+                {leido.extras.length > 0 && (
+                  <li>Datos extra que también se guardan: {leido.extras.join(", ")}.</li>
+                )}
+                {demasiado && (
+                  <li className="text-badge-error-text">
+                    El archivo tiene demasiados datos para una sola vez: dividilo en partes más chicas.
+                  </li>
+                )}
                 {leido.columnas.registered_at < 0 && (
                   <li className="text-badge-warning-text">
                     Sin columna de fecha: todos quedan con la fecha de hoy y no se ven por día.

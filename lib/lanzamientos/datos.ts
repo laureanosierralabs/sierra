@@ -24,7 +24,7 @@ const COLUMNAS_LANZAMIENTO =
 const COLUMNAS_PAGINA =
   "id, launch_id, name, url, thanks_url, whatsapp_url, checkout_url, project_id, mailerlite_group_id, track_key, site_id, path, kind, position";
 const COLUMNAS_REGISTRO =
-  "id, page_id, email, name, phone, utm_source, utm_medium, utm_campaign, utm_content, registered_at";
+  "id, page_id, email, name, phone, utm_source, utm_medium, utm_campaign, utm_content, registered_at, extra";
 
 export interface LanzamientoConTotal extends Lanzamiento {
   registros: number;
@@ -160,6 +160,7 @@ export async function lanzamientoDeCliente(
             utm_campaign: c.utm_campaign,
             utm_content: c.utm_content,
             registered_at: c.occurred_at,
+            extra: null,
           });
         }
       }

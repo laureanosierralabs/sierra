@@ -7,6 +7,8 @@
 
 /** Tope por importación: lo que entra cómodo en una server action (1 MB). */
 export const TOPE_IMPORTACION = 3000;
+/** Tamaño máximo del envío (los datos extra pueden pesar más que las filas). */
+export const TOPE_ENVIO_BYTES = 900_000;
 /** Archivo más grande que esto ni se lee: congelaría el navegador. */
 export const TOPE_ARCHIVO_BYTES = 5 * 1024 * 1024;
 
@@ -17,7 +19,11 @@ export interface RegistroImportado {
   /** ISO; null si el CSV no trae fecha (se usa la del momento de importar). */
   registered_at: string | null;
   utm_source: string | null;
+  /** Columnas del CSV que no son las conocidas (respuestas de un formulario, etc.). */
+  extra: Record<string, string>;
 }
+
+type CampoBase = Exclude<keyof RegistroImportado, "extra">;
 
 /**
  * CSV a filas. Soporta comillas (con "" adentro), saltos de línea dentro de
@@ -68,7 +74,7 @@ export function parsearCsv(texto: string): string[][] {
 }
 
 /* Por campo, patrones en orden de preferencia: gana el primero que encuentra columna. */
-const COLUMNAS: Record<keyof RegistroImportado, RegExp[]> = {
+const COLUMNAS: Record<CampoBase, RegExp[]> = {
   email: [/^(e-?mail|correo|mail)/],
   name: [/^(name|nombre|full.?name|nombre.?completo|first.?name)/],
   phone: [/(phone|tel[eé]fono|telefono|celular|whats.?app|movil|m[oó]vil)/],
@@ -85,7 +91,7 @@ const normalizarEncabezado = (h: string) =>
   h.trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, "_");
 
 /** Columna del CSV para cada campo (-1 si no está). La primera que coincide gana. */
-export function detectarColumnas(encabezados: string[]): Record<keyof RegistroImportado, number> {
+export function detectarColumnas(encabezados: string[]): Record<CampoBase, number> {
   const norm = encabezados.map(normalizarEncabezado);
   const indice = (patrones: RegExp[], excluir: number[] = [], descartar?: RegExp) => {
     for (const re of patrones) {
@@ -140,8 +146,28 @@ const recortar = (v: string | undefined, max: number) => {
   return t ? t.slice(0, max) : null;
 };
 
+/** Columnas extra (fuera de las conocidas) que se guardan por registro. */
+export const EXTRA_MAX_CLAVES = 30;
+const EXTRA_MAX_CLAVE = 60;
+const EXTRA_MAX_VALOR = 500;
+
+/** Deja solo pares texto → texto, con tope de cantidad y largo. */
+export function extraValido(valor: unknown): Record<string, string> {
+  if (!valor || typeof valor !== "object" || Array.isArray(valor)) return {};
+  const extra: Record<string, string> = {};
+  for (const [clave, v] of Object.entries(valor as Record<string, unknown>)) {
+    if (Object.keys(extra).length >= EXTRA_MAX_CLAVES) break;
+    const k = clave.trim().slice(0, EXTRA_MAX_CLAVE);
+    if (!k || k === "__proto__" || typeof v !== "string" || !v.trim()) continue;
+    extra[k] = v.trim().slice(0, EXTRA_MAX_VALOR);
+  }
+  return extra;
+}
+
 /** Valida y normaliza una fila ya mapeada. Null si no sirve (sin email válido). */
-export function registroValido(r: Partial<Record<keyof RegistroImportado, unknown>>): RegistroImportado | null {
+export function registroValido(
+  r: Partial<Record<CampoBase, unknown>> & { extra?: unknown },
+): RegistroImportado | null {
   const email = typeof r.email === "string" ? r.email.trim().toLowerCase() : "";
   if (!EMAIL.test(email) || email.length > 254) return null;
   const texto = (v: unknown, max: number) => (typeof v === "string" ? recortar(v, max) : null);
@@ -151,13 +177,16 @@ export function registroValido(r: Partial<Record<keyof RegistroImportado, unknow
     phone: texto(r.phone, 50),
     registered_at: typeof r.registered_at === "string" ? fechaImportada(r.registered_at) : null,
     utm_source: texto(r.utm_source, 100),
+    extra: extraValido(r.extra),
   };
 }
 
 export interface ResultadoImportacion {
   registros: RegistroImportado[];
-  columnas: Record<keyof RegistroImportado, number>;
+  columnas: Record<CampoBase, number>;
   encabezados: string[];
+  /** Columnas que no son de las conocidas: se guardan como datos extra. */
+  extras: string[];
   /** Filas sin email válido. */
   descartadas: number;
   /** Emails repetidos dentro del archivo (cuenta la primera aparición). */
@@ -166,10 +195,19 @@ export interface ResultadoImportacion {
   sinFecha: number;
 }
 
+/* Columnas técnicas de una base que no le sirven a nadie al exportar. */
+const NO_EXTRA = /^(id|uuid|updated_at|deleted_at|user_id|client_id)$/;
+
 /** CSV completo a registros listos para importar. */
 export function leerRegistros(texto: string): ResultadoImportacion {
   const [encabezados = [], ...filas] = parsearCsv(texto);
   const columnas = detectarColumnas(encabezados);
+  const usadas = new Set(Object.values(columnas));
+  const extras = encabezados
+    .map((h, i) => ({ h: h.trim(), i }))
+    .filter(({ h, i }) => h && !usadas.has(i) && !NO_EXTRA.test(normalizarEncabezado(h)))
+    .slice(0, EXTRA_MAX_CLAVES);
+
   const vistos = new Set<string>();
   const registros: RegistroImportado[] = [];
   let descartadas = 0;
@@ -183,6 +221,7 @@ export function leerRegistros(texto: string): ResultadoImportacion {
       phone: celda(fila, columnas.phone),
       registered_at: celda(fila, columnas.registered_at),
       utm_source: celda(fila, columnas.utm_source),
+      extra: Object.fromEntries(extras.map(({ h, i }) => [h, fila[i] ?? ""])),
     });
     if (!r) {
       descartadas++;
@@ -196,5 +235,5 @@ export function leerRegistros(texto: string): ResultadoImportacion {
     if (columnas.registered_at >= 0 && !r.registered_at) sinFecha++;
     registros.push(r);
   }
-  return { registros, columnas, encabezados, descartadas, repetidos, sinFecha };
+  return { registros, columnas, encabezados, extras: extras.map((e) => e.h), descartadas, repetidos, sinFecha };
 }

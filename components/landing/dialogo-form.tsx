@@ -69,6 +69,8 @@ export function DialogoForm({
   abiertoExterno,
   onCerrar,
   ancho = "lg",
+  etiquetaEnviar = "Guardar",
+  etiquetaEnviando = "Guardando…",
 }: {
   titulo: string;
   etiquetaAbrir?: string;
@@ -83,6 +85,9 @@ export function DialogoForm({
   onCerrar?: () => void;
   /** "2xl" para formularios con filas (ítems de cotización). */
   ancho?: "lg" | "2xl";
+  /** Texto del botón principal cuando no es guardar (por ejemplo "Exportar"). */
+  etiquetaEnviar?: string;
+  etiquetaEnviando?: string;
 }) {
   const controlado = abiertoExterno !== undefined;
   const [abiertoInterno, setAbiertoInterno] = useState(false);
@@ -149,7 +154,7 @@ export function DialogoForm({
                   Cancelar
                 </DialogClose>
                 <Button type="submit" isDisabled={form.pending}>
-                  {form.pending ? "Guardando…" : "Guardar"}
+                  {form.pending ? etiquetaEnviando : etiquetaEnviar}
                 </Button>
               </DialogFooter>
             </form>
