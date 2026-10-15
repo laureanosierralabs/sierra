@@ -205,3 +205,31 @@ test("la tarea modelo (SOP) tiene el formato de pasos que usa la app", () => {
   // Idempotente: correrla dos veces no duplica la tarea.
   assert.match(sql, /and not exists \(\s*select 1 from process_tasks t\s*where t\.process_id = p\.id and t\.title = 'Conectar el proyecto al panel \(Sierra Launch Kit\)'/);
 });
+
+test("landingDesdeProyecto: nombre sin sufijo, y proyecto conectado + ruta si la URL es de su dominio", async () => {
+  const { landingDesdeProyecto } = await import("../lib/sitios/tipos.ts");
+  const sitios = [{ id: "s1", domain: "aidaqui.com" }, { id: "s2", domain: "otra.com" }];
+
+  assert.deepEqual(
+    landingDesdeProyecto({ name: "Activación v1 | Aida Qui", site_url: "https://WWW.aidaqui.com/activacion-v1/?x=1" }, sitios),
+    { name: "Activación v1", url: "https://www.aidaqui.com/activacion-v1/?x=1", site_id: "s1", path: "/activacion-v1" },
+  );
+  // El dominio cargado con esquema o sin él coincide igual.
+  assert.equal(landingDesdeProyecto({ name: "X", site_url: "https://aidaqui.com/x" }, [{ id: "s3", domain: "https://aidaqui.com/" }]).site_id, "s3");
+  // Otro dominio (GHL, Vercel preview): queda con URL, sin proyecto conectado.
+  assert.deepEqual(
+    landingDesdeProyecto({ name: "Registro", site_url: "https://aida.vercel.app/registro" }, sitios),
+    { name: "Registro", url: "https://aida.vercel.app/registro", site_id: null, path: null },
+  );
+  // Sin URL o con una URL no http: solo el nombre.
+  assert.deepEqual(landingDesdeProyecto({ name: "Diagnóstico | Aida Qui", site_url: null }, sitios), {
+    name: "Diagnóstico", url: null, site_id: null, path: null,
+  });
+  assert.equal(landingDesdeProyecto({ name: "X", site_url: "javascript:alert(1)" }, sitios).url, null);
+  assert.equal(landingDesdeProyecto({ name: "X", site_url: "https://exa mple.com/x" }, sitios).url, null);
+  // Sin dominio cargado: solo si ese proyecto ya vio visitas en esa ruta.
+  assert.equal(landingDesdeProyecto({ name: "X", site_url: "https://aidaqui.com/x" }, [{ id: "s9", domain: null, rutas: ["/x"] }]).site_id, "s9");
+  // Sin dominio y sin esa ruta detectada (otra web, otro proveedor): no se adivina.
+  assert.equal(landingDesdeProyecto({ name: "X", site_url: "https://otro.com/promo" }, [{ id: "s9", domain: null, rutas: ["/x"] }]).site_id, null);
+  assert.equal(landingDesdeProyecto({ name: "X", site_url: "https://aidaqui.com/x" }, [{ id: "a", domain: null }]).site_id, null);
+});

@@ -8,7 +8,8 @@ import { accesoActual } from "@/lib/landing/auth";
 import { cifrar, hayClave } from "@/lib/landing/cifrado";
 import { supabaseAdmin } from "@/lib/landing/supabase";
 import { ESTADOS_LANZAMIENTO, type EstadoLanzamiento } from "@/lib/lanzamientos/tipos";
-import { normalizarRuta } from "@/lib/sitios/tipos";
+import { rutasDeSitio } from "@/lib/sitios/datos";
+import { landingDesdeProyecto, normalizarRuta } from "@/lib/sitios/tipos";
 
 /**
  * Gestión de lanzamientos desde el panel. Todo exige owner. Los fallos se
@@ -196,6 +197,83 @@ export async function guardarPaginaLanzamiento(fd: FormData): Promise<Resultado>
     if (error) return { error: error.code === "23505" ? repetido : `No se pudo crear: ${error.message}` };
   }
 
+  revalidar(clientId, launchId);
+}
+
+/**
+ * Suma de una vez varias landings a partir de proyectos ya cargados del
+ * cliente: nombre, URL, proyecto conectado y ruta salen del proyecto. Lo que
+ * no se puede deducir queda vacío para completarlo a mano.
+ */
+export async function agregarLandingsDesdeProyectos(fd: FormData): Promise<Resultado> {
+  await exigirOwner();
+
+  const launchId = texto(fd, "launch_id");
+  const elegidos = [...new Set(fd.getAll("project_ids").map(String).filter(Boolean))];
+  if (!launchId) return { error: "Falta el lanzamiento" };
+  if (elegidos.length === 0) return { error: "Elegí al menos una landing" };
+
+  const db = supabaseAdmin();
+  const { data: lanzamiento } = await db.from("launches").select("client_id").eq("id", launchId).maybeSingle();
+  if (!lanzamiento) return { error: "El lanzamiento no existe" };
+  const clientId = lanzamiento.client_id as string;
+
+  // Solo proyectos de ESTE cliente: los ids vienen del navegador.
+  const [{ data: proyectos, error: errorProyectos }, { data: sitios }, { data: actuales }] = await Promise.all([
+    db.from("projects").select("id, name, site_url").eq("client_id", clientId).in("id", elegidos),
+    db.from("client_sites").select("id, domain").eq("client_id", clientId),
+    db.from("launch_pages").select("project_id, site_id, path").eq("launch_id", launchId),
+  ]);
+  if (errorProyectos) return { error: "No se pudieron leer los proyectos" };
+  if (!proyectos?.length) return { error: "Esos proyectos no son de este cliente" };
+
+  // Un proyecto conectado sin dominio cargado solo se asigna por rutas que ya
+  // registraron visitas (ver landingDesdeProyecto).
+  const conRutas = await Promise.all(
+    (sitios ?? []).map(async (s) => ({
+      ...s,
+      rutas: s.domain ? [] : (await rutasDeSitio(clientId, s.id).catch(() => [])).map((r) => r.path),
+    })),
+  );
+
+  const yaEstan = new Set((actuales ?? []).map((p) => p.project_id).filter(Boolean));
+  const rutasUsadas = new Set((actuales ?? []).filter((p) => p.site_id).map((p) => `${p.site_id} ${p.path}`));
+  // Mismo orden en que aparecen elegidos.
+  const orden = new Map(elegidos.map((id, i) => [id, i]));
+  const nuevos = proyectos
+    .filter((p) => !yaEstan.has(p.id))
+    .sort((a, b) => (orden.get(a.id) ?? 0) - (orden.get(b.id) ?? 0));
+
+  let posicion = actuales?.length ?? 0;
+  const filas = nuevos.map((p) => {
+    const sugerida = landingDesdeProyecto(p, conRutas);
+    // Dos proyectos con la misma URL: la ruta va solo en la primera.
+    const clave = `${sugerida.site_id} ${sugerida.path}`;
+    const conRuta = sugerida.site_id && !rutasUsadas.has(clave);
+    if (conRuta) rutasUsadas.add(clave);
+    return {
+      launch_id: launchId,
+      client_id: clientId,
+      project_id: p.id,
+      name: sugerida.name,
+      url: sugerida.url,
+      site_id: conRuta ? sugerida.site_id : null,
+      path: conRuta ? sugerida.path : null,
+      position: posicion++,
+    };
+  });
+
+  if (filas.length > 0) {
+    const { error } = await db.from("launch_pages").insert(filas);
+    if (error) {
+      return {
+        error:
+          error.code === "23505"
+            ? "Alguna de esas landings ya está en el lanzamiento (recargá la página)"
+            : `No se pudieron agregar las landings: ${error.message}`,
+      };
+    }
+  }
   revalidar(clientId, launchId);
 }
 

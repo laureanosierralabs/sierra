@@ -9,7 +9,9 @@ import { BorrarBoton } from "@/components/landing/borrar-boton";
 import { DialogoForm } from "@/components/landing/dialogo-form";
 import { SIN_OPCION } from "@/components/landing/proyecto-esquema";
 import { Button } from "@/components/tailgrids/core/button";
+import { Checkbox } from "@/components/tailgrids/core/checkbox";
 import {
+  agregarLandingsDesdeProyectos,
   borrarLanzamiento,
   borrarPaginaLanzamiento,
   conectarMailerlite,
@@ -453,5 +455,42 @@ export function CopiarScriptVisitas({ trackKey }: { trackKey: string }) {
       <Copy1 />
       Script
     </button>
+  );
+}
+
+/**
+ * Elegir landings ya cargadas como proyectos del cliente: nombre, URL,
+ * proyecto conectado y ruta se completan solos. Lo que falte se edita después.
+ */
+export function ElegirLandings({
+  launchId,
+  proyectos,
+}: {
+  launchId: string;
+  proyectos: { id: string; name: string; site_url: string | null }[];
+}) {
+  if (proyectos.length === 0) return null;
+  return (
+    <DialogoForm titulo="Elegir landings" etiquetaAbrir="Elegir landings" action={agregarLandingsDesdeProyectos}>
+      <input type="hidden" name="launch_id" value={launchId} />
+      <ul className="flex max-h-80 flex-col gap-1 overflow-y-auto">
+        {proyectos.map((p) => (
+          <li key={p.id}>
+            <Checkbox name="project_ids" value={p.id} className="w-full rounded-md px-2 py-1.5 hover:bg-base-50">
+              <span className="min-w-0">
+                <span className="block truncate text-sm text-text-primary">{p.name}</span>
+                <span className="block truncate text-xs text-text-tertiary">
+                  {p.site_url ? p.site_url.replace(/^https?:\/\//, "") : "sin URL: la ruta se completa a mano"}
+                </span>
+              </span>
+            </Checkbox>
+          </li>
+        ))}
+      </ul>
+      <p className="text-xs text-text-tertiary">
+        Se agregan con su nombre y su URL. Si la URL es del proyecto conectado, visitas y registros
+        empiezan a contar solos.
+      </p>
+    </DialogoForm>
   );
 }

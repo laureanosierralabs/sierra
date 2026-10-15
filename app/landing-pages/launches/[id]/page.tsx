@@ -8,6 +8,7 @@ import {
   BorrarPaginaLanzamiento,
   ConexionMailerlite,
   CopiarScriptVisitas,
+  ElegirLandings,
   LanzamientoForm,
   PaginaLanzamientoForm,
 } from "@/components/lanzamientos/lanzamiento-gestion";
@@ -60,6 +61,11 @@ export default async function LanzamientoDetalle({ params }: { params: Promise<{
   const proyectosDelCliente = proyectos
     .filter((p) => p.client_id === clientId)
     .map((p) => ({ id: p.id, name: p.name }));
+  // Proyectos del cliente que todavía no están en el lanzamiento.
+  const enLanzamiento = new Set(paginas.map((p) => p.project_id).filter(Boolean));
+  const paraElegir = proyectos
+    .filter((p) => p.client_id === clientId && !enLanzamiento.has(p.id))
+    .map((p) => ({ id: p.id, name: p.name, site_url: p.site_url }));
   const slugPortal = portal.data?.slug as string | undefined;
 
   return (
@@ -129,7 +135,8 @@ export default async function LanzamientoDetalle({ params }: { params: Promise<{
               </span>
             </div>
           ))}
-          <div className="px-4 py-3">
+          <div className="flex flex-wrap gap-3 px-4 py-3">
+            <ElegirLandings launchId={lanzamiento.id} proyectos={paraElegir} />
             <PaginaLanzamientoForm launchId={lanzamiento.id} proyectos={proyectosDelCliente} sitios={sitios} />
           </div>
         </SeccionCard>

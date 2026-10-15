@@ -47,6 +47,60 @@ export function normalizarRuta(entrada: unknown): string | null {
   return ruta || "/";
 }
 
+/* ───────────── Landing de lanzamiento desde un proyecto ───────────── */
+
+/** Hostname sin "www." ni punto final; acepta un dominio pelado o una URL. */
+function host(valor: string): string | null {
+  const v = valor.trim();
+  try {
+    return new URL(/^https?:\/\//i.test(v) ? v : `https://${v}`).hostname.toLowerCase().replace(/^www\./, "").replace(/\.$/, "");
+  } catch {
+    return null;
+  }
+}
+
+/** URL http(s) válida y normalizada, o null (mismo criterio que los links cargados a mano). */
+function urlValida(valor: string | null): string | null {
+  if (!valor?.trim()) return null;
+  try {
+    const u = new URL(valor.trim());
+    return u.protocol === "http:" || u.protocol === "https:" ? u.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
+export interface LandingSugerida {
+  name: string;
+  url: string | null;
+  site_id: string | null;
+  path: string | null;
+}
+
+/**
+ * Arma la landing de un lanzamiento a partir de un proyecto ya cargado: el
+ * nombre sin el sufijo del cliente ("Activación v1 | Aida Qui" → "Activación
+ * v1") y, si su URL cae en el dominio de un proyecto conectado, ese proyecto y
+ * la ruta. Si el proyecto conectado no tiene dominio cargado, se usa solo
+ * cuando ya registró visitas en esa misma ruta: nunca se adivina, porque una
+ * landing mal asignada mostraría números de otra. Lo demás se completa a mano.
+ */
+export function landingDesdeProyecto(
+  proyecto: { name: string; site_url: string | null },
+  sitios: { id: string; domain: string | null; rutas?: string[] }[],
+): LandingSugerida {
+  const name = proyecto.name.split(" | ")[0].trim() || proyecto.name.trim();
+  const url = urlValida(proyecto.site_url);
+  if (!url) return { name, url: null, site_id: null, path: null };
+
+  const dominio = host(url);
+  const path = normalizarRuta(url);
+  const sitio =
+    sitios.find((s) => s.domain && host(s.domain) === dominio) ??
+    sitios.find((s) => !s.domain && path && s.rutas?.includes(path));
+  return { name, url, site_id: sitio && path ? sitio.id : null, path: sitio && path ? path : null };
+}
+
 /* ───────────── Firma de las conversiones ───────────── */
 
 /** Antigüedad máxima aceptada de una conversión firmada (contra reenvíos). */
