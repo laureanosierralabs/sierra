@@ -187,7 +187,10 @@ export function PanelLanzamiento({
                     )}
                     <span className="text-xs text-text-tertiary tabular-nums">
                       {p.visitantes > 0 ? `${numero(p.visitantes)} visitantes` : "Sin visitas"} ·{" "}
-                      {p.mailerlite_group_id ? `${numero(p.registros)} registros` : "sin grupo conectado"}
+                      {/* Con proyecto conectado los registros llegan por el kit, sin grupo. */}
+                      {p.mailerlite_group_id || p.site_id
+                        ? `${numero(p.registros)} registros`
+                        : "sin registros conectados"}
                     </span>
                   </span>
                   <span className="shrink-0 text-right">
