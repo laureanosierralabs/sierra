@@ -38,8 +38,21 @@ export interface PaginaLanzamiento {
   /** Ruta de un proyecto conectado (Sierra Launch Kit); null = landing suelta. */
   site_id: string | null;
   path: string | null;
+  /** De registro (convierte en registros) o de venta (convierte en compras). */
+  kind: TipoLanding;
   position: number;
 }
+
+export const TIPOS_LANDING = ["registro", "venta"] as const;
+export type TipoLanding = (typeof TIPOS_LANDING)[number];
+export const LABEL_TIPO_LANDING: Record<TipoLanding, string> = {
+  registro: "Registro",
+  venta: "Venta",
+};
+
+/** El tipo de página de un proyecto define el de su landing en un lanzamiento. */
+export const tipoLandingDeProyecto = (pageType: string | null): TipoLanding =>
+  pageType === "ventas" ? "venta" : "registro";
 
 /** Una compra confirmada, avisada por el servidor de un proyecto conectado. */
 export interface Compra {

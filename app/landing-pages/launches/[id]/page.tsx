@@ -9,6 +9,7 @@ import {
   ConexionMailerlite,
   CopiarScriptVisitas,
   ElegirLandings,
+  ImportarRegistros,
   LanzamientoForm,
   PaginaLanzamientoForm,
 } from "@/components/lanzamientos/lanzamiento-gestion";
@@ -137,6 +138,7 @@ export default async function LanzamientoDetalle({ params }: { params: Promise<{
           ))}
           <div className="flex flex-wrap gap-3 px-4 py-3">
             <ElegirLandings launchId={lanzamiento.id} proyectos={paraElegir} />
+            <ImportarRegistros launchId={lanzamiento.id} paginas={paginas} />
             <PaginaLanzamientoForm launchId={lanzamiento.id} proyectos={proyectosDelCliente} sitios={sitios} />
           </div>
         </SeccionCard>

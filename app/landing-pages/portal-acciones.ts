@@ -106,7 +106,7 @@ export async function habilitarPortal(clientId: string): Promise<Resultado> {
  * operator con varias marcas), se la suma directo a esta organización. Una
  * cuenta del equipo nunca se convierte en cliente.
  */
-export async function invitarAlPortal(fd: FormData): Promise<Resultado> {
+export async function invitarAlPortal(fd: FormData): Promise<Resultado | { aviso: string }> {
   await exigirOwner();
 
   const clientId = String(fd.get("client_id") ?? "");
@@ -134,6 +134,9 @@ export async function invitarAlPortal(fd: FormData): Promise<Resultado> {
       } catch (e) {
         return { error: motivo(e, "No se pudo sumar a esa persona (¿ya tiene acceso?)") };
       }
+      revalidarCliente(clientId);
+      // No sale mail: ya tiene cuenta, entra con su login de siempre.
+      return { aviso: `${email} ya tenía cuenta de cliente: se le sumó este portal. No le llega mail, entra con su login.` };
     } else {
       // Una invitación pendiente al mismo email (del equipo o de otro portal)
       // no se pisa: `ignoreExisting` podría dejar viva la anterior con otro rol.
@@ -144,7 +147,11 @@ export async function invitarAlPortal(fd: FormData): Promise<Resultado> {
       const previa = pendientes.find((i) => i.emailAddress.toLowerCase() === email);
       if (previa) {
         const meta = previa.publicMetadata as { role?: unknown; portalOrgId?: unknown };
-        if (meta.role === "client" && meta.portalOrgId === orgId) return;
+        if (meta.role === "client" && meta.portalOrgId === orgId) {
+          return {
+            aviso: `${email} ya tenía una invitación pendiente a este portal: no se manda otra. Si no la encuentra (revisar spam), revocala e invitala de nuevo.`,
+          };
+        }
         return {
           error:
             "Ese email ya tiene una invitación pendiente (del equipo o de otro portal). Revocala primero.",
@@ -158,6 +165,7 @@ export async function invitarAlPortal(fd: FormData): Promise<Resultado> {
     }
 
     revalidarCliente(clientId);
+    return { aviso: `Invitación enviada a ${email}. Le llega un mail de Clerk (puede caer en spam).` };
   } catch (e) {
     return { error: motivo(e, "No se pudo invitar") };
   }

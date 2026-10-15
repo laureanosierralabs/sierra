@@ -6,15 +6,23 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { FormSelectField, FormTextField } from "@/components/common/form/form-fields";
 import { BorrarBoton } from "@/components/landing/borrar-boton";
-import { DialogoForm } from "@/components/landing/dialogo-form";
+import { DialogoForm, Select } from "@/components/landing/dialogo-form";
 import { SIN_OPCION } from "@/components/landing/proyecto-esquema";
 import { Button } from "@/components/tailgrids/core/button";
 import { Checkbox } from "@/components/tailgrids/core/checkbox";
+import {
+  leerRegistros,
+  TOPE_ARCHIVO_BYTES,
+  TOPE_IMPORTACION,
+  type ResultadoImportacion,
+} from "@/lib/lanzamientos/importar";
 import {
   agregarLandingsDesdeProyectos,
   borrarLanzamiento,
   borrarPaginaLanzamiento,
   conectarMailerlite,
+  desconectarMailerlite,
+  importarRegistros,
   guardarLanzamiento,
   guardarPaginaLanzamiento,
   type GrupoMailerlite,
@@ -23,6 +31,8 @@ import type { ConexionLanzamiento } from "@/lib/lanzamientos/datos";
 import {
   ESTADOS_LANZAMIENTO,
   LABEL_ESTADO_LANZAMIENTO,
+  LABEL_TIPO_LANDING,
+  TIPOS_LANDING,
   type Lanzamiento,
   type PaginaLanzamiento,
 } from "@/lib/lanzamientos/tipos";
@@ -61,6 +71,7 @@ const paginaEsquema = z.object({
   mailerlite_group_id: z.string().optional(),
   project_id: z.string().optional(),
   site_id: z.string().optional(),
+  kind: z.enum(TIPOS_LANDING),
   path: z
     .string()
     .trim()
@@ -195,6 +206,13 @@ export function PaginaLanzamientoForm({
             placeholder="Registro A"
             defaultValue={pagina?.name ?? ""}
           />
+          <FormSelectField
+            {...form.fieldProps("kind")}
+            label="Tipo"
+            description="De registro convierte en registros; de venta, en compras."
+            options={TIPOS_LANDING.map((t) => ({ value: t, label: LABEL_TIPO_LANDING[t] }))}
+            defaultValue={pagina?.kind ?? "registro"}
+          />
           {sitios.length > 0 && (
             <div className="grid grid-cols-1 gap-4 rounded-lg border border-card-border p-3 sm:grid-cols-2">
               <FormSelectField
@@ -315,6 +333,26 @@ export function ConexionMailerlite({
     }
   }
 
+  function desconectar() {
+    iniciar(async () => {
+      const fd = new FormData();
+      fd.set("launch_id", launchId);
+      fd.set("api_key", apiKey);
+      try {
+        const resultado = await desconectarMailerlite(fd);
+        if (resultado && "error" in resultado) {
+          toast.error(resultado.error);
+          return;
+        }
+        setGrupos(null);
+        setApiKey("");
+        if (resultado) toast.success(resultado.aviso, { duration: 8000 });
+      } catch {
+        toast.error("No se pudo desconectar MailerLite");
+      }
+    });
+  }
+
   function conectar() {
     iniciar(async () => {
       const fd = new FormData();
@@ -375,10 +413,17 @@ export function ConexionMailerlite({
           <Button size="sm" isDisabled={pendiente || apiKey.trim() === ""} onPress={conectar}>
             {conexion.conectado ? "Ver grupos" : "Conectar"}
           </Button>
+          {conexion.conectado && (
+            <Button size="sm" appearance="outline" isDisabled={pendiente} onPress={desconectar}>
+              Desconectar
+            </Button>
+          )}
         </div>
         <p className="text-xs text-text-tertiary">
           Se usa en este momento para crear el webhook y listar los grupos, y no se guarda. Sale de
           MailerLite → Integraciones → API.
+          {conexion.conectado &&
+            " Para desconectar: con la key pegada también se borra el webhook en MailerLite; sin ella, deja de recibir y lo borrás a mano."}
         </p>
       </div>
 
@@ -491,6 +536,142 @@ export function ElegirLandings({
         Se agregan con su nombre y su URL. Si la URL es del proyecto conectado, visitas y registros
         empiezan a contar solos.
       </p>
+    </DialogoForm>
+  );
+}
+
+/** Campos del diálogo de importación: viven adentro para reiniciarse al cerrar. */
+function CamposImportacion({
+  launchId,
+  paginas,
+}: {
+  launchId: string;
+  paginas: { id: string; name: string; kind: string }[];
+}) {
+  const [leido, setLeido] = useState<ResultadoImportacion | null>(null);
+  const [archivo, setArchivo] = useState<string | null>(null);
+  // Se serializa una vez al leer el archivo, no en cada render. Vacío si se
+  // pasa del tope: el servidor lo rechazaría igual y así no viaja de más.
+  const [payload, setPayload] = useState("");
+
+  async function elegir(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    setArchivo(f.name);
+    if (f.size > TOPE_ARCHIVO_BYTES) {
+      setLeido(null);
+      setPayload("");
+      toast.error("El archivo pesa más de 5 MB: dividilo en partes");
+      return;
+    }
+    const resultado = leerRegistros(await f.text());
+    setLeido(resultado);
+    setPayload(
+      resultado.registros.length > 0 && resultado.registros.length <= TOPE_IMPORTACION
+        ? JSON.stringify(resultado.registros)
+        : "",
+    );
+  }
+
+  const nombreColumna = (i: number) => (leido && i >= 0 ? leido.encabezados[i] : null);
+  const deRegistro = paginas.filter((p) => p.kind !== "venta");
+
+  return (
+    <>
+      <input type="hidden" name="launch_id" value={launchId} />
+      <input type="hidden" name="registros" value={payload} />
+
+      <label className="flex flex-col gap-1.5">
+        <span className="text-sm font-medium text-input-label-text">Archivo CSV</span>
+        <input
+          type="file"
+          accept=".csv,text/csv"
+          onChange={elegir}
+          className="text-sm text-text-secondary file:mr-3 file:rounded-lg file:border file:border-card-border file:bg-input-background file:px-3 file:py-1.5 file:text-sm"
+        />
+        <span className="text-xs text-text-tertiary">
+          Exportalo de la base del cliente (Supabase → Table editor → Export to CSV), de MailerLite o
+          de un Google Sheet. Las columnas de email, nombre, teléfono, fecha y utm_source se
+          reconocen solas.
+        </span>
+      </label>
+
+      {leido && (
+        <div className="rounded-lg border border-card-border p-3 text-sm">
+          {leido.columnas.email < 0 ? (
+            <p className="text-badge-error-text">
+              {archivo}: no tiene una columna de email. Renombrala a “email” y elegí el archivo de nuevo.
+            </p>
+          ) : (
+            <>
+              <p className="font-medium text-text-primary">
+                {leido.registros.length.toLocaleString("es-AR")} registros listos para importar
+                {leido.registros.length > TOPE_IMPORTACION && (
+                  <span className="text-badge-error-text">
+                    {" "}
+                    (máximo {TOPE_IMPORTACION} por vez: dividí el archivo)
+                  </span>
+                )}
+              </p>
+              <ul className="mt-1 text-xs text-text-tertiary">
+                <li>
+                  Columnas: email = {nombreColumna(leido.columnas.email)}
+                  {nombreColumna(leido.columnas.name) && ` · nombre = ${nombreColumna(leido.columnas.name)}`}
+                  {nombreColumna(leido.columnas.phone) && ` · teléfono = ${nombreColumna(leido.columnas.phone)}`}
+                  {nombreColumna(leido.columnas.registered_at) &&
+                    ` · fecha = ${nombreColumna(leido.columnas.registered_at)}`}
+                  {nombreColumna(leido.columnas.utm_source) &&
+                    ` · fuente = ${nombreColumna(leido.columnas.utm_source)}`}
+                </li>
+                {leido.columnas.registered_at < 0 && (
+                  <li className="text-badge-warning-text">
+                    Sin columna de fecha: todos quedan con la fecha de hoy y no se ven por día.
+                  </li>
+                )}
+                {leido.descartadas > 0 && <li>{leido.descartadas} filas sin email válido se saltean.</li>}
+                {leido.repetidos > 0 && <li>{leido.repetidos} emails repetidos cuentan una sola vez.</li>}
+                {leido.sinFecha > 0 && (
+                  <li className="text-badge-warning-text">
+                    {leido.sinFecha} filas tienen una fecha que no se pudo leer: quedan con la fecha de hoy.
+                  </li>
+                )}
+                <li>Los emails que ya estén en el lanzamiento no se vuelven a contar.</li>
+              </ul>
+            </>
+          )}
+        </div>
+      )}
+
+      <label className="flex flex-col gap-1.5">
+        <span className="text-sm font-medium text-input-label-text">Landing</span>
+        <Select name="page_id" defaultValue="">
+          <option value="">Sin landing (solo suman al total)</option>
+          {deRegistro.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
+        </Select>
+        <span className="text-xs text-text-tertiary">
+          Si el archivo es de una sola landing, elegila: así su conversión queda bien. Reimportar el
+          mismo archivo no duplica.
+        </span>
+      </label>
+    </>
+  );
+}
+
+/** Recupera registros de un lanzamiento que corrió antes de conectar el panel. */
+export function ImportarRegistros({
+  launchId,
+  paginas,
+}: {
+  launchId: string;
+  paginas: { id: string; name: string; kind: string }[];
+}) {
+  return (
+    <DialogoForm titulo="Importar registros" etiquetaAbrir="Importar registros" action={importarRegistros}>
+      <CamposImportacion launchId={launchId} paginas={paginas} />
     </DialogoForm>
   );
 }

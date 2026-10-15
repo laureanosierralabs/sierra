@@ -22,7 +22,7 @@ import { conversionesDeRutas, visitasDeRutas } from "@/lib/sitios/datos";
 const COLUMNAS_LANZAMIENTO =
   "id, client_id, name, status, starts_on, ends_on, goal_registrations, created_at";
 const COLUMNAS_PAGINA =
-  "id, launch_id, name, url, thanks_url, whatsapp_url, checkout_url, project_id, mailerlite_group_id, track_key, site_id, path, position";
+  "id, launch_id, name, url, thanks_url, whatsapp_url, checkout_url, project_id, mailerlite_group_id, track_key, site_id, path, kind, position";
 const COLUMNAS_REGISTRO =
   "id, page_id, email, name, phone, utm_source, utm_medium, utm_campaign, utm_content, registered_at";
 

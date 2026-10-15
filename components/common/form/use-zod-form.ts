@@ -19,7 +19,8 @@ interface UseZodFormOptions {
   schema?: ZodType;
   /**
    * La server action. Puede devolver `{ error }` (se muestra tal cual, también
-   * en producción) o lanzar `Error` (en producción Next reemplaza el mensaje).
+   * en producción), `{ aviso }` (éxito con un mensaje propio en vez del
+   * genérico) o lanzar `Error` (en producción Next reemplaza el mensaje).
    */
   action: (formData: FormData) => Promise<unknown>;
   /** Toast de éxito. `null` lo desactiva (por ejemplo si la action redirige). */
@@ -88,7 +89,9 @@ export function useZodForm({
             toast.error(devuelto);
             return;
           }
-          if (successMessage) toast.success(successMessage);
+          const aviso = (resultado as { aviso?: unknown } | undefined)?.aviso;
+          if (typeof aviso === "string" && aviso) toast.success(aviso, { duration: 8000 });
+          else if (successMessage) toast.success(successMessage);
           onSuccess?.();
         } catch (e) {
           unstable_rethrow(e);

@@ -7,9 +7,16 @@ import { auth } from "@clerk/nextjs/server";
 import { accesoActual } from "@/lib/landing/auth";
 import { cifrar, hayClave } from "@/lib/landing/cifrado";
 import { supabaseAdmin } from "@/lib/landing/supabase";
-import { ESTADOS_LANZAMIENTO, type EstadoLanzamiento } from "@/lib/lanzamientos/tipos";
+import {
+  ESTADOS_LANZAMIENTO,
+  TIPOS_LANDING,
+  tipoLandingDeProyecto,
+  type EstadoLanzamiento,
+  type TipoLanding,
+} from "@/lib/lanzamientos/tipos";
 import { rutasDeSitio } from "@/lib/sitios/datos";
 import { landingDesdeProyecto, normalizarRuta } from "@/lib/sitios/tipos";
+import { registroValido, TOPE_IMPORTACION } from "@/lib/lanzamientos/importar";
 
 /**
  * Gestión de lanzamientos desde el panel. Todo exige owner. Los fallos se
@@ -168,8 +175,12 @@ export async function guardarPaginaLanzamiento(fd: FormData): Promise<Resultado>
     if (!sitio) return { error: "Ese proyecto conectado no es de este cliente" };
   }
 
+  const tipo = texto(fd, "kind") || "registro";
+  if (!TIPOS_LANDING.includes(tipo as TipoLanding)) return { error: "Tipo de landing inválido" };
+
   const fila = {
     name: nombre,
+    kind: tipo as TipoLanding,
     ...links,
     site_id: siteId,
     path: ruta,
@@ -220,7 +231,7 @@ export async function agregarLandingsDesdeProyectos(fd: FormData): Promise<Resul
 
   // Solo proyectos de ESTE cliente: los ids vienen del navegador.
   const [{ data: proyectos, error: errorProyectos }, { data: sitios }, { data: actuales }] = await Promise.all([
-    db.from("projects").select("id, name, site_url").eq("client_id", clientId).in("id", elegidos),
+    db.from("projects").select("id, name, site_url, page_type").eq("client_id", clientId).in("id", elegidos),
     db.from("client_sites").select("id, domain").eq("client_id", clientId),
     db.from("launch_pages").select("project_id, site_id, path").eq("launch_id", launchId),
   ]);
@@ -256,6 +267,7 @@ export async function agregarLandingsDesdeProyectos(fd: FormData): Promise<Resul
       client_id: clientId,
       project_id: p.id,
       name: sugerida.name,
+      kind: tipoLandingDeProyecto(p.page_type as string | null),
       url: sugerida.url,
       site_id: conRuta ? sugerida.site_id : null,
       path: conRuta ? sugerida.path : null,
@@ -275,6 +287,171 @@ export async function agregarLandingsDesdeProyectos(fd: FormData): Promise<Resul
     }
   }
   revalidar(clientId, launchId);
+}
+
+/**
+ * Importa registros de un CSV (ya leído en el navegador) a un lanzamiento:
+ * sirve para recuperar lanzamientos que corrieron antes de conectar el panel.
+ * Cada fila se vuelve a validar acá. Idempotente: reimportar el mismo archivo
+ * no duplica (un email cuenta una vez por lanzamiento).
+ */
+export async function importarRegistros(fd: FormData): Promise<Resultado | { aviso: string }> {
+  await exigirOwner();
+
+  const launchId = texto(fd, "launch_id");
+  const pageId = opcional(fd, "page_id");
+  if (!launchId) return { error: "Falta el lanzamiento" };
+
+  let crudos: unknown;
+  try {
+    crudos = JSON.parse(texto(fd, "registros") || "[]");
+  } catch {
+    return { error: "No se pudo leer el archivo" };
+  }
+  if (!Array.isArray(crudos) || crudos.length === 0) return { error: "El archivo no tiene registros con email" };
+  if (crudos.length > TOPE_IMPORTACION) {
+    return { error: `Máximo ${TOPE_IMPORTACION} registros por vez: dividí el archivo` };
+  }
+
+  const db = supabaseAdmin();
+  // El cliente sale del lanzamiento, nunca del form.
+  const { data: lanzamiento } = await db.from("launches").select("client_id").eq("id", launchId).maybeSingle();
+  if (!lanzamiento) return { error: "El lanzamiento no existe" };
+  const clientId = lanzamiento.client_id as string;
+
+  if (pageId) {
+    const { data: pagina } = await db
+      .from("launch_pages")
+      .select("id")
+      .eq("id", pageId)
+      .eq("launch_id", launchId)
+      .maybeSingle();
+    if (!pagina) return { error: "Esa landing no es de este lanzamiento" };
+  }
+
+  // Un email que ya entró a este lanzamiento (por MailerLite o por otra
+  // importación) no se vuelve a contar.
+  const yaRegistrados = new Set<string>();
+  for (let desde = 0; ; desde += 1000) {
+    const { data: lote, error: errorLectura } = await db
+      .from("launch_registrations")
+      .select("email")
+      .eq("launch_id", launchId)
+      .eq("client_id", clientId)
+      .range(desde, desde + 999);
+    if (errorLectura) return { error: "No se pudieron leer los registros actuales" };
+    for (const f of lote ?? []) yaRegistrados.add(String(f.email).toLowerCase());
+    if ((lote ?? []).length < 1000) break;
+  }
+
+  const ahora = new Date().toISOString();
+  const vistos = new Set<string>(yaRegistrados);
+  let yaEstaban = 0;
+  const filas = [];
+  for (const crudo of crudos) {
+    const r = registroValido((crudo ?? {}) as Record<string, unknown>);
+    if (!r) continue;
+    if (vistos.has(r.email)) {
+      if (yaRegistrados.has(r.email)) yaEstaban++;
+      continue;
+    }
+    vistos.add(r.email);
+    filas.push({
+      launch_id: launchId,
+      client_id: clientId,
+      page_id: pageId,
+      external_id: `import:${r.email}`,
+      email: r.email,
+      name: r.name,
+      phone: r.phone,
+      utm_source: r.utm_source,
+      source: "import",
+      registered_at: r.registered_at ?? ahora,
+    });
+  }
+  if (filas.length === 0) {
+    return yaEstaban > 0
+      ? { aviso: "Todos esos emails ya estaban en el lanzamiento: no se importó nada" }
+      : { error: "Ninguna fila tiene un email válido" };
+  }
+
+  let nuevos = 0;
+  for (let i = 0; i < filas.length; i += 500) {
+    const { data, error } = await db
+      .from("launch_registrations")
+      .upsert(filas.slice(i, i + 500), { onConflict: "launch_id,external_id", ignoreDuplicates: true })
+      .select("id");
+    if (error) {
+      revalidar(clientId, launchId);
+      return { error: `Se importaron ${nuevos} y falló el resto: ${error.message}` };
+    }
+    nuevos += data?.length ?? 0;
+  }
+
+  revalidar(clientId, launchId);
+  // Lo que el upsert ignoró (una importación en paralelo) también ya estaba.
+  yaEstaban += filas.length - nuevos;
+  return {
+    aviso: `${nuevos} registros importados${yaEstaban > 0 ? ` (${yaEstaban} ya estaban)` : ""}`,
+  };
+}
+
+/**
+ * Desconecta MailerLite de un lanzamiento. Cambia el token de la URL del
+ * webhook, así lo que siga mandando MailerLite rebota. Con la API key, además
+ * borra el webhook en la cuenta del cliente (la key se usa y no se guarda).
+ */
+export async function desconectarMailerlite(fd: FormData): Promise<Resultado | { aviso: string }> {
+  await exigirOwner();
+
+  const launchId = texto(fd, "launch_id");
+  const apiKey = texto(fd, "api_key");
+  if (!launchId) return { error: "Falta el lanzamiento" };
+
+  const db = supabaseAdmin();
+  const { data: lanzamiento } = await db
+    .from("launches")
+    .select("client_id, mailerlite_webhook_id")
+    .eq("id", launchId)
+    .maybeSingle();
+  if (!lanzamiento) return { error: "El lanzamiento no existe" };
+
+  let borradoEnMailerlite = false;
+  if (apiKey && lanzamiento.mailerlite_webhook_id) {
+    try {
+      const res = await fetch(
+        `https://connect.mailerlite.com/api/webhooks/${encodeURIComponent(String(lanzamiento.mailerlite_webhook_id))}`,
+        {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${apiKey}`, Accept: "application/json" },
+          signal: AbortSignal.timeout(10_000),
+        },
+      );
+      // 404: ya no existía en MailerLite, que es lo que se buscaba.
+      borradoEnMailerlite = res.ok || res.status === 404;
+      if (!borradoEnMailerlite) return { error: `MailerLite no borró el webhook (HTTP ${res.status}): revisá la API key` };
+    } catch {
+      return { error: "No se pudo hablar con MailerLite" };
+    }
+  }
+
+  const { error } = await db
+    .from("launches")
+    .update({
+      webhook_token: randomBytes(24).toString("base64url"),
+      mailerlite_webhook_id: null,
+      webhook_secret_encrypted: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", launchId);
+  if (error) return { error: `No se pudo desconectar: ${error.message}` };
+
+  revalidar(lanzamiento.client_id as string, launchId);
+  return {
+    aviso: borradoEnMailerlite
+      ? "MailerLite desconectado y webhook borrado"
+      : "MailerLite desconectado. El webhook quedó en MailerLite pero ya no recibe nada: podés borrarlo en Integraciones → Webhooks",
+  };
 }
 
 export async function borrarPaginaLanzamiento(id: string): Promise<Resultado> {

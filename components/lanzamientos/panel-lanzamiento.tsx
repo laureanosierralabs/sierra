@@ -53,20 +53,38 @@ export function PanelLanzamiento({
   const meta = lanzamiento.goal_registrations;
   const hayVisitas = trafico.total > 0;
 
+  const comprasPorPagina = new Map<string, number>();
+  for (const c of compras) {
+    if (c.page_id) comprasPorPagina.set(c.page_id, (comprasPorPagina.get(c.page_id) ?? 0) + 1);
+  }
+
+  // Cada landing convierte en lo suyo: las de registro en registros, las de
+  // venta en compras.
   const filas = paginas.map((p) => {
     const reg = resumen.porPagina[p.id] ?? 0;
     const vis = trafico.porPagina[p.id] ?? 0;
-    return { ...p, registros: reg, visitantes: vis, cvr: conversion(reg, vis) };
+    const conv = p.kind === "venta" ? (comprasPorPagina.get(p.id) ?? 0) : reg;
+    return { ...p, registros: reg, conversiones: conv, visitantes: vis, cvr: conversion(conv, vis) };
   });
   const nombre = new Map(paginas.map((p) => [p.id, p.name]));
 
-  // Conversión general: solo registros de landings con visitas medidas. Si
-  // no, una landing sin script sumaría registros sin sumar visitantes.
-  const registrosMedidos = filas.reduce((t, p) => t + (p.visitantes > 0 ? p.registros : 0), 0);
+  // Conversión general de registro: solo landings de registro con visitas
+  // medidas. Una de venta (o una sin script) sumaría visitantes que nunca
+  // iban a registrarse, o registros sin visitantes.
+  const deRegistroMedidas = filas.filter((p) => p.kind !== "venta" && p.visitantes > 0);
+  const registrosMedidos = deRegistroMedidas.reduce((t, p) => t + p.registros, 0);
+  const visitantesDeRegistro = deRegistroMedidas.reduce((t, p) => t + p.visitantes, 0);
 
-  const comparacion = compararVariantes(
-    filas.map((p) => ({ id: p.id, visitantes: p.visitantes, registros: p.registros })),
-  );
+  // Se comparan landings del mismo tipo: un test A/B es entre variantes.
+  const comparaciones = (["registro", "venta"] as const)
+    .map((tipo) =>
+      compararVariantes(
+        filas
+          .filter((p) => p.kind === tipo)
+          .map((p) => ({ id: p.id, visitantes: p.visitantes, registros: p.conversiones })),
+      ),
+    )
+    .filter((c) => c !== null);
 
   // Registros por fuente: solo existen si el formulario manda los UTM.
   const registrosPorFuente = new Map<string, number>();
@@ -102,8 +120,12 @@ export function PanelLanzamiento({
         />
         <KpiCard
           label="Conversión"
-          value={porcentaje(conversion(registrosMedidos, trafico.total))}
-          hint={hayVisitas ? "Registros sobre visitantes únicos diarios" : "Necesita las visitas"}
+          value={porcentaje(conversion(registrosMedidos, visitantesDeRegistro))}
+          hint={
+            hayVisitas
+              ? "Registros sobre visitantes de las landings de registro"
+              : "Necesita las visitas"
+          }
           icon={<BarChart2 />}
           tone="success"
         />
@@ -187,24 +209,28 @@ export function PanelLanzamiento({
                     )}
                     <span className="text-xs text-text-tertiary tabular-nums">
                       {p.visitantes > 0 ? `${numero(p.visitantes)} visitantes` : "Sin visitas"} ·{" "}
-                      {/* Con proyecto conectado los registros llegan por el kit, sin grupo. */}
-                      {p.mailerlite_group_id || p.site_id
-                        ? `${numero(p.registros)} registros`
-                        : "sin registros conectados"}
+                      {p.kind === "venta"
+                        ? `${numero(p.conversiones)} ventas`
+                        : // Con proyecto conectado los registros llegan por el kit, sin grupo.
+                          p.mailerlite_group_id || p.site_id || p.registros > 0
+                          ? `${numero(p.registros)} registros`
+                          : "sin registros conectados"}
                     </span>
                   </span>
                   <span className="shrink-0 text-right">
                     <span className="block text-sm font-semibold text-text-primary tabular-nums">
                       {porcentaje(p.cvr)}
                     </span>
-                    <span className="text-xs text-text-tertiary">conversión</span>
+                    <span className="text-xs text-text-tertiary">
+                      {p.kind === "venta" ? "a venta" : "a registro"}
+                    </span>
                   </span>
                 </li>
               ))}
             </ul>
           )}
-          {comparacion && (
-            <p className="border-t border-card-border px-5 py-3 text-xs text-text-secondary">
+          {comparaciones.map((comparacion) => (
+            <p key={comparacion.mejor} className="border-t border-card-border px-5 py-3 text-xs text-text-secondary">
               {comparacion.significativa ? (
                 <>
                   <strong className="font-medium text-text-primary">
@@ -220,7 +246,7 @@ export function PanelLanzamiento({
                 </>
               )}
             </p>
-          )}
+          ))}
         </Card>
       </div>
 
