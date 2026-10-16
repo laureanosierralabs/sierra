@@ -31,7 +31,6 @@
 
   /* Semántica de estado — oscurecida para contrastar sobre blanco */
   --critical: #c62828;
-  --critical-dim: #fdecec;
   --warn: #a35c00;
   --warn-dim: #fdf4e3;
   --ok: #1b7a4b;
@@ -71,7 +70,6 @@
     --text-3: #62626e;
 
     --critical: #e5484d;
-    --critical-dim: #3d1719;
     --warn: #f5a623;
     --warn-dim: #3a2a10;
     --ok: #30a46c;
@@ -104,7 +102,6 @@
   --text-2: #5c5c68;
   --text-3: #8b8b97;
   --critical: #cc2229;
-  --critical-dim: #fdeced;
   --warn: #a35c00;
   --warn-dim: #fdf3e3;
   --ok: #18794e;
@@ -134,7 +131,6 @@
   --text-2: #9a9aa6;
   --text-3: #62626e;
   --critical: #e5484d;
-  --critical-dim: #3d1719;
   --warn: #f5a623;
   --warn-dim: #3a2a10;
   --ok: #30a46c;
@@ -163,7 +159,6 @@
   --color-text-2: var(--text-2);
   --color-text-3: var(--text-3);
   --color-critical: var(--critical);
-  --color-critical-dim: var(--critical-dim);
   --color-warn: var(--warn);
   --color-warn-dim: var(--warn-dim);
   --color-ok: var(--ok);
@@ -194,14 +189,6 @@ body {
 h1, h2, h3 {
   font-family: var(--font-display);
   text-wrap: balance;
-}
-
-.eyebrow {
-  font-size: 0.6875rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text-3);
 }
 
 /* En @layer base para que `outline-none` y los `focus-visible:ring-*` de las
