@@ -30,6 +30,7 @@ const detalle = {
   ],
   compras: [{ id: "x", page_id: "v", amount: 100, currency: "USD", occurred_at: "2026-10-05T12:00:00Z" }],
   truncado: false,
+  listas: [{ id: "w", name: "Asistió al webinar", total: 5, cruzan: 2, porPagina: { a: 1, b: 1 }, sinRegistro: 3 }],
 };
 
 test("armarReporte: embudo, conversión por tipo, meta, pico y fuentes", () => {
@@ -53,6 +54,8 @@ test("armarReporte: embudo, conversión por tipo, meta, pico y fuentes", () => {
   assert.equal(r.tests.length, 1);
   assert.equal(r.tests[0].tipo, "registro");
   assert.equal(r.tests[0].mejor, "Registro A");
+  // Embudo después del registro: 2 de 3 registrados asistieron.
+  assert.deepEqual(r.embudo, [{ name: "Asistió al webinar", cruzan: 2, porcentaje: 66.7 }]);
 });
 
 test("armarReporte: pedidos del lanzamiento con mediana de resolución", () => {

@@ -75,7 +75,8 @@ export function parsearCsv(texto: string): string[][] {
 
 /* Por campo, patrones en orden de preferencia: gana el primero que encuentra columna. */
 const COLUMNAS: Record<CampoBase, RegExp[]> = {
-  email: [/^(e-?mail|correo|mail)/],
+  // "Email", "Customer Email" (Stripe), "Correo electrónico".
+  email: [/(^|_)(e-?mail|correo)|^mail/],
   name: [/^(name|nombre|full.?name|nombre.?completo|first.?name)/],
   phone: [/(phone|tel[eé]fono|telefono|celular|whats.?app|movil|m[oó]vil)/],
   registered_at: [

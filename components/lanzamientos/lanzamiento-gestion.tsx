@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { Copy1, Pencil1 } from "@tailgrids/icons";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -20,13 +20,16 @@ import {
   TOPE_IMPORTACION,
   type ResultadoImportacion,
 } from "@/lib/lanzamientos/importar";
+import { compactar, leerLista, LISTAS_SUGERIDAS, TOPE_MIEMBROS, type ListaLeida } from "@/lib/lanzamientos/listas";
 import {
   agregarLandingsDesdeProyectos,
   borrarLanzamiento,
+  borrarLista,
   borrarPaginaLanzamiento,
   conectarMailerlite,
   desconectarMailerlite,
   guardarConclusiones,
+  importarLista,
   importarRegistros,
   guardarLanzamiento,
   guardarPaginaLanzamiento,
@@ -719,5 +722,145 @@ export function ConclusionesForm({ launchId, valor }: { launchId: string; valor:
         {form.pending ? "Guardando…" : "Guardar conclusiones"}
       </Button>
     </form>
+  );
+}
+
+function CamposLista({ launchId }: { launchId: string }) {
+  const [leida, setLeida] = useState<ListaLeida | null>(null);
+  const [archivo, setArchivo] = useState<string | null>(null);
+  const [payload, setPayload] = useState("");
+  // Si se elige otro archivo mientras se lee el anterior, gana el último.
+  const ultimo = useRef(0);
+
+  async function elegir(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    const turno = ++ultimo.current;
+    setArchivo(f.name);
+    if (f.size > TOPE_ARCHIVO_BYTES) {
+      setLeida(null);
+      setPayload("");
+      toast.error("El archivo pesa más de 5 MB: dividilo en partes");
+      return;
+    }
+    const contenido = await f.text();
+    if (turno !== ultimo.current) return;
+    const lista = leerLista(contenido);
+    setLeida(lista);
+    setPayload(
+      lista && lista.miembros.length > 0 && lista.miembros.length <= TOPE_MIEMBROS
+        ? JSON.stringify(compactar(lista.miembros))
+        : "",
+    );
+  }
+
+  const excedida = Boolean(leida && leida.miembros.length > TOPE_MIEMBROS);
+
+  return (
+    <>
+      <input type="hidden" name="launch_id" value={launchId} />
+      <input type="hidden" name="miembros" value={payload} />
+      {excedida && <input type="hidden" name="excedida" value="1" />}
+      <label className="flex flex-col gap-1.5">
+        <span className="text-sm font-medium text-input-label-text">Qué es esta lista</span>
+        <input
+          name="name"
+          required
+          maxLength={80}
+          list={`listas-${launchId}`}
+          placeholder="Asistió al webinar"
+          className="rounded-lg border border-card-border bg-input-background px-4 py-2.5 text-title-50 outline-none duration-300 placeholder:text-input-placeholder-text focus:border-input-primary-focus-border focus:ring-4 focus:ring-input-primary-focus-border/20"
+        />
+        <datalist id={`listas-${launchId}`}>
+          {LISTAS_SUGERIDAS.map((n) => (
+            <option key={n} value={n} />
+          ))}
+        </datalist>
+        <span className="text-xs text-text-tertiary">
+          Es el paso del embudo. Si ya existe una lista con ese nombre, se reemplaza.
+        </span>
+      </label>
+
+      <label className="flex flex-col gap-1.5">
+        <span className="text-sm font-medium text-input-label-text">Archivo CSV</span>
+        <input
+          type="file"
+          accept=".csv,text/csv"
+          onChange={elegir}
+          className="text-sm text-text-secondary file:mr-3 file:rounded-lg file:border file:border-card-border file:bg-input-background file:px-3 file:py-1.5 file:text-sm"
+        />
+        <span className="text-xs text-text-tertiary">
+          El reporte de asistentes de Zoom, los miembros del grupo, los compradores de Stripe o Hotmart: cualquier
+          archivo con una columna de email o de teléfono.
+        </span>
+      </label>
+
+      {archivo && (
+        <div className="rounded-lg border border-card-border p-3 text-sm">
+          {!leida ? (
+            <p className="text-badge-error-text">
+              {archivo}: no tiene una columna de email ni de teléfono.
+            </p>
+          ) : (
+            <>
+              <p className="font-medium text-text-primary">
+                {leida.miembros.length.toLocaleString("es-AR")} personas para cruzar
+                {leida.miembros.length > TOPE_MIEMBROS && (
+                  <span className="text-badge-error-text"> (máximo {TOPE_MIEMBROS}: dividí el archivo)</span>
+                )}
+              </p>
+              <ul className="mt-1 text-xs text-text-tertiary">
+                <li>
+                  Columnas: {[leida.columnas.email && `email = ${leida.columnas.email}`, leida.columnas.telefono && `teléfono = ${leida.columnas.telefono}`]
+                    .filter(Boolean)
+                    .join(" · ")}
+                  {leida.filaEncabezado > 1 && " (se salteó el resumen de arriba del archivo)"}
+                </li>
+                {leida.noAsistieron > 0 && (
+                  <li>{leida.noAsistieron} registrados que no asistieron quedan afuera (columna {leida.columnas.asistio}).</li>
+                )}
+                {leida.descartadas > 0 && <li>{leida.descartadas} filas sin email ni teléfono se saltean.</li>}
+                {leida.repetidos > 0 && <li>{leida.repetidos} repetidos cuentan una vez.</li>}
+              </ul>
+            </>
+          )}
+        </div>
+      )}
+    </>
+  );
+}
+
+/** Sube una lista para cruzar con los registros y armar el embudo que sigue. */
+export function CruzarLista({ launchId }: { launchId: string }) {
+  return (
+    <DialogoForm titulo="Cruzar con una lista" etiquetaAbrir="Cruzar con una lista" action={importarLista} etiquetaEnviar="Cruzar">
+      <CamposLista launchId={launchId} />
+    </DialogoForm>
+  );
+}
+
+/** Listas cargadas, con cuántas personas cruzaron con los registros. */
+export function ListasCargadas({
+  listas,
+}: {
+  listas: { id: string; name: string; total: number; cruzan: number; sinRegistro: number }[];
+}) {
+  if (listas.length === 0) return null;
+  return (
+    <ul className="divide-y divide-card-border rounded-lg border border-card-border">
+      {listas.map((l) => (
+        <li key={l.id} className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
+          <span className="min-w-0">
+            <span className="block truncate font-medium text-text-primary">{l.name}</span>
+            <span className="text-xs text-text-tertiary">
+              {l.total.toLocaleString("es-AR")} personas · {l.cruzan.toLocaleString("es-AR")} cruzan con
+              registros
+              {l.sinRegistro > 0 ? ` · ${l.sinRegistro.toLocaleString("es-AR")} no se registraron por las landings` : ""}
+            </span>
+          </span>
+          <BorrarBoton etiqueta={`Borrar la lista ${l.name}`} onConfirmar={() => borrarLista(l.id)} />
+        </li>
+      ))}
+    </ul>
   );
 }

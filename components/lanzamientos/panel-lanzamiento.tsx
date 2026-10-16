@@ -130,6 +130,15 @@ export function PanelLanzamiento({ detalle }: { detalle: DetalleLanzamiento }) {
         <ResumenLanzamiento detalle={detalle} />
       )}
 
+      {detalle.listas.length > 0 && !esVenta && (
+        <Embudo
+          registros={vista.registros.length}
+          listas={detalle.listas}
+          landing={seleccion?.id ?? null}
+          parcial={detalle.truncado}
+        />
+      )}
+
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-5">
         <div className="xl:col-span-3">
           {esVenta ? (
@@ -420,6 +429,59 @@ function PorLanding({
           )}
         </p>
       ))}
+    </Card>
+  );
+}
+
+/**
+ * Lo que pasa después del registro, cruzado con las listas que se subieron
+ * (grupo de WhatsApp, asistentes, compradores). Respeta el filtro de landing:
+ * así se ve qué landing trae gente que después asiste o compra.
+ */
+function Embudo({
+  registros,
+  listas,
+  landing,
+  parcial,
+}: {
+  registros: number;
+  listas: DetalleLanzamiento["listas"];
+  /** Landing filtrada; null = todas. */
+  landing: string | null;
+  /** Registros leídos hasta el tope: "no se registraron" estaría inflado. */
+  parcial: boolean;
+}) {
+  const todas = landing === null;
+  const pasos = listas.map((l) => ({ ...l, cruzanAca: todas ? l.cruzan : (l.porPagina[landing] ?? 0) }));
+
+  return (
+    <Card className="overflow-hidden p-0">
+      <CabeceraCard
+        titulo="Después del registro"
+        detalle={
+          todas
+            ? "De los registrados, cuántos siguieron cada paso (cruzado por email o teléfono)"
+            : "De los registrados en esta landing, cuántos siguieron cada paso"
+        }
+      />
+      <ol className="grid grid-cols-1 divide-y divide-card-border sm:grid-cols-[repeat(auto-fit,minmax(10rem,1fr))] sm:divide-x sm:divide-y-0">
+        <li className="px-5 py-4">
+          <p className="text-sm text-text-tertiary">Registros</p>
+          <p className="text-xl font-semibold text-text-primary tabular-nums">{numero(registros)}</p>
+        </li>
+        {pasos.map((p) => (
+          <li key={p.id} className="px-5 py-4">
+            <p className="truncate text-sm text-text-tertiary">{p.name}</p>
+            <p className="text-xl font-semibold text-text-primary tabular-nums">
+              {numero(p.cruzanAca)}{" "}
+              <span className="text-sm font-medium text-text-secondary">{porcentaje(conversion(p.cruzanAca, registros))}</span>
+            </p>
+            {todas && !parcial && p.sinRegistro > 0 && (
+              <p className="text-xs text-text-tertiary">+{numero(p.sinRegistro)} que no se registraron por las landings</p>
+            )}
+          </li>
+        ))}
+      </ol>
     </Card>
   );
 }

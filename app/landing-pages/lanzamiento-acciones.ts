@@ -17,6 +17,7 @@ import {
 import { rutasDeSitio } from "@/lib/sitios/datos";
 import { landingDesdeProyecto, normalizarRuta } from "@/lib/sitios/tipos";
 import { registroValido, TOPE_IMPORTACION } from "@/lib/lanzamientos/importar";
+import { normalizarEmail, normalizarTelefono, TOPE_MIEMBROS } from "@/lib/lanzamientos/listas";
 
 /**
  * Gestión de lanzamientos desde el panel. Todo exige owner. Los fallos se
@@ -508,6 +509,108 @@ export async function guardarConclusiones(fd: FormData): Promise<Resultado | { a
 
   revalidar(data.client_id as string, launchId);
   return { aviso: "Conclusiones guardadas: ya se ven en el reporte" };
+}
+
+/**
+ * Sube una lista para cruzar con los registros (asistentes de Zoom, grupo de
+ * WhatsApp, compradores). Una lista con el mismo nombre se reemplaza: así se
+ * actualiza sin duplicar. Solo se guardan email y teléfono normalizados.
+ */
+export async function importarLista(fd: FormData): Promise<Resultado | { aviso: string }> {
+  await exigirOwner();
+
+  const launchId = texto(fd, "launch_id");
+  const nombre = texto(fd, "name");
+  if (!launchId) return { error: "Falta el lanzamiento" };
+  if (!nombre || nombre.length > 80) return { error: "Poné un nombre a la lista (máximo 80 caracteres)" };
+
+  if (texto(fd, "excedida")) return { error: `Máximo ${TOPE_MIEMBROS} personas por lista: dividí el archivo` };
+
+  let crudos: unknown;
+  try {
+    crudos = JSON.parse(texto(fd, "miembros") || "[]");
+  } catch {
+    return { error: "No se pudo leer el archivo" };
+  }
+  if (!Array.isArray(crudos) || crudos.length === 0) return { error: "El archivo no tiene emails ni teléfonos" };
+  if (crudos.length > TOPE_MIEMBROS) return { error: `Máximo ${TOPE_MIEMBROS} personas por lista` };
+
+  const db = supabaseAdmin();
+  const { data: lanzamiento } = await db.from("launches").select("client_id").eq("id", launchId).maybeSingle();
+  if (!lanzamiento) return { error: "El lanzamiento no existe" };
+  const clientId = lanzamiento.client_id as string;
+
+  // Llega compacto: [email, teléfono]. Se vuelve a normalizar todo acá.
+  const miembros = crudos
+    .map((m) => {
+      const [email, phone] = Array.isArray(m) ? m : [];
+      return { email: normalizarEmail(email), phone: normalizarTelefono(phone) };
+    })
+    .filter((m) => m.email || m.phone);
+  if (miembros.length === 0) return { error: "Ninguna fila tiene un email o teléfono válido" };
+
+  // Reemplazo seguro: la nueva se carga entera con un nombre provisorio y
+  // recién entonces reemplaza a la anterior, en su mismo lugar del embudo. Si
+  // algo falla en el medio, la anterior queda intacta.
+  const { data: anterior } = await db
+    .from("launch_lists")
+    .select("id, position")
+    .eq("launch_id", launchId)
+    .eq("client_id", clientId)
+    .eq("name", nombre)
+    .maybeSingle();
+  let posicion = anterior?.position as number | undefined;
+  if (posicion === undefined) {
+    const { data: ultima } = await db
+      .from("launch_lists")
+      .select("position")
+      .eq("launch_id", launchId)
+      .order("position", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    posicion = ultima ? (ultima.position as number) + 1 : 0;
+  }
+
+  const provisorio = `~${randomBytes(6).toString("hex")}`;
+  const { data: lista, error } = await db
+    .from("launch_lists")
+    .insert({ launch_id: launchId, client_id: clientId, name: provisorio, position: posicion })
+    .select("id")
+    .single();
+  if (error || !lista) return { error: "No se pudo crear la lista" };
+
+  for (let i = 0; i < miembros.length; i += 1000) {
+    const { error: errMiembros } = await db
+      .from("launch_list_members")
+      .insert(miembros.slice(i, i + 1000).map((m) => ({ ...m, list_id: lista.id, client_id: clientId })));
+    if (errMiembros) {
+      // Una lista a medias daría un embudo falso: se borra la nueva entera.
+      await db.from("launch_lists").delete().eq("id", lista.id);
+      return { error: "No se pudo guardar la lista: probá de nuevo" };
+    }
+  }
+
+  if (anterior) await db.from("launch_lists").delete().eq("id", anterior.id);
+  const { error: errNombre } = await db.from("launch_lists").update({ name: nombre }).eq("id", lista.id);
+  if (errNombre) {
+    await db.from("launch_lists").delete().eq("id", lista.id);
+    return { error: "Ya hay otra lista con ese nombre: probá de nuevo" };
+  }
+
+  revalidar(clientId, launchId);
+  return { aviso: `Lista "${nombre}" cargada con ${miembros.length.toLocaleString("es-AR")} personas` };
+}
+
+export async function borrarLista(id: string): Promise<Resultado> {
+  await exigirOwner();
+  const { data, error } = await supabaseAdmin()
+    .from("launch_lists")
+    .delete()
+    .eq("id", id)
+    .select("client_id, launch_id")
+    .maybeSingle();
+  if (error) return { error: `No se pudo borrar: ${error.message}` };
+  if (data) revalidar(data.client_id as string, data.launch_id as string);
 }
 
 export async function borrarPaginaLanzamiento(id: string): Promise<Resultado> {

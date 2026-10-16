@@ -110,6 +110,26 @@ export function ReporteCierre({
         )}
       </section>
 
+      {r.embudo.length > 0 && (
+        <section className="break-inside-avoid">
+          <Titulo>Después del registro</Titulo>
+          <ol className="flex flex-wrap items-stretch gap-3">
+            <li className="flex flex-col rounded-xl border-2 border-doc-box px-4 py-3">
+              <span className="text-sm text-doc-muted">Registros</span>
+              <span className="text-xl font-semibold tabular-nums">{numero(r.registros)}</span>
+            </li>
+            {r.embudo.map((p) => (
+              <li key={p.name} className="flex flex-col rounded-xl border-2 border-doc-box px-4 py-3">
+                <span className="text-sm text-doc-muted">{p.name}</span>
+                <span className="text-xl font-semibold tabular-nums">
+                  {numero(p.cruzan)} <span className="text-sm font-medium text-doc-muted">{porcentaje(p.porcentaje)}</span>
+                </span>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
+
       {r.porLanding.length > 0 && (
         <section className="break-inside-avoid">
           <Titulo>Por landing</Titulo>

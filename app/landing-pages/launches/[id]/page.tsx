@@ -9,9 +9,11 @@ import {
   ConexionMailerlite,
   CopiarScriptVisitas,
   ConclusionesForm,
+  CruzarLista,
   ElegirLandings,
   ImportarRegistros,
   LanzamientoForm,
+  ListasCargadas,
   PaginaLanzamientoForm,
 } from "@/components/lanzamientos/lanzamiento-gestion";
 import { PanelLanzamiento } from "@/components/lanzamientos/panel-lanzamiento";
@@ -240,6 +242,19 @@ export default async function LanzamientoDetalle({
                 </span>
               </span>
               <ImportarRegistros launchId={lanzamiento.id} paginas={paginas} />
+            </div>
+            <div className="flex flex-col gap-3 px-4 py-4">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <span className="min-w-0 max-w-xl">
+                  <span className="block text-sm font-medium text-text-primary">Cruzar con otra lista</span>
+                  <span className="block text-sm text-text-tertiary">
+                    Lo que pasa después del registro: quién entró al grupo, quién asistió al webinar, quién compró.
+                    Se cruza por email o teléfono y arma el embudo en Resultados, por landing.
+                  </span>
+                </span>
+                <CruzarLista launchId={lanzamiento.id} />
+              </div>
+              <ListasCargadas listas={detalle.listas} />
             </div>
             <div className="px-4 py-4">
               <span className="mb-3 block text-sm font-medium text-text-primary">MailerLite</span>

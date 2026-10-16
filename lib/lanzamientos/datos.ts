@@ -10,6 +10,7 @@ import {
   type VisitaAgregada,
 } from "@/lib/lanzamientos/tipos";
 import { conversionesDeRutas, visitasDeRutas } from "@/lib/sitios/datos";
+import { cruzarListas, type ListaCruzada, type Miembro } from "@/lib/lanzamientos/listas";
 
 /**
  * Lecturas de lanzamientos. Toda función recibe el `clientId` y filtra por
@@ -56,6 +57,8 @@ export interface DetalleLanzamiento {
   compras: Compra[];
   /** `true` si hay más registros que el tope leído (los totales serían parciales). */
   truncado: boolean;
+  /** Listas cruzadas con los registros (asistentes, grupo, compradores): solo ids. */
+  listas: ListaCruzada[];
 }
 
 /* PostgREST devuelve de a 1000 filas: se pagina hasta un tope razonable. */
@@ -170,6 +173,14 @@ export async function lanzamientoDeCliente(
   }
   registros.sort((a, b) => b.registered_at.localeCompare(a.registered_at));
 
+  // Si las listas fallan, el panel se ve igual sin el embudo.
+  const listas = await listasDeLanzamiento(clientId, id)
+    .then((l) => cruzarListas(registros, l))
+    .catch((e) => {
+      console.error("[lanzamientos] no se pudieron leer las listas:", e);
+      return [];
+    });
+
   return {
     lanzamiento: l,
     paginas: listaPaginas,
@@ -177,7 +188,44 @@ export async function lanzamientoDeCliente(
     visitas: visitasTotales,
     compras,
     truncado,
+    listas,
   };
+}
+
+/** Listas del lanzamiento con sus miembros (email y teléfono normalizados). */
+async function listasDeLanzamiento(
+  clientId: string,
+  launchId: string,
+): Promise<{ id: string; name: string; miembros: Miembro[] }[]> {
+  const db = supabaseAdmin();
+  const { data: listas, error } = await db
+    .from("launch_lists")
+    .select("id, name")
+    .eq("client_id", clientId)
+    .eq("launch_id", launchId)
+    // "~…" es una lista que se está cargando (reemplazo en curso): todavía no cuenta.
+    .not("name", "like", "~%")
+    .order("position")
+    .order("created_at");
+  if (error) throw new Error("No se pudieron leer las listas");
+  if (!listas?.length) return [];
+
+  const miembros = new Map<string, Miembro[]>(listas.map((l) => [l.id as string, []]));
+  for (let desde = 0; ; desde += LOTE) {
+    const { data: lote, error: errMiembros } = await db
+      .from("launch_list_members")
+      .select("list_id, email, phone")
+      .eq("client_id", clientId)
+      .in("list_id", [...miembros.keys()])
+      .order("id")
+      .range(desde, desde + LOTE - 1);
+    if (errMiembros) throw new Error("No se pudieron leer las listas");
+    for (const m of lote ?? []) {
+      miembros.get(m.list_id as string)?.push({ email: m.email as string | null, phone: m.phone as string | null });
+    }
+    if ((lote ?? []).length < LOTE || desde >= 50_000) break;
+  }
+  return listas.map((l) => ({ id: l.id as string, name: l.name as string, miembros: miembros.get(l.id as string) ?? [] }));
 }
 
 /** Cliente dueño de un lanzamiento: el panel entra por id y de acá saca el filtro. */

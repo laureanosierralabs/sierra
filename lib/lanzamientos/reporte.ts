@@ -46,6 +46,8 @@ export interface Reporte {
   meta: { objetivo: number; logrado: number } | null;
   pico: { dia: string; registros: number } | null;
   porLanding: FilaLanding[];
+  /** Pasos después del registro (listas cruzadas): cuántos registrados siguieron. */
+  embudo: { name: string; cruzan: number; porcentaje: number | null }[];
   tests: ResultadoTest[];
   fuentes: { fuente: string; visitantes: number; registros: number }[];
   pedidos: {
@@ -145,6 +147,11 @@ export function armarReporte(detalle: DetalleLanzamiento, pedidos: Pedido[]): Re
     meta: objetivo ? { objetivo, logrado: Math.round((resumen.total / objetivo) * 100) } : null,
     pico,
     porLanding,
+    embudo: detalle.listas.map((l) => ({
+      name: l.name,
+      cruzan: l.cruzan,
+      porcentaje: conversion(l.cruzan, resumen.total),
+    })),
     tests,
     fuentes: trafico.porFuente.slice(0, 6).map((f) => ({
       fuente: f.fuente,
