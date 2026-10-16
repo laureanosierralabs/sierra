@@ -32,19 +32,22 @@ export function ExportarRegistros({
   paginas,
   lanzamiento,
   landing,
+  periodo = null,
 }: {
   registros: Registro[];
   paginas: Pick<PaginaLanzamiento, "id" | "name">[];
   lanzamiento: string;
   /** Nombre de la landing filtrada; null = todas. */
   landing: string | null;
+  /** Período filtrado ("Últimos 7 días"); null = todo el lanzamiento. */
+  periodo?: string | null;
 }) {
   const extras = columnasExtra(registros);
 
   async function exportar(fd: FormData): Promise<{ error: string } | { aviso: string }> {
     const columnas = fd.getAll("columnas").map(String);
     if (columnas.length === 0) return { error: "Elegí al menos una columna" };
-    const nombre = [slugify(lanzamiento) || "lanzamiento", landing ? slugify(landing) : null]
+    const nombre = [slugify(lanzamiento) || "lanzamiento", landing ? slugify(landing) : null, periodo ? slugify(periodo) : null]
       .filter(Boolean)
       .join("-");
     descargar(csvRegistros(registros, columnas, paginas), `registros-${nombre}.csv`);
@@ -66,8 +69,8 @@ export function ExportarRegistros({
     >
       <p className="text-sm text-text-secondary">
         {registros.length.toLocaleString("es-AR")} registros de{" "}
-        <strong className="font-medium text-text-primary">{landing ?? "todas las landings"}</strong>.
-        Para exportar otra landing, cambiala arriba en el filtro.
+        <strong className="font-medium text-text-primary">{landing ?? "todas las landings"}</strong>
+        {periodo ? <> · {periodo.toLowerCase()}</> : null}. Para exportar otra cosa, cambiá los filtros de arriba.
       </p>
 
       <fieldset className="flex flex-col gap-2">

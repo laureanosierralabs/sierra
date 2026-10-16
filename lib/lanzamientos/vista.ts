@@ -23,6 +23,62 @@ export function filtrarPorLanding(datos: DatosVista, pageId: string | null): Dat
   };
 }
 
+/* ───────────── Período ───────────── */
+
+export const PERIODOS = [
+  { valor: "hoy", etiqueta: "Hoy" },
+  { valor: "ayer", etiqueta: "Ayer" },
+  { valor: "7d", etiqueta: "Últimos 7 días" },
+  { valor: "30d", etiqueta: "Últimos 30 días" },
+] as const;
+export type Periodo = (typeof PERIODOS)[number]["valor"] | "todo";
+
+export interface Rango {
+  /** Días AAAA-MM-DD, inclusive, en hora de Buenos Aires. */
+  desde: string;
+  hasta: string;
+  dias: number;
+}
+
+const DIA_BA = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Argentina/Buenos_Aires" });
+const diaBA = (instante: string | Date) => DIA_BA.format(typeof instante === "string" ? new Date(instante) : instante);
+const restarDias = (dia: string, n: number) => {
+  const d = new Date(`${dia}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - n);
+  return d.toISOString().slice(0, 10);
+};
+
+/** Días que cubre un período, contados hacia atrás desde hoy (incluido). Null = todo el lanzamiento. */
+export function rangoDePeriodo(periodo: Periodo, ahora: Date = new Date()): Rango | null {
+  const hoy = diaBA(ahora);
+  switch (periodo) {
+    case "hoy":
+      return { desde: hoy, hasta: hoy, dias: 1 };
+    case "ayer": {
+      const ayer = restarDias(hoy, 1);
+      return { desde: ayer, hasta: ayer, dias: 1 };
+    }
+    case "7d":
+      return { desde: restarDias(hoy, 6), hasta: hoy, dias: 7 };
+    case "30d":
+      return { desde: restarDias(hoy, 29), hasta: hoy, dias: 30 };
+    default:
+      return null;
+  }
+}
+
+/** Solo lo que pasó dentro del rango. Las landings y el resto de los datos quedan igual. */
+export function filtrarPorPeriodo<T extends DatosVista>(datos: T, rango: Rango | null): T {
+  if (!rango) return datos;
+  const dentro = (dia: string) => dia >= rango.desde && dia <= rango.hasta;
+  return {
+    ...datos,
+    registros: datos.registros.filter((r) => dentro(diaBA(r.registered_at))),
+    visitas: datos.visitas.filter((v) => dentro(v.day)),
+    compras: datos.compras.filter((c) => dentro(diaBA(c.occurred_at))),
+  };
+}
+
 /* ───────────── Exportación ───────────── */
 
 export interface ColumnaExportable {

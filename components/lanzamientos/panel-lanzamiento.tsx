@@ -29,7 +29,14 @@ import {
   type Compra,
   type PaginaLanzamiento,
 } from "@/lib/lanzamientos/tipos";
-import { filtrarPorLanding } from "@/lib/lanzamientos/vista";
+import {
+  filtrarPorLanding,
+  filtrarPorPeriodo,
+  PERIODOS,
+  rangoDePeriodo,
+  type Periodo,
+  type Rango,
+} from "@/lib/lanzamientos/vista";
 
 const TODAS = "todas";
 
@@ -73,8 +80,9 @@ function CabeceraCard({ titulo, detalle }: { titulo: string; detalle: string }) 
  * (cuántos entraron, cuántos se registraron o compraron, por dónde y quiénes).
  * Lo usan el panel interno y el portal con los mismos datos.
  *
- * Un solo filtro, arriba, decide qué se mira: todas las landings o una. Todo
- * lo de abajo (números, gráfico, fuentes, tabla y exportación) le obedece.
+ * Dos filtros, arriba, deciden qué se mira: qué landing (o todas) y qué
+ * período (hoy, ayer, 7 o 30 días, o todo el lanzamiento). Todo lo de abajo
+ * (números, gráfico, fuentes, tabla y exportación) les obedece.
  * Una landing de venta se mide en ventas; una de registro, en registros.
  *
  * Solo muestra lo que tiene fuente verificable: sin visitas medidas,
@@ -83,8 +91,12 @@ function CabeceraCard({ titulo, detalle }: { titulo: string; detalle: string }) 
 export function PanelLanzamiento({ detalle }: { detalle: DetalleLanzamiento }) {
   const { lanzamiento, paginas, truncado } = detalle;
   const [filtro, setFiltro] = useState(TODAS);
+  const [periodo, setPeriodo] = useState<Periodo>("todo");
   const seleccion = paginas.find((p) => p.id === filtro) ?? null;
-  const vista = filtrarPorLanding(detalle, seleccion?.id ?? null);
+  const rango = rangoDePeriodo(periodo);
+  // Primero el período (vale para todas las landings), después la landing.
+  const enPeriodo = filtrarPorPeriodo(detalle, rango);
+  const vista = filtrarPorLanding(enPeriodo, seleccion?.id ?? null);
   const esVenta = seleccion?.kind === "venta";
 
   const resumen = resumirRegistros(vista.registros);
@@ -93,8 +105,8 @@ export function PanelLanzamiento({ detalle }: { detalle: DetalleLanzamiento }) {
 
   return (
     <div className="flex flex-col gap-5">
-      {paginas.length > 1 && (
-        <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
+        {paginas.length > 1 && (
           <FiltroSelect
             etiqueta="Landing"
             valor={filtro}
@@ -102,13 +114,20 @@ export function PanelLanzamiento({ detalle }: { detalle: DetalleLanzamiento }) {
             todos={{ valor: TODAS, etiqueta: "Todas las landings" }}
             opciones={paginas.map((p) => ({ valor: p.id, etiqueta: p.name }))}
           />
-          {seleccion && (
-            <span className="text-sm text-text-tertiary">
-              Landing de {LABEL_TIPO_LANDING[seleccion.kind].toLowerCase()}
-            </span>
-          )}
-        </div>
-      )}
+        )}
+        <FiltroSelect
+          etiqueta="Período"
+          valor={periodo}
+          onChange={(v) => setPeriodo(v as Periodo)}
+          todos={{ valor: "todo", etiqueta: "Todo el lanzamiento" }}
+          opciones={PERIODOS.map((p) => ({ valor: p.valor, etiqueta: p.etiqueta }))}
+        />
+        {seleccion && (
+          <span className="text-sm text-text-tertiary">
+            Landing de {LABEL_TIPO_LANDING[seleccion.kind].toLowerCase()}
+          </span>
+        )}
+      </div>
 
       {truncado && (
         <p className="rounded-lg bg-badge-warning-background px-3 py-2 text-xs text-badge-warning-text">
@@ -122,20 +141,24 @@ export function PanelLanzamiento({ detalle }: { detalle: DetalleLanzamiento }) {
           pagina={seleccion}
           registros={resumen.total}
           registrosHoy={resumen.hoy}
-          registrosTotales={detalle.registros.length}
+          registrosTotales={enPeriodo.registros.length}
           visitantes={trafico.total}
           compras={vista.compras}
+          rango={rango}
         />
       ) : (
-        <ResumenLanzamiento detalle={detalle} />
+        <ResumenLanzamiento detalle={{ ...detalle, ...enPeriodo }} rango={rango} />
       )}
 
       {detalle.listas.length > 0 && !esVenta && (
+        // Las listas (Zoom, WhatsApp) no traen la fecha de cada persona: el
+        // embudo es siempre sobre todo el lanzamiento, y se aclara.
         <Embudo
-          registros={vista.registros.length}
+          registros={filtrarPorLanding(detalle, seleccion?.id ?? null).registros.length}
           listas={detalle.listas}
           landing={seleccion?.id ?? null}
           parcial={detalle.truncado}
+          todoElLanzamiento={rango !== null}
         />
       )}
 
@@ -148,7 +171,7 @@ export function PanelLanzamiento({ detalle }: { detalle: DetalleLanzamiento }) {
               xKey="dia"
               series={[{ key: "ventas", name: "Ventas", color: CHART_COLORS.net }]}
               isEmpty={vista.compras.length === 0}
-              emptyMessage="Todavía no entró ninguna venta medida."
+              emptyMessage={rango ? "Ninguna venta medida en este período." : "Todavía no entró ninguna venta medida."}
             />
           ) : (
             <BarChartCard
@@ -157,7 +180,7 @@ export function PanelLanzamiento({ detalle }: { detalle: DetalleLanzamiento }) {
               xKey="dia"
               series={[{ key: "registros", name: "Registros", color: CHART_COLORS.net }]}
               isEmpty={resumen.total === 0}
-              emptyMessage="Todavía no entró ningún registro."
+              emptyMessage={rango ? "Ningún registro en este período." : "Todavía no entró ningún registro."}
             />
           )}
         </div>
@@ -165,7 +188,7 @@ export function PanelLanzamiento({ detalle }: { detalle: DetalleLanzamiento }) {
           {seleccion ? (
             <DatosLanding pagina={seleccion} />
           ) : (
-            <PorLanding detalle={detalle} onElegir={setFiltro} />
+            <PorLanding detalle={{ ...detalle, ...enPeriodo }} onElegir={setFiltro} />
           )}
         </div>
       </div>
@@ -183,6 +206,7 @@ export function PanelLanzamiento({ detalle }: { detalle: DetalleLanzamiento }) {
               paginas={paginas}
               lanzamiento={lanzamiento.name}
               landing={seleccion?.name ?? null}
+              periodo={rango ? (PERIODOS.find((p) => p.valor === periodo)?.etiqueta ?? null) : null}
             />
           ) : undefined
         }
@@ -191,8 +215,8 @@ export function PanelLanzamiento({ detalle }: { detalle: DetalleLanzamiento }) {
   );
 }
 
-/** Números del lanzamiento completo: embudo de registro, meta y ventas. */
-function ResumenLanzamiento({ detalle }: { detalle: DetalleLanzamiento }) {
+/** Números de todas las landings (en el período elegido): embudo de registro, meta y ventas. */
+function ResumenLanzamiento({ detalle, rango }: { detalle: DetalleLanzamiento; rango: Rango | null }) {
   const { lanzamiento, paginas, registros, visitas, compras } = detalle;
   const resumen = resumirRegistros(registros);
   const trafico = resumirVisitas(visitas);
@@ -220,7 +244,7 @@ function ResumenLanzamiento({ detalle }: { detalle: DetalleLanzamiento }) {
         <KpiCard
           label="Registros"
           value={numero(resumen.total)}
-          hint={`${numero(resumen.hoy)} hoy`}
+          hint={rango ? "En el período" : `${numero(resumen.hoy)} hoy`}
           icon={<UserMultiple1 />}
           tone="primary"
         />
@@ -231,6 +255,16 @@ function ResumenLanzamiento({ detalle }: { detalle: DetalleLanzamiento }) {
           icon={<BarChart2 />}
           tone="success"
         />
+        {rango ? (
+          // La meta es del lanzamiento entero: en un período se ve el ritmo.
+          <KpiCard
+            label="Por día"
+            value={numero(Math.round(resumen.total / rango.dias))}
+            hint={rango.dias === 1 ? "Registros en el día" : `Promedio de ${rango.dias} días`}
+            icon={<CalendarTime />}
+            tone="violet"
+          />
+        ) : (
         <KpiCard
           label="Meta"
           value={meta ? `${Math.round((resumen.total / meta) * 100)}%` : "—"}
@@ -246,6 +280,7 @@ function ResumenLanzamiento({ detalle }: { detalle: DetalleLanzamiento }) {
           icon={<CalendarTime />}
           tone={ritmo && ritmo.faltan > 0 ? "warning" : "violet"}
         />
+        )}
       </div>
 
       {compras.length > 0 && (
@@ -280,6 +315,7 @@ function ResumenLanding({
   registrosTotales,
   visitantes,
   compras,
+  rango,
 }: {
   pagina: PaginaLanzamiento;
   registros: number;
@@ -287,6 +323,7 @@ function ResumenLanding({
   registrosTotales: number;
   visitantes: number;
   compras: Compra[];
+  rango: Rango | null;
 }) {
   const hayVisitas = visitantes > 0;
   const kpiVisitantes = (
@@ -326,7 +363,13 @@ function ResumenLanding({
   return (
     <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
       {kpiVisitantes}
-      <KpiCard label="Registros" value={numero(registros)} hint={`${numero(registrosHoy)} hoy`} icon={<UserMultiple1 />} tone="primary" />
+      <KpiCard
+        label="Registros"
+        value={numero(registros)}
+        hint={rango ? "En el período" : `${numero(registrosHoy)} hoy`}
+        icon={<UserMultiple1 />}
+        tone="primary"
+      />
       <KpiCard
         label="Conversión a registro"
         value={porcentaje(conversion(registros, visitantes))}
@@ -337,7 +380,7 @@ function ResumenLanding({
       <KpiCard
         label="Del total"
         value={registrosTotales ? `${Math.round((registros / registrosTotales) * 100)}%` : "—"}
-        hint="De los registros del lanzamiento"
+        hint={rango ? "De los registros del período" : "De los registros del lanzamiento"}
         icon={<CalendarTime />}
         tone="violet"
       />
@@ -443,6 +486,7 @@ function Embudo({
   listas,
   landing,
   parcial,
+  todoElLanzamiento,
 }: {
   registros: number;
   listas: DetalleLanzamiento["listas"];
@@ -450,6 +494,8 @@ function Embudo({
   landing: string | null;
   /** Registros leídos hasta el tope: "no se registraron" estaría inflado. */
   parcial: boolean;
+  /** Hay un período elegido, pero el embudo no se puede acotar: se aclara. */
+  todoElLanzamiento: boolean;
 }) {
   const todas = landing === null;
   const pasos = listas.map((l) => ({ ...l, cruzanAca: todas ? l.cruzan : (l.porPagina[landing] ?? 0) }));
@@ -459,9 +505,10 @@ function Embudo({
       <CabeceraCard
         titulo="Después del registro"
         detalle={
-          todas
+          (todas
             ? "De los registrados, cuántos siguieron cada paso (cruzado por email o teléfono)"
-            : "De los registrados en esta landing, cuántos siguieron cada paso"
+            : "De los registrados en esta landing, cuántos siguieron cada paso") +
+          (todoElLanzamiento ? ". Sobre todo el lanzamiento: las listas no traen fechas." : "")
         }
       />
       <ol className="grid grid-cols-1 divide-y divide-card-border sm:grid-cols-[repeat(auto-fit,minmax(10rem,1fr))] sm:divide-x sm:divide-y-0">
