@@ -4,7 +4,9 @@ import {
   listarProyectos,
   listarTareas,
 } from "@/lib/landing/datos";
-import { listarMiembros } from "@/lib/landing/auth";
+import { accesoActual, listarMiembros } from "@/lib/landing/auth";
+import { AlertasLanzamientos } from "@/components/lanzamientos/alertas-lanzamientos";
+import { alertasDeLanzamientos } from "@/lib/lanzamientos/alertas-datos";
 import { esProyectoActivo, nombreCliente } from "@/lib/landing/tipos";
 import { PageHeader } from "@/components/landing/ui";
 import { Calendario } from "@/components/landing/calendario";
@@ -15,11 +17,19 @@ export const dynamic = "force-dynamic";
 const MAX_EN_INICIO = 8;
 
 export default async function LandingPagesInicio() {
-  const [proyectos, tareas, miembros, clientes] = await Promise.all([
+  const { esOwner } = await accesoActual();
+  const [proyectos, tareas, miembros, clientes, alertas] = await Promise.all([
     listarProyectos(),
     listarTareas(),
     listarMiembros(),
     listarClientes(),
+    // Lanzamientos son del owner. Si las alertas fallan, el inicio se ve igual.
+    esOwner
+      ? alertasDeLanzamientos().catch((e) => {
+          console.error("[inicio] no se pudieron calcular las alertas:", e);
+          return [];
+        })
+      : Promise.resolve([]),
   ]);
 
   const nombreMiembro = new Map(miembros.map((m) => [m.id, m.nombre]));
@@ -45,6 +55,8 @@ export default async function LandingPagesInicio() {
   return (
     <>
       <PageHeader titulo="Inicio" />
+
+      <AlertasLanzamientos alertas={alertas} />
 
       <section className="mb-8">
         <Calendario tareas={tareas} proyectos={proyectos} miembros={miembros} />

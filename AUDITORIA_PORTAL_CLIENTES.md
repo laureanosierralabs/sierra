@@ -178,6 +178,14 @@ Otros datos de la base:
 
 **Efecto a tener en cuenta (R3):** un member que hoy no figura como asignado a un proyecto deja de poder ver sus credenciales. Hay que revisar las asignaciones del equipo antes del deploy.
 
+### Riesgos atendidos después (2026-10-15)
+
+| # | Estado | Detalle |
+|---|---|---|
+| R6 | **Mitigado** | Alertas de lanzamientos activos en el inicio del panel (owner): proyecto conectado sin datos hace más de 6 h, avisos de MailerLite fallidos en 24 h, más de 24 h sin registros. Sin mails todavía (falta proveedor) |
+| R9 | **Corregido** | `/api/health` solo dice si cada variable está presente y si Clerk está en producción: sin largos ni entorno |
+| R4 | Diferido a propósito | RLS por organización: requiere Clerk ↔ Supabase y migrar las lecturas del portal. Mientras tanto, el aislamiento se verifica por tests y revisión |
+
 ### Estado de la fase 1 (identidad y tenancy, 2026-10-14)
 
 | Pieza | Detalle |
