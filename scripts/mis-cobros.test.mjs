@@ -34,3 +34,41 @@ test("el menú muestra Mis cobros al equipo y no al owner; un member puede entra
   assert.equal(puedeVerRuta(false, ["wonder-digital"], "/landing-pages/mis-cobros"), false);
   assert.match(leer("../components/common/sidebar/data.ts"), /esOwner \? !s\.soloEquipo : !s\.owner/);
 });
+
+test("filtros de Mis cobros: estado, proyecto y año, con totales que responden al filtro", async () => {
+  const { registerHooks } = await import("node:module");
+  registerHooks({
+    resolve(specifier, context, nextResolve) {
+      if (specifier.startsWith("@/")) {
+        return { url: new URL(`../${specifier.slice(2)}.ts`, import.meta.url).href, shortCircuit: true };
+      }
+      return nextResolve(specifier, context);
+    },
+  });
+  const { filtrarAcuerdos, opcionesDeFiltro, totalesPorMoneda, SIN_FILTROS } = await import("../lib/landing/mis-cobros-vista.ts");
+  const acuerdo = (id, total, pagado, proyectos, agreed_on, currency = "USD") => ({
+    id, numero: 1, title: id, total_amount: total, currency, amount_paid: pagado, payment_status: "partial",
+    payment_terms: null, agreed_on, proyectos, pagos: [],
+  });
+  const aida = { id: "p1", name: "Aida" };
+  const pilar = { id: "p2", name: "Pilar" };
+  const lista = [
+    acuerdo("a", 500, 200, [aida], "2026-09-01"),
+    acuerdo("b", 300, 300, [pilar], "2026-10-01"),
+    acuerdo("c", 100000, 0, [aida, pilar], "2025-12-01", "ARS"),
+  ];
+  const ids = (f) => filtrarAcuerdos(lista, { ...SIN_FILTROS, ...f }).map((a) => a.id);
+  assert.deepEqual(ids({ estado: "pendientes" }), ["a", "c"]);
+  assert.deepEqual(ids({ estado: "pagados" }), ["b"]);
+  assert.deepEqual(ids({ proyecto: "p2" }), ["b", "c"]);
+  assert.deepEqual(ids({ anio: "2025" }), ["c"]);
+  assert.deepEqual(ids({ estado: "pendientes", proyecto: "p1", anio: "2026" }), ["a"]);
+  const o = opcionesDeFiltro(lista);
+  assert.deepEqual(o.proyectos.map((p) => p.etiqueta), ["Aida", "Pilar"]);
+  assert.deepEqual(o.anios.map((a) => a.valor), ["2026", "2025"]);
+  // Monedas separadas, y el pendiente nunca negativo.
+  assert.deepEqual(totalesPorMoneda(filtrarAcuerdos(lista, { ...SIN_FILTROS, proyecto: "p1" })), [
+    { moneda: "USD", acordado: 500, cobrado: 200, pendiente: 300 },
+    { moneda: "ARS", acordado: 100000, cobrado: 0, pendiente: 100000 },
+  ]);
+});

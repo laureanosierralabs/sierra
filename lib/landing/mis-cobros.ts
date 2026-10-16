@@ -74,23 +74,3 @@ export async function misAcuerdos(): Promise<MiAcuerdo[]> {
       .sort((a, b) => b.paid_on.localeCompare(a.paid_on)),
   }));
 }
-
-export interface TotalPorMoneda {
-  moneda: Moneda;
-  acordado: number;
-  cobrado: number;
-  pendiente: number;
-}
-
-/** Totales separados por moneda: sumar USD con ARS daría un número sin sentido. */
-export function totalesPorMoneda(acuerdos: MiAcuerdo[]): TotalPorMoneda[] {
-  const porMoneda = new Map<Moneda, TotalPorMoneda>();
-  for (const a of acuerdos) {
-    const t = porMoneda.get(a.currency) ?? { moneda: a.currency, acordado: 0, cobrado: 0, pendiente: 0 };
-    t.acordado += a.total_amount ?? 0;
-    t.cobrado += a.amount_paid;
-    t.pendiente += Math.max((a.total_amount ?? 0) - a.amount_paid, 0);
-    porMoneda.set(a.currency, t);
-  }
-  return [...porMoneda.values()];
-}
