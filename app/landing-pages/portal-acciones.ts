@@ -2,6 +2,7 @@
 
 import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { slugify } from "@/lib/escritura";
 import { accesoActual } from "@/lib/landing/auth";
@@ -157,10 +158,15 @@ export async function invitarAlPortal(fd: FormData): Promise<Resultado | { aviso
             "Ese email ya tiene una invitación pendiente (del equipo o de otro portal). Revocala primero.",
         };
       }
+      // El link del mail lleva a NUESTRA pantalla de registro, en su versión
+      // para clientes (con la marca y el texto del portal), no a la de Clerk.
+      const h = await headers();
+      const host = h.get("x-forwarded-host") ?? h.get("host");
       await clerk.invitations.createInvitation({
         emailAddress: email,
         publicMetadata: { role: "client", portalOrgId: orgId },
         ignoreExisting: true,
+        ...(host ? { redirectUrl: `https://${host}/sign-up?para=cliente` } : {}),
       });
     }
 
