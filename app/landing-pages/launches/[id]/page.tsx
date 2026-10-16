@@ -7,6 +7,7 @@ import {
   BorrarLanzamiento,
   BorrarPaginaLanzamiento,
   ConexionMailerlite,
+  CargarTodasLasLandings,
   CopiarScriptVisitas,
   ConclusionesForm,
   CruzarLista,
@@ -144,10 +145,13 @@ export default async function LanzamientoDetalle({
 
       {vista === "resultados" &&
         (paginas.length === 0 ? (
-          <EmptyState
-            title="Este lanzamiento todavía no tiene landings"
-            description="Agregalas en Configuración: ahí elegís las landings y conectás de dónde llegan los registros."
-          />
+          <div className="flex flex-col items-center gap-4">
+            <EmptyState
+              title="Este lanzamiento todavía no tiene landings"
+              description="Cargalas todas de una: sus proyectos y las rutas que el kit ya detectó, con sus métricas."
+            />
+            <CargarTodasLasLandings launchId={lanzamiento.id} />
+          </div>
         ) : (
           <PanelLanzamiento detalle={detalle} />
         ))}
@@ -160,6 +164,7 @@ export default async function LanzamientoDetalle({
             accion={
               <span className="flex flex-wrap items-center gap-2">
                 {paginas.length > 0 && <VerificarLandings launchId={lanzamiento.id} />}
+                <CargarTodasLasLandings launchId={lanzamiento.id} />
                 <ElegirLandings launchId={lanzamiento.id} proyectos={paraElegir} />
                 <PaginaLanzamientoForm launchId={lanzamiento.id} proyectos={proyectosDelCliente} sitios={sitios} />
               </span>

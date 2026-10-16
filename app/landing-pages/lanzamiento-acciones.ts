@@ -16,6 +16,7 @@ import {
 } from "@/lib/lanzamientos/tipos";
 import { rutasDeSitio } from "@/lib/sitios/datos";
 import { landingDesdeProyecto, normalizarRuta } from "@/lib/sitios/tipos";
+import { planificarLandings } from "@/lib/lanzamientos/plan-landings";
 import { registroValido, TOPE_IMPORTACION } from "@/lib/lanzamientos/importar";
 import { normalizarEmail, normalizarTelefono, TOPE_MIEMBROS } from "@/lib/lanzamientos/listas";
 
@@ -101,13 +102,90 @@ export async function guardarLanzamiento(fd: FormData): Promise<Resultado> {
   const clientId = texto(fd, "client_id");
   if (!clientId) return { error: "Falta el cliente" };
 
-  const { error } = await db.from("launches").insert({
-    ...fila,
-    client_id: clientId,
-    webhook_token: randomBytes(24).toString("base64url"),
-  });
-  if (error) return { error: `No se pudo crear: ${error.message}` };
+  const { data: creado, error } = await db
+    .from("launches")
+    .insert({
+      ...fila,
+      client_id: clientId,
+      webhook_token: randomBytes(24).toString("base64url"),
+    })
+    .select("id")
+    .single();
+  if (error || !creado) return { error: `No se pudo crear: ${error?.message ?? "sin respuesta"}` };
+
+  // Lo normal es medir todas las landings del cliente: se cargan solas.
+  if (texto(fd, "con_landings")) {
+    const cargadas = await cargarLandings(clientId, creado.id as string);
+    revalidar(clientId, creado.id as string);
+    if (typeof cargadas !== "number") {
+      return { error: `Lanzamiento creado, pero no se pudieron cargar las landings: ${cargadas.error}` };
+    }
+  }
   revalidar(clientId);
+}
+
+/**
+ * Agrega al lanzamiento todas las landings del cliente que todavía no estén:
+ * sus proyectos y las rutas que el kit ya detectó con visitas. Devuelve
+ * cuántas agregó.
+ */
+async function cargarLandings(clientId: string, launchId: string): Promise<number | { error: string }> {
+  const db = supabaseAdmin();
+  const [{ data: proyectos, error: errProyectos }, { data: sitios, error: errSitios }, { data: existentes }] =
+    await Promise.all([
+      db.from("projects").select("id, name, site_url, page_type").eq("client_id", clientId),
+      db.from("client_sites").select("id, domain").eq("client_id", clientId),
+      db.from("launch_pages").select("project_id, site_id, path").eq("launch_id", launchId),
+    ]);
+  if (errProyectos || errSitios) return { error: "no se pudieron leer los proyectos del cliente" };
+
+  const conRutas = await Promise.all(
+    (sitios ?? []).map(async (s) => ({
+      id: s.id as string,
+      domain: (s.domain as string | null) ?? null,
+      rutas: (await rutasDeSitio(clientId, s.id as string).catch(() => []))
+        .sort((a, b) => b.visitors - a.visitors)
+        .map((r) => r.path),
+    })),
+  );
+
+  const plan = planificarLandings(
+    (proyectos ?? []) as { id: string; name: string; site_url: string | null; page_type: string | null }[],
+    conRutas,
+    (existentes ?? []) as { project_id: string | null; site_id: string | null; path: string | null }[],
+  );
+  if (plan.length === 0) return 0;
+
+  const inicio = existentes?.length ?? 0;
+  const { error } = await db
+    .from("launch_pages")
+    .insert(plan.map((l, i) => ({ ...l, launch_id: launchId, client_id: clientId, position: inicio + i })));
+  if (error) {
+    return { error: error.code === "23505" ? "alguna ya estaba cargada (recargá la página)" : error.message };
+  }
+  return plan.length;
+}
+
+/** "Cargar todas": suma al lanzamiento las landings del cliente que falten. */
+export async function cargarTodasLasLandings(launchId: string): Promise<Resultado | { aviso: string }> {
+  await exigirOwner();
+  const { data: lanzamiento } = await supabaseAdmin()
+    .from("launches")
+    .select("client_id")
+    .eq("id", launchId)
+    .maybeSingle();
+  if (!lanzamiento) return { error: "El lanzamiento no existe" };
+  const clientId = lanzamiento.client_id as string;
+
+  const cargadas = await cargarLandings(clientId, launchId);
+  if (typeof cargadas !== "number") return { error: `No se pudieron cargar: ${cargadas.error}` };
+  revalidar(clientId, launchId);
+  return {
+    aviso:
+      cargadas === 0
+        ? "Ya estaban todas. Si falta alguna, todavía no tuvo visitas: abrila una vez y volvé a cargar."
+        : `${cargadas} ${cargadas === 1 ? "landing cargada" : "landings cargadas"}: revisá el tipo de cada una (registro o venta)`,
+  };
 }
 
 export async function borrarLanzamiento(id: string): Promise<Resultado> {

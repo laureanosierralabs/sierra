@@ -25,6 +25,7 @@ import {
   agregarLandingsDesdeProyectos,
   borrarLanzamiento,
   borrarLista,
+  cargarTodasLasLandings,
   borrarPaginaLanzamiento,
   conectarMailerlite,
   desconectarMailerlite,
@@ -147,6 +148,18 @@ export function LanzamientoForm({
             description="Opcional. Con meta y fechas, el panel muestra a cuánto llega el ritmo actual."
             defaultValue={lanzamiento?.goal_registrations?.toString() ?? ""}
           />
+          {!lanzamiento && (
+            <label className="flex items-start gap-2.5 rounded-lg border border-card-border p-3 text-sm">
+              <input type="checkbox" name="con_landings" value="1" defaultChecked className="mt-0.5" />
+              <span>
+                <span className="block font-medium text-text-primary">Cargar todas las landings del cliente</span>
+                <span className="block text-text-tertiary">
+                  Sus proyectos y las rutas que el kit ya detectó con visitas, conectadas y con sus métricas.
+                  Después podés sacar las que no sean de este lanzamiento.
+                </span>
+              </span>
+            </label>
+          )}
         </>
       )}
     </DialogoForm>
@@ -862,5 +875,32 @@ export function ListasCargadas({
         </li>
       ))}
     </ul>
+  );
+}
+
+/**
+ * Suma de una vez todas las landings del cliente que falten en el lanzamiento:
+ * sus proyectos y las rutas que el kit detectó con visitas.
+ */
+export function CargarTodasLasLandings({ launchId }: { launchId: string }) {
+  const [pendiente, iniciar] = useTransition();
+  return (
+    <Button
+      appearance="outline"
+      isDisabled={pendiente}
+      onPress={() =>
+        iniciar(async () => {
+          try {
+            const r = await cargarTodasLasLandings(launchId);
+            if (r && "error" in r) toast.error(r.error);
+            else if (r) toast.success(r.aviso, { duration: 8000 });
+          } catch {
+            toast.error("No se pudieron cargar las landings");
+          }
+        })
+      }
+    >
+      {pendiente ? "Cargando…" : "Cargar todas"}
+    </Button>
   );
 }
