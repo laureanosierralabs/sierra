@@ -36,6 +36,7 @@ const ICONOS = {
   Wallet: Wallet2,
   ChartLine: TrendUp2,
   Inbox: Comment1,
+  Rocket: Rocket1,
 } as const;
 
 /** Unidades con logo propio en vez de ícono. */
