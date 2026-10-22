@@ -1,0 +1,95 @@
+/* Microanimaciones del portal del cliente. Todas se apagan con "reducir
+   movimiento" del sistema y al imprimir. */
+
+/* Entrada: sube y aparece. `--retraso` escalona una grilla de tarjetas. */
+.portal-entrar {
+  animation: portal-entrar 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: var(--retraso, 0s);
+}
+
+@keyframes portal-entrar {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* La imagen de la banda entra con un zoom lento hacia su tamaño. */
+.portal-zoom {
+  animation: portal-zoom 2.2s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@keyframes portal-zoom {
+  from {
+    transform: scale(1.1);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+/* El título se "asienta": llega abierto y se cierra al espaciado final. */
+.portal-titulo {
+  animation: portal-titulo 1.1s cubic-bezier(0.2, 0.7, 0.2, 1) 0.15s both;
+}
+
+@keyframes portal-titulo {
+  from {
+    opacity: 0;
+    letter-spacing: 0.08em;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* La flecha para bajar late suave, invitando a seguir. */
+.portal-rebote {
+  animation: portal-rebote 2.2s ease-in-out infinite;
+}
+
+@keyframes portal-rebote {
+  0%,
+  100% {
+    transform: translateY(-2px);
+  }
+  50% {
+    transform: translateY(3px);
+  }
+}
+
+/* Las secciones aparecen al llegar a ellas (donde el navegador lo soporta;
+   en el resto se ven directamente). */
+@supports (animation-timeline: view()) {
+  .portal-revelar {
+    animation: portal-entrar linear both;
+    animation-timeline: view();
+    animation-range: entry 0% cover 22%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .portal-entrar,
+  .portal-zoom,
+  .portal-titulo,
+  .portal-rebote,
+  .portal-revelar {
+    animation: none !important;
+  }
+}
+
+@media print {
+  .portal-entrar,
+  .portal-zoom,
+  .portal-titulo,
+  .portal-rebote,
+  .portal-revelar {
+    animation: none !important;
+  }
+}

@@ -5,6 +5,7 @@ import { PanelLanzamiento } from "@/components/lanzamientos/panel-lanzamiento";
 import { AccesosPortal, VideosSoporte } from "@/components/portal/accesos-videos";
 import { EntregablesLanding } from "@/components/portal/entregables-landing";
 import { HeroPortal, SeccionPortal } from "@/components/portal/portal-ui";
+import { AvisoVistaInterna } from "@/components/portal/vista-interna";
 import { listarVideosSoporte } from "@/lib/landing/datos";
 import { fechaCorta } from "@/lib/landing/tipos";
 import { LABEL_ESTADO_LANZAMIENTO } from "@/lib/lanzamientos/tipos";
@@ -38,13 +39,7 @@ export default async function PortalLanzamiento({ params }: { params: Promise<{ 
 
   return (
     <>
-      <Link
-        href={`/portal/${ctx.slug}`}
-        className="mb-4 inline-flex items-center gap-1.5 text-sm text-text-tertiary transition-colors hover:text-text-primary"
-      >
-        <ArrowLeft className="size-4" />
-        {ctx.clienteNombre}
-      </Link>
+      {ctx.vistaInterna && <AvisoVistaInterna />}
 
       <HeroPortal
         imagen={lanzamiento.banner_url}
@@ -52,6 +47,14 @@ export default async function PortalLanzamiento({ params }: { params: Promise<{ 
         subtitulo={[LABEL_ESTADO_LANZAMIENTO[lanzamiento.status], fechas].filter(Boolean).join(" · ")}
         anclaAbajo="#resultados"
       />
+
+      <Link
+        href={`/portal/${ctx.slug}`}
+        className="mb-10 inline-flex items-center gap-1.5 text-sm text-white/60 transition-colors hover:text-white"
+      >
+        <ArrowLeft className="size-4" />
+        Todos los lanzamientos de {ctx.clienteNombre}
+      </Link>
 
       <div className="flex flex-col gap-16">
         <SeccionPortal

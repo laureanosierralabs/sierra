@@ -1,10 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ExpandArrowTopRightSquare1 } from "@tailgrids/icons";
-import { EmptyState } from "@/components/common/empty-state";
 import { EstadoPagoPill } from "@/components/landing/ui";
 import { HeroPortal, SeccionPortal, TarjetaLanzamiento } from "@/components/portal/portal-ui";
-import { Card } from "@/components/tailgrids/core/card";
+import { AvisoVistaInterna } from "@/components/portal/vista-interna";
 import { codigoCotizacion, fechaCorta, fechaCotizacion, formatearMonto } from "@/lib/landing/tipos";
 import { LABEL_ESTADO_LANZAMIENTO } from "@/lib/lanzamientos/tipos";
 import { contextoPortal } from "@/lib/portal/contexto";
@@ -15,9 +14,10 @@ import { estaCerrado } from "@/lib/pedidos/tipos";
 export const dynamic = "force-dynamic";
 
 /**
- * Inicio del portal de un cliente: su portada, sus lanzamientos como
- * tarjetas, los pedidos y las cotizaciones. Todo se lee con el contexto del
- * cliente.
+ * Inicio del portal de un cliente, como una presentación: la banda con su
+ * imagen y su nombre en grande, y sus lanzamientos como afiches montados
+ * sobre el borde. Abajo, pedidos y cotizaciones. Todo se lee con el
+ * contexto del cliente.
  */
 export default async function PortalCliente({ params }: { params: Promise<{ org: string }> }) {
   const ctx = await contextoPortal((await params).org);
@@ -42,56 +42,63 @@ export default async function PortalCliente({ params }: { params: Promise<{ org:
 
   return (
     <>
-      {ctx.vistaInterna && (
-        <p className="mb-4 rounded-lg bg-badge-warning-background px-3 py-2 text-xs text-badge-warning-text">
-          Vista interna: estás viendo el portal como lo ve el cliente.
-        </p>
-      )}
+      {ctx.vistaInterna && <AvisoVistaInterna />}
 
-      <HeroPortal imagen={portada} titulo={ctx.clienteNombre} />
-
-      <div className="flex flex-col gap-14">
-        {porAprobar > 0 && (
-          <Link
-            href={`/portal/${ctx.slug}/pedidos`}
-            className="flex items-center justify-between gap-4 rounded-2xl border border-badge-warning-text/40 bg-badge-warning-background px-5 py-4 transition-opacity hover:opacity-90"
-          >
-            <span className="text-sm font-semibold text-badge-warning-text">
-              {porAprobar === 1 ? "1 pedido espera tu aprobación" : `${porAprobar} pedidos esperan tu aprobación`}
-            </span>
-            <span className="shrink-0 text-sm font-medium text-badge-warning-text">Ver →</span>
-          </Link>
-        )}
-
-        <SeccionPortal titulo="Lanzamientos">
-          {lanzamientos.length === 0 ? (
-            <EmptyState title="Todavía no hay lanzamientos" />
+      <HeroPortal
+        imagen={portada}
+        titulo={ctx.clienteNombre}
+        etiqueta="Lanzamientos"
+        solapa={
+          lanzamientos.length === 0 ? (
+            <div className="portal-entrar flex aspect-9/16 max-w-[16rem] items-center justify-center rounded-[28px] border border-dashed border-white/20 bg-white/5 p-6 text-center text-sm text-white/60">
+              Tus lanzamientos van a aparecer acá.
+            </div>
           ) : (
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-              {lanzamientos.map((l) => (
+            <div className="grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-4">
+              {lanzamientos.map((l, i) => (
                 <TarjetaLanzamiento
                   key={l.id}
+                  indice={i}
                   href={`/portal/${ctx.slug}/lanzamientos/${l.id}`}
                   nombre={l.name}
                   imagen={l.cover_url}
                   estado={LABEL_ESTADO_LANZAMIENTO[l.status]}
+                  activo={l.status === "activo"}
                   fechas={l.starts_on ? `${fechaCorta(l.starts_on)}${l.ends_on ? ` → ${fechaCorta(l.ends_on)}` : ""}` : null}
                   detalle={`${l.registros.toLocaleString("es-AR")} registros`}
                 />
               ))}
             </div>
-          )}
-        </SeccionPortal>
+          )
+        }
+      />
+
+      <div className="flex flex-col gap-14">
+        {porAprobar > 0 && (
+          <Link
+            href={`/portal/${ctx.slug}/pedidos`}
+            className="portal-revelar group flex items-center justify-between gap-4 rounded-2xl border border-badge-warning-text/30 bg-badge-warning-text/10 px-5 py-4 transition-colors hover:bg-badge-warning-text/15"
+          >
+            <span className="flex items-center gap-3 text-sm font-semibold text-badge-warning-text">
+              <span className="relative flex size-2">
+                <span className="absolute inline-flex size-full animate-ping rounded-full bg-badge-warning-text opacity-60" />
+                <span className="relative inline-flex size-2 rounded-full bg-badge-warning-text" />
+              </span>
+              {porAprobar === 1 ? "1 pedido espera tu aprobación" : `${porAprobar} pedidos esperan tu aprobación`}
+            </span>
+            <span className="shrink-0 text-sm font-medium text-badge-warning-text transition-transform group-hover:translate-x-0.5">Ver →</span>
+          </Link>
+        )}
 
         <SeccionPortal
           titulo="Pedidos"
           accion={
-            <Link href={`/portal/${ctx.slug}/pedidos`} className="shrink-0 text-sm font-medium text-primary-400 hover:underline">
+            <Link href={`/portal/${ctx.slug}/pedidos`} className="shrink-0 text-sm font-medium text-primary-300 hover:text-primary-200">
               Ver pedidos →
             </Link>
           }
         >
-          <p className="text-sm text-text-secondary">
+          <p className="text-sm text-white/70">
             {abiertos === 0
               ? "No hay pedidos abiertos. Si algo no funciona o querés un cambio, pedilo desde acá."
               : `${abiertos} ${abiertos === 1 ? "pedido abierto" : "pedidos abiertos"}.`}
@@ -100,33 +107,29 @@ export default async function PortalCliente({ params }: { params: Promise<{ org:
 
         {cotizaciones.length > 0 && (
           <SeccionPortal titulo="Cotizaciones">
-            <Card className="overflow-hidden p-0">
-              <ul className="divide-y divide-card-border">
-                {cotizaciones.map((q) => (
-                  <li key={q.numero}>
-                    <Link
-                      href={`/q/${q.public_token}`}
-                      target="_blank"
-                      className="flex items-center justify-between gap-4 px-5 py-3.5 transition-colors hover:bg-background-gray-secondary"
-                    >
-                      <span className="min-w-0">
-                        <span className="block truncate text-sm font-medium text-text-primary">{q.title}</span>
-                        <span className="text-xs tabular-nums text-text-tertiary">
-                          {codigoCotizacion(q.numero)} · {fechaCorta(fechaCotizacion(q))}
-                        </span>
+            <ul className="flex flex-col gap-2">
+              {cotizaciones.map((q) => (
+                <li key={q.numero}>
+                  <Link
+                    href={`/q/${q.public_token}`}
+                    target="_blank"
+                    className="group flex items-center justify-between gap-4 rounded-2xl bg-white/4 px-5 py-4 ring-1 ring-white/10 transition-all hover:bg-white/7 hover:ring-primary-500/40"
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-medium text-white">{q.title}</span>
+                      <span className="text-xs tabular-nums text-white/50">
+                        {codigoCotizacion(q.numero)} · {fechaCorta(fechaCotizacion(q))}
                       </span>
-                      <span className="flex shrink-0 items-center gap-3">
-                        <span className="text-sm font-medium tabular-nums text-text-primary">
-                          {formatearMonto(q.total_amount, q.currency)}
-                        </span>
-                        <EstadoPagoPill estado={q.payment_status} />
-                        <ExpandArrowTopRightSquare1 className="size-4 text-text-tertiary" />
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </Card>
+                    </span>
+                    <span className="flex shrink-0 items-center gap-3">
+                      <span className="text-sm font-semibold tabular-nums text-white">{formatearMonto(q.total_amount, q.currency)}</span>
+                      <EstadoPagoPill estado={q.payment_status} />
+                      <ExpandArrowTopRightSquare1 className="size-4 text-white/40 transition-colors group-hover:text-primary-300" />
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
           </SeccionPortal>
         )}
       </div>

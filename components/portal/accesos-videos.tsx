@@ -123,7 +123,7 @@ export function VideosSoporte({ videos }: { videos: VideoSoporte[] }) {
                 href={v.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group relative flex aspect-[4/5] flex-col justify-between overflow-hidden rounded-2xl bg-gradient-to-b from-neutral-800 to-neutral-950 p-5"
+                className="group relative flex aspect-4/5 flex-col justify-between overflow-hidden rounded-2xl bg-linear-to-b from-neutral-800 to-neutral-950 p-5"
               >
                 {miniatura && (
                   // eslint-disable-next-line @next/next/no-img-element -- miniatura pública de YouTube
