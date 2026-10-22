@@ -11,31 +11,69 @@ import { fechaCorta } from "@/lib/landing/tipos";
 import { LABEL_ESTADO_LANZAMIENTO } from "@/lib/lanzamientos/tipos";
 import { contextoPortal } from "@/lib/portal/contexto";
 import { accesosPortal, lanzamientoPortal } from "@/lib/portal/datos";
+import { cn } from "@/utils/cn";
 
 export const dynamic = "force-dynamic";
 
+type Vista = "entrega" | "resultados";
+
+/** Pestañas Entrega / Resultados: links, así cada vista tiene su URL. */
+function Pestanas({ base, actual }: { base: string; actual: Vista }) {
+  const pestanas: { vista: Vista; etiqueta: string; href: string }[] = [
+    { vista: "entrega", etiqueta: "Entrega", href: base },
+    { vista: "resultados", etiqueta: "Resultados", href: `${base}?vista=resultados` },
+  ];
+  return (
+    <nav aria-label="Secciones del lanzamiento" className="flex w-full rounded-full bg-white/5 p-1 ring-1 ring-white/10 sm:w-auto">
+      {pestanas.map((p) => (
+        <Link
+          key={p.vista}
+          href={p.href}
+          scroll={false}
+          aria-current={p.vista === actual ? "page" : undefined}
+          className={cn(
+            "flex-1 rounded-full px-5 py-2 text-center text-sm font-bold transition-colors sm:flex-none",
+            p.vista === actual ? "bg-primary-500 text-white" : "text-white/60 hover:text-white",
+          )}
+        >
+          {p.etiqueta}
+        </Link>
+      ))}
+    </nav>
+  );
+}
+
 /**
- * Un lanzamiento en el portal: su banner, los resultados, cada landing con
- * sus entregables, los accesos y los videos de soporte. Lo que no se cargó no
- * aparece.
+ * Un lanzamiento en el portal, como el panel de archivos de la referencia:
+ * el banner y, debajo, dos pestañas. "Entrega" tiene cada landing con sus
+ * PDFs y recursos, los accesos y los videos de soporte; "Resultados", las
+ * métricas y el reporte.
  */
-export default async function PortalLanzamiento({ params }: { params: Promise<{ org: string; id: string }> }) {
-  const { org, id } = await params;
+export default async function PortalLanzamiento({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ org: string; id: string }>;
+  searchParams: Promise<{ vista?: string }>;
+}) {
+  const [{ org, id }, { vista: vistaCruda }] = await Promise.all([params, searchParams]);
   const ctx = await contextoPortal(org);
   if (!ctx) notFound();
 
   const detalle = await lanzamientoPortal(ctx, id);
   if (!detalle) notFound();
   const { lanzamiento, paginas } = detalle;
+  const vista: Vista = vistaCruda === "resultados" ? "resultados" : "entrega";
 
   // Accesos y videos son extras: si fallan, el lanzamiento se ve igual.
-  const [accesos, videos] = await Promise.all([
-    accesosPortal(ctx).catch(() => []),
-    listarVideosSoporte().catch(() => []),
-  ]);
+  const [accesos, videos] =
+    vista === "entrega"
+      ? await Promise.all([accesosPortal(ctx).catch(() => []), listarVideosSoporte().catch(() => [])])
+      : [[], []];
   const fechas = lanzamiento.starts_on
     ? `${fechaCorta(lanzamiento.starts_on)}${lanzamiento.ends_on ? ` → ${fechaCorta(lanzamiento.ends_on)}` : ""}`
     : null;
+  const base = `/portal/${ctx.slug}/lanzamientos/${lanzamiento.id}`;
 
   return (
     <>
@@ -45,53 +83,58 @@ export default async function PortalLanzamiento({ params }: { params: Promise<{ 
         imagen={lanzamiento.banner_url}
         titulo={lanzamiento.name}
         subtitulo={[LABEL_ESTADO_LANZAMIENTO[lanzamiento.status], fechas].filter(Boolean).join(" · ")}
-        anclaAbajo="#resultados"
+        anclaAbajo="#contenido"
       />
 
-      <Link
-        href={`/portal/${ctx.slug}`}
-        className="mb-10 inline-flex items-center gap-1.5 text-sm text-white/60 transition-colors hover:text-white"
-      >
-        <ArrowLeft className="size-4" />
-        Todos los lanzamientos de {ctx.clienteNombre}
-      </Link>
+      <div id="contenido" className="mb-10 flex scroll-mt-8 flex-col gap-4 sm:mb-14 sm:flex-row sm:items-center sm:justify-between">
+        <Link
+          href={`/portal/${ctx.slug}`}
+          className="inline-flex items-center gap-1.5 self-start text-sm font-medium text-white/60 transition-colors hover:text-white sm:self-auto"
+        >
+          <ArrowLeft className="size-4" />
+          Todos los lanzamientos
+        </Link>
+        <Pestanas base={base} actual={vista} />
+      </div>
 
-      <div className="flex flex-col gap-16">
+      {vista === "resultados" ? (
         <SeccionPortal
-          id="resultados"
           titulo="Resultados"
           accion={
-            <Link
-              href={`/portal/${ctx.slug}/lanzamientos/${lanzamiento.id}/reporte`}
-              className="shrink-0 text-sm font-medium text-primary-400 hover:underline"
-            >
-              {lanzamiento.status === "cerrado" ? "Reporte de cierre →" : "Reporte (parcial) →"}
+            <Link href={`${base}/reporte`} className="text-sm font-bold text-primary-300 hover:text-primary-200">
+              {lanzamiento.status === "cerrado" ? "Reporte de cierre →" : "Reporte parcial →"}
             </Link>
           }
         >
           {paginas.length === 0 ? (
-            <p className="text-sm text-text-tertiary">Los resultados aparecen cuando el lanzamiento tenga sus landings.</p>
+            <p className="text-sm text-white/60">Los resultados aparecen cuando el lanzamiento tenga sus landings.</p>
           ) : (
             <PanelLanzamiento detalle={detalle} />
           )}
         </SeccionPortal>
+      ) : (
+        <div className="flex flex-col gap-12 sm:gap-16">
+          {paginas.length === 0 ? (
+            <p className="rounded-2xl border border-dashed border-white/15 px-5 py-8 text-center text-sm text-white/60">
+              Las páginas de este lanzamiento van a aparecer acá.
+            </p>
+          ) : (
+            paginas.map((p) => <EntregablesLanding key={p.id} nombre={p.name} url={p.url} entregables={p.deliverables} />)
+          )}
 
-        {paginas.map((p) => (
-          <EntregablesLanding key={p.id} nombre={p.name} url={p.url} entregables={p.deliverables} />
-        ))}
+          {accesos.length > 0 && (
+            <SeccionPortal titulo="Accesos">
+              <AccesosPortal slug={ctx.slug} accesos={accesos} />
+            </SeccionPortal>
+          )}
 
-        {accesos.length > 0 && (
-          <SeccionPortal titulo="Accesos">
-            <AccesosPortal slug={ctx.slug} accesos={accesos} />
-          </SeccionPortal>
-        )}
-
-        {videos.length > 0 && (
-          <SeccionPortal titulo="Videos de soporte">
-            <VideosSoporte videos={videos} />
-          </SeccionPortal>
-        )}
-      </div>
+          {videos.length > 0 && (
+            <SeccionPortal titulo="Videos de soporte">
+              <VideosSoporte videos={videos} />
+            </SeccionPortal>
+          )}
+        </div>
+      )}
     </>
   );
 }

@@ -222,7 +222,7 @@ export default async function LanzamientoDetalle({
                 id={lanzamiento.id}
                 url={lanzamiento.cover_url}
                 titulo="Flyer"
-                ayuda="La tarjeta del lanzamiento en el inicio del portal. Vertical (3:4)."
+                ayuda="La tarjeta del lanzamiento en el inicio del portal. 1080 × 1920 px (vertical 9:16), hasta 4 MB."
                 formato="vertical"
               />
               <ImagenPortal
@@ -230,7 +230,7 @@ export default async function LanzamientoDetalle({
                 id={lanzamiento.id}
                 url={lanzamiento.banner_url}
                 titulo="Banner"
-                ayuda="Arriba de todo al entrar al lanzamiento. Horizontal y ancha."
+                ayuda="Arriba de todo al entrar al lanzamiento. 2400 × 900 px, con lo importante al centro: en el celular se recortan los costados."
                 formato="horizontal"
               />
             </div>

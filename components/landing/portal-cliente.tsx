@@ -120,7 +120,7 @@ export function PortalCliente({
           id={clientId}
           url={portada}
           titulo="Portada del portal"
-          ayuda="Es lo primero que ve el cliente al entrar: una imagen de su marca, horizontal."
+          ayuda="Es lo primero que ve el cliente al entrar. 2400 × 900 px, con lo importante al centro: en el celular se recortan los costados."
           formato="horizontal"
         />
       </div>

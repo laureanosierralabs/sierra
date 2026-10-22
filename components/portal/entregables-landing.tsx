@@ -1,6 +1,6 @@
 import { Folder1 } from "@tailgrids/icons";
 import { PildoraEnlace, SeccionPortal } from "@/components/portal/portal-ui";
-import { RECURSOS, VERSIONES_PDF, tieneEntregables, type Entregables } from "@/lib/portal/entrega";
+import { RECURSOS, VERSIONES_PDF, type Entregables } from "@/lib/portal/entrega";
 import { cn } from "@/utils/cn";
 
 /* Íconos de dispositivo dibujados: el set de íconos no trae computadora ni tablet. */
@@ -30,22 +30,47 @@ function Dispositivo({ clave }: { clave: string }) {
 
 function Tarjeta({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return (
-    <details open className="group overflow-hidden rounded-2xl bg-neutral-900">
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 bg-neutral-800 px-5 py-3.5 text-sm font-semibold text-white [&::-webkit-details-marker]:hidden">
+    <details open className="group overflow-hidden rounded-2xl bg-neutral-900 ring-1 ring-white/5">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 bg-neutral-800 px-5 py-3.5 text-sm font-bold text-white [&::-webkit-details-marker]:hidden">
         {titulo}
-        <span aria-hidden="true" className="flex size-5 items-center justify-center rounded-full bg-primary-500 text-xs text-white">
+        <span aria-hidden="true" className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary-500 text-xs text-white">
           <span className="group-open:hidden">+</span>
           <span className="hidden group-open:inline">−</span>
         </span>
       </summary>
-      <div className="p-4">{children}</div>
+      <div className="p-3 sm:p-4">{children}</div>
     </details>
   );
 }
 
 /**
+ * Un casillero de la tarjeta: con link se abre en otra pestaña; sin link se
+ * ve apagado, para que el cliente sepa que ese archivo todavía no está.
+ */
+function Casillero({ url, className, children }: { url?: string; className: string; children: React.ReactNode }) {
+  if (!url) {
+    return (
+      <span aria-disabled="true" title="Todavía no está disponible" className={cn(className, "cursor-not-allowed bg-white/3 text-white/40")}>
+        {children}
+      </span>
+    );
+  }
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={cn(className, "bg-black/40 text-white transition-colors hover:bg-primary-500/20 focus-visible:ring-2 focus-visible:ring-primary-500/60 focus-visible:outline-none")}
+    >
+      {children}
+    </a>
+  );
+}
+
+/**
  * Una landing en el portal: su botón para verla, las versiones en PDF por
- * dispositivo y los recursos descargables. Lo que no se cargó no aparece.
+ * dispositivo y los recursos descargables. Las dos tarjetas están siempre;
+ * lo que todavía no se cargó aparece apagado.
  */
 export function EntregablesLanding({
   nombre,
@@ -56,57 +81,40 @@ export function EntregablesLanding({
   url: string | null;
   entregables: Entregables;
 }) {
-  const pdfs = VERSIONES_PDF.filter((v) => entregables[v.clave]);
   const recursos = [
-    ...RECURSOS.filter((r) => entregables[r.clave]).map((r) => ({ etiqueta: r.etiqueta, url: entregables[r.clave] as string })),
+    ...RECURSOS.map((r) => ({ etiqueta: r.etiqueta, url: entregables[r.clave] })),
     ...(entregables.extras ?? []),
   ];
-  const conEntregables = tieneEntregables(entregables);
 
   return (
     <SeccionPortal titulo={nombre} accion={url ? <PildoraEnlace href={url}>Ver página</PildoraEnlace> : undefined}>
-      {conEntregables ? (
-        <div className={cn("grid grid-cols-1 gap-4", pdfs.length > 0 && recursos.length > 0 && "lg:grid-cols-2")}>
-          {pdfs.length > 0 && (
-            <Tarjeta titulo="Versiones de la página en PDF">
-              <div className="grid grid-cols-3 gap-3">
-                {pdfs.map((v) => (
-                  <a
-                    key={v.clave}
-                    href={entregables[v.clave]}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex flex-col items-center gap-2.5 rounded-xl bg-black/40 px-2 py-5 text-white transition-colors hover:bg-primary-500/25"
-                  >
-                    <Dispositivo clave={v.clave} />
-                    <span className="text-xs text-white/80">{v.etiqueta}</span>
-                  </a>
-                ))}
-              </div>
-            </Tarjeta>
-          )}
-          {recursos.length > 0 && (
-            <Tarjeta titulo="Recursos descargables">
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {recursos.map((r) => (
-                  <a
-                    key={`${r.etiqueta}-${r.url}`}
-                    href={r.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-3 rounded-xl bg-black/40 px-4 py-3 text-sm text-white transition-colors hover:bg-primary-500/25 [&>svg]:size-7 [&>svg]:shrink-0 [&>svg]:text-primary-400"
-                  >
-                    <Folder1 />
-                    {r.etiqueta}
-                  </a>
-                ))}
-              </div>
-            </Tarjeta>
-          )}
-        </div>
-      ) : (
-        <p className="text-sm text-text-tertiary">Los archivos de esta página van a aparecer acá.</p>
-      )}
+      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
+        <Tarjeta titulo="Versiones de la página en PDF">
+          <div className="grid grid-cols-3 gap-2 sm:gap-3">
+            {VERSIONES_PDF.map((v) => (
+              <Casillero key={v.clave} url={entregables[v.clave]} className="flex flex-col items-center gap-2.5 rounded-xl px-2 py-5">
+                <Dispositivo clave={v.clave} />
+                <span className="text-xs font-medium">{v.etiqueta}</span>
+              </Casillero>
+            ))}
+          </div>
+        </Tarjeta>
+
+        <Tarjeta titulo="Recursos descargables">
+          <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2 sm:gap-3">
+            {recursos.map((r) => (
+              <Casillero
+                key={`${r.etiqueta}-${r.url ?? ""}`}
+                url={r.url}
+                className="flex min-w-0 items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium [&>svg]:size-6 [&>svg]:shrink-0"
+              >
+                <Folder1 className={r.url ? "text-primary-400" : undefined} />
+                <span className="truncate">{r.etiqueta}</span>
+              </Casillero>
+            ))}
+          </div>
+        </Tarjeta>
+      </div>
     </SeccionPortal>
   );
 }

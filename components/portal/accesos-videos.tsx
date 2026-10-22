@@ -28,15 +28,15 @@ function Dato({ etiqueta, children }: { etiqueta: string; children: React.ReactN
 }
 
 /** Un acceso: link, usuario y la contraseña, que se revela con un click. */
-function TarjetaAcceso({ slug, acceso }: { slug: string; acceso: AccesoPortal }) {
+function TarjetaAcceso({ slug, acceso, abierto }: { slug: string; acceso: AccesoPortal; abierto: boolean }) {
   const [secreto, setSecreto] = useState<string | null>(null);
   const [pendiente, iniciar] = useTransition();
 
   return (
-    <details className="group overflow-hidden rounded-2xl bg-neutral-900">
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 bg-neutral-800 px-5 py-3.5 text-sm font-semibold text-white [&::-webkit-details-marker]:hidden">
-        {acceso.name}
-        <span aria-hidden="true" className="flex size-5 items-center justify-center rounded-full bg-primary-500 text-xs text-white">
+    <details open={abierto} className="group overflow-hidden rounded-2xl bg-neutral-900 ring-1 ring-white/5">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 bg-neutral-800 px-5 py-3.5 text-sm font-bold text-white [&::-webkit-details-marker]:hidden">
+        <span className="min-w-0 truncate">{acceso.name}</span>
+        <span aria-hidden="true" className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary-500 text-xs text-white">
           <span className="group-open:hidden">+</span>
           <span className="hidden group-open:inline">−</span>
         </span>
@@ -92,8 +92,8 @@ function TarjetaAcceso({ slug, acceso }: { slug: string; acceso: AccesoPortal })
 export function AccesosPortal({ slug, accesos }: { slug: string; accesos: AccesoPortal[] }) {
   return (
     <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
-      {accesos.map((a) => (
-        <TarjetaAcceso key={a.id} slug={slug} acceso={a} />
+      {accesos.map((a, i) => (
+        <TarjetaAcceso key={a.id} slug={slug} acceso={a} abierto={i === 0} />
       ))}
     </div>
   );
@@ -118,7 +118,7 @@ export function VideosSoporte({ videos }: { videos: VideoSoporte[] }) {
         {videos.map((v) => {
           const miniatura = miniaturaVideo(v.url);
           return (
-            <li key={v.id} className="w-60 shrink-0 snap-start">
+            <li key={v.id} className="w-52 shrink-0 snap-start sm:w-60">
               <a
                 href={v.url}
                 target="_blank"
@@ -129,10 +129,10 @@ export function VideosSoporte({ videos }: { videos: VideoSoporte[] }) {
                   // eslint-disable-next-line @next/next/no-img-element -- miniatura pública de YouTube
                   <img src={miniatura} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover opacity-30 transition-opacity group-hover:opacity-45" />
                 )}
-                <span className="relative text-primary-400 transition-transform group-hover:scale-110 [&>svg]:size-10">
+                <span className="relative text-primary-400 [&>svg]:size-10">
                   <Play />
                 </span>
-                <span className={cn(DISPLAY, "relative text-3xl leading-[0.95] text-white")}>{v.title}</span>
+                <span className={cn(DISPLAY, "relative text-2xl leading-[0.95] break-words text-white sm:text-[1.7rem]")}>{v.title}</span>
               </a>
             </li>
           );

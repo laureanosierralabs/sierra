@@ -46,7 +46,7 @@ export function ImagenPortal({
       <div
         className={cn(
           "flex shrink-0 items-center justify-center overflow-hidden rounded-xl border border-card-border bg-background-gray-secondary text-xs text-text-tertiary",
-          formato === "vertical" ? "h-36 w-27" : "h-24 w-44",
+          formato === "vertical" ? "aspect-9/16 h-40" : "aspect-8/3 w-48",
         )}
       >
         {url ? (

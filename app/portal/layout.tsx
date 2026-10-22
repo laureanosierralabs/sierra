@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Anton } from "next/font/google";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import Image from "next/image";
 import Link from "next/link";
 import { UserProfileButton } from "@/components/common/header/user-profile";
@@ -10,8 +10,12 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-/* Títulos grandes del portal, en una condensada como la de las presentaciones. */
-const display = Anton({ subsets: ["latin"], weight: "400", variable: "--font-portal" });
+/* La tipografía de la marca (la de laureanosierra.com y el login del panel). */
+const marca = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  variable: "--font-portal",
+});
 
 /**
  * Layout propio del portal: sin el panel interno (el RootLayout lo excluye
@@ -25,7 +29,7 @@ const display = Anton({ subsets: ["latin"], weight: "400", variable: "--font-por
 export default function PortalLayout({ children }: { children: React.ReactNode }) {
   return (
     <div
-      className={`${display.variable} relative flex min-h-screen flex-col overflow-x-clip bg-neutral-950 text-white print:bg-white`}
+      className={`${marca.variable} portal-raiz relative flex min-h-screen flex-col overflow-x-clip bg-neutral-950 font-(family-name:--font-portal) text-white print:bg-white`}
     >
       <header className="absolute inset-x-0 top-0 z-30 print:hidden">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 py-6 sm:px-6">
@@ -38,7 +42,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
               priority
               className="h-auto w-32 drop-shadow"
             />
-            <span className="hidden font-(family-name:--font-portal)! text-xl tracking-tight text-primary-300 uppercase drop-shadow transition-colors group-hover:text-primary-200 sm:inline">
+            <span className="hidden text-sm font-extrabold tracking-wide text-primary-300 uppercase transition-colors group-hover:text-primary-200 sm:inline">
               Portal <span className="text-white">de clientes</span>
             </span>
           </Link>
