@@ -18,7 +18,9 @@ import {
   listarProyectos,
   obtenerCotizacion,
 } from "@/lib/landing/datos";
-import { EditorIncluye, EditorPreguntas } from "@/components/landing/propuesta-editor";
+import { EditorEmbudo, EditorIncluye, EditorPreguntas } from "@/components/landing/propuesta-editor";
+import { DiagramaEmbudo } from "@/components/landing/diagrama-embudo";
+import { sugerirEmbudo, validarEmbudo } from "@/lib/landing/embudo";
 import { lineasDeRespuesta } from "@/lib/landing/propuesta";
 import {
   codigoCotizacion,
@@ -67,6 +69,7 @@ export default async function CotizacionDetalle({
   const vinculados = proyectos.filter((p) => cotizacion.project_ids.includes(p.id));
   const pendiente = pendienteDeCobro(cotizacion);
   const precio = resumenPrecio(cotizacion.items, cotizacion.total_amount);
+  const embudo = validarEmbudo(cotizacion.funnel);
 
   return (
     <>
@@ -250,6 +253,26 @@ export default async function CotizacionDetalle({
                   </div>
                 ))}
               </dl>
+            )}
+          </div>
+          <div className="border-t border-card-border px-5 py-4">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <h3 className="text-sm font-semibold text-text-primary">Diagrama del embudo</h3>
+              <EditorEmbudo
+                quoteId={cotizacion.id}
+                valores={embudo}
+                sugeridos={sugerirEmbudo(
+                  cotizacion.items.filter((i) => !i.is_extension).map((i) => i.title),
+                  cotizacion.includes ?? [],
+                )}
+              />
+            </div>
+            {embudo.length === 0 ? (
+              <p className="text-sm text-text-tertiary">Sin diagrama: armalo desde los ítems en un click.</p>
+            ) : (
+              <div className="overflow-x-auto rounded-lg bg-white p-4 text-[#0b1029]">
+                <DiagramaEmbudo pasos={embudo} animado={false} />
+              </div>
             )}
           </div>
           <div className="border-t border-card-border px-5 py-3">

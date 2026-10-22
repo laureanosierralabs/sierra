@@ -1,6 +1,7 @@
 import "server-only";
 
 import { validarIncluye, validarPreguntas, type ElementoBiblioteca } from "@/lib/landing/propuesta";
+import { validarEmbudo, type PasoEmbudo } from "@/lib/landing/embudo";
 import { supabaseAdmin } from "@/lib/landing/supabase";
 import type {
   AcuerdoEquipo,
@@ -291,6 +292,7 @@ export interface CotizacionPublica {
   includes: string[];
   faq: { q: string; a: string }[];
   delivery_time: string | null;
+  funnel: PasoEmbudo[];
 }
 
 export async function obtenerCotizacionPublica(
@@ -299,7 +301,7 @@ export async function obtenerCotizacionPublica(
   const { data, error } = await supabaseAdmin()
     .from("quotes")
     .select(
-      "numero, title, service, currency, total_amount, payment_terms, payment_url, payment_status, sent_at, created_at, includes, faq, delivery_time, clients(name), quote_items(id, position, title, detail, url, amount, project_id, is_extension)",
+      "numero, title, service, currency, total_amount, payment_terms, payment_url, payment_status, sent_at, created_at, includes, faq, delivery_time, funnel, clients(name), quote_items(id, position, title, detail, url, amount, project_id, is_extension)",
     )
     .eq("public_token", token)
     .maybeSingle();
@@ -321,6 +323,7 @@ export async function obtenerCotizacionPublica(
     // Se revalidan al leer: el documento nunca se rompe por un dato raro.
     includes: validarIncluye((resto as { includes?: unknown }).includes),
     faq: validarPreguntas((resto as { faq?: unknown }).faq),
+    funnel: validarEmbudo((resto as { funnel?: unknown }).funnel),
   };
 }
 

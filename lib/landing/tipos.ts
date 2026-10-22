@@ -401,6 +401,8 @@ export interface Cotizacion {
   faq: { q: string; a: string }[];
   /** "Tiempo de entrega" ("7 a 10 días hábiles"). */
   delivery_time: string | null;
+  /** Diagrama del embudo: pasos en orden. */
+  funnel: { tipo: string; etiqueta?: string }[];
   created_at: string;
   updated_at: string;
 }

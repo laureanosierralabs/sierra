@@ -231,3 +231,51 @@ h1, h2, h3 {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Diagrama del embudo de las propuestas: una señal recorre cada flecha, una
+   después de la otra. Quieto al imprimir y con "reducir movimiento". */
+.embudo-flecha--animada::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 8px;
+  height: 8px;
+  margin-top: -4px;
+  border-radius: 9999px;
+  background: var(--color-doc-pay);
+  opacity: 0;
+  animation: embudo-senal 2.4s ease-in-out infinite;
+  animation-delay: var(--embudo-delay, 0s);
+}
+
+@keyframes embudo-senal {
+  0% {
+    left: 0;
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  75% {
+    left: calc(100% - 8px);
+    opacity: 1;
+  }
+  90%,
+  100% {
+    left: calc(100% - 8px);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .embudo-flecha--animada::after {
+    display: none;
+  }
+}
+
+@media print {
+  .embudo-flecha--animada::after {
+    display: none;
+  }
+}

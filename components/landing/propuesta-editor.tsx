@@ -6,6 +6,8 @@ import { DialogoForm, Input, Textarea } from "@/components/landing/dialogo-form"
 import { Button } from "@/components/tailgrids/core/button";
 import { guardarPropuesta } from "@/app/landing-pages/acciones";
 import { MAX_INCLUYE, MAX_PREGUNTAS, type ElementoBiblioteca, type PreguntaPropuesta } from "@/lib/landing/propuesta";
+import { MAX_PASOS, PASOS, TIPOS_PASO, type PasoEmbudo, type TipoPaso } from "@/lib/landing/embudo";
+import { DiagramaEmbudo } from "@/components/landing/diagrama-embudo";
 
 const DISPARADOR =
   "inline-flex items-center gap-1.5 text-xs font-medium text-primary-500 hover:underline [&>svg]:size-3.5";
@@ -275,6 +277,137 @@ export function EditorPreguntas(props: { quoteId: string; valores: PreguntaPropu
       }
     >
       <CamposPreguntas {...props} />
+    </DialogoForm>
+  );
+}
+
+/* ───────────── Diagrama del embudo ───────────── */
+
+const GRUPOS_PASO: { titulo: string; categoria: "pagina" | "integracion" | "separador" }[] = [
+  { titulo: "Páginas", categoria: "pagina" },
+  { titulo: "Integraciones", categoria: "integracion" },
+  { titulo: "Otros", categoria: "separador" },
+];
+
+function CamposEmbudo({
+  quoteId,
+  valores,
+  sugeridos,
+}: {
+  quoteId: string;
+  valores: PasoEmbudo[];
+  sugeridos: PasoEmbudo[];
+}) {
+  const [pasos, setPasos] = useState<PasoEmbudo[]>(valores);
+  const [nuevo, setNuevo] = useState<TipoPaso>("registro");
+
+  const mover = (i: number, d: -1 | 1) =>
+    setPasos((l) => {
+      const j = i + d;
+      if (j < 0 || j >= l.length) return l;
+      const n = [...l];
+      [n[i], n[j]] = [n[j], n[i]];
+      return n;
+    });
+
+  return (
+    <>
+      <input type="hidden" name="quote_id" value={quoteId} />
+      <input type="hidden" name="seccion" value="embudo" />
+      <input type="hidden" name="valores" value={JSON.stringify(pasos)} />
+
+      <div className="rounded-lg border border-card-border bg-white p-4 text-[#0b1029]">
+        {pasos.length === 0 ? (
+          <p className="text-center text-sm text-text-tertiary">Sin pasos: armalo desde los ítems o agregá uno abajo.</p>
+        ) : (
+          <DiagramaEmbudo pasos={pasos} />
+        )}
+      </div>
+
+      {sugeridos.length > 0 && (
+        <Button type="button" appearance="outline" className="self-start" onPress={() => setPasos(sugeridos)}>
+          Armar desde los ítems
+        </Button>
+      )}
+
+      <ol className="flex flex-col gap-1.5">
+        {pasos.map((p, i) => (
+          <li key={`${p.tipo}-${i}`} className="flex items-center gap-2 rounded-lg border border-card-border px-2 py-1.5 text-sm">
+            <span className="w-5 text-center text-xs text-text-tertiary tabular-nums">{i + 1}</span>
+            {p.tipo === "separador" ? (
+              <span className="flex-1 text-text-tertiary">— Separador entre flujos —</span>
+            ) : (
+              <Input
+                value={p.etiqueta ?? ""}
+                placeholder={PASOS[p.tipo].etiqueta}
+                maxLength={40}
+                onChange={(e) => setPasos((l) => l.map((x, j) => (j === i ? { ...x, etiqueta: e.target.value } : x)))}
+                aria-label={`Nombre del paso ${i + 1}`}
+              />
+            )}
+            <span className="flex shrink-0 gap-1">
+              <button type="button" onClick={() => mover(i, -1)} disabled={i === 0} className="rounded px-1.5 text-text-tertiary hover:text-text-primary disabled:opacity-30" aria-label="Subir">
+                ↑
+              </button>
+              <button type="button" onClick={() => mover(i, 1)} disabled={i === pasos.length - 1} className="rounded px-1.5 text-text-tertiary hover:text-text-primary disabled:opacity-30" aria-label="Bajar">
+                ↓
+              </button>
+              <button type="button" onClick={() => setPasos((l) => l.filter((_, j) => j !== i))} className="rounded px-1.5 text-text-tertiary hover:text-badge-error-text" aria-label="Quitar">
+                ✕
+              </button>
+            </span>
+          </li>
+        ))}
+      </ol>
+
+      <div className="flex gap-2">
+        <select
+          value={nuevo}
+          onChange={(e) => setNuevo(e.target.value as TipoPaso)}
+          aria-label="Paso para agregar"
+          className="w-full rounded-lg border border-card-border bg-input-background px-4 py-2.5 text-title-50 outline-none"
+        >
+          {GRUPOS_PASO.map((g) => (
+            <optgroup key={g.categoria} label={g.titulo}>
+              {TIPOS_PASO.filter((t) => PASOS[t].categoria === g.categoria).map((t) => (
+                <option key={t} value={t}>
+                  {PASOS[t].etiqueta}
+                </option>
+              ))}
+            </optgroup>
+          ))}
+        </select>
+        <Button
+          type="button"
+          appearance="outline"
+          isDisabled={pasos.length >= MAX_PASOS}
+          onPress={() => setPasos((l) => [...l, { tipo: nuevo }])}
+        >
+          <Plus />
+          Agregar
+        </Button>
+      </div>
+      <p className="text-xs text-text-tertiary">
+        Hasta {MAX_PASOS} pasos. En el link del cliente el recorrido se anima; en el PDF sale quieto.
+      </p>
+    </>
+  );
+}
+
+export function EditorEmbudo(props: { quoteId: string; valores: PasoEmbudo[]; sugeridos: PasoEmbudo[] }) {
+  return (
+    <DialogoForm
+      titulo="Diagrama del embudo"
+      action={guardarPropuesta}
+      ancho="2xl"
+      disparador={
+        <span className={DISPARADOR}>
+          <Pencil1 />
+          Editar
+        </span>
+      }
+    >
+      <CamposEmbudo {...props} />
     </DialogoForm>
   );
 }

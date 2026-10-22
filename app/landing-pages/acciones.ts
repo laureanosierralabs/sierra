@@ -8,6 +8,7 @@ import { supabaseAdmin } from "@/lib/landing/supabase";
 import { accesoActual } from "@/lib/landing/auth";
 import { cifrar, descifrar } from "@/lib/landing/cifrado";
 import { validarEntrega, validarIncluye, validarPreguntas } from "@/lib/landing/propuesta";
+import { validarEmbudo } from "@/lib/landing/embudo";
 import { slugify } from "@/lib/escritura";
 import { esUsuarioCliente } from "@/lib/unidades";
 import { plantillaDe } from "@/lib/landing/plantillas";
@@ -926,6 +927,7 @@ export async function duplicarCotizacion(id: string) {
       includes: original.includes,
       faq: original.faq,
       delivery_time: original.delivery_time,
+      funnel: original.funnel,
     })
     .select("id")
     .single();
@@ -2062,12 +2064,16 @@ export async function guardarPropuesta(fd: FormData): Promise<ResultadoPropuesta
   const id = texto(fd, "quote_id");
   const seccion = texto(fd, "seccion");
   if (!id) return { error: "Falta la cotización" };
-  if (seccion !== "incluye" && seccion !== "pregunta") return { error: "Sección inválida" };
+  if (seccion !== "incluye" && seccion !== "pregunta" && seccion !== "embudo") return { error: "Sección inválida" };
 
   const crudo = jsonDe(fd, "valores");
   if (crudo === null) return { error: "No se pudo leer lo cargado" };
   const cambio =
-    seccion === "incluye" ? { includes: validarIncluye(crudo) } : { faq: validarPreguntas(crudo) };
+    seccion === "incluye"
+      ? { includes: validarIncluye(crudo) }
+      : seccion === "pregunta"
+        ? { faq: validarPreguntas(crudo) }
+        : { funnel: validarEmbudo(crudo) };
 
   const db = supabaseAdmin();
   const { data, error } = await db
@@ -2080,8 +2086,11 @@ export async function guardarPropuesta(fd: FormData): Promise<ResultadoPropuesta
   if (!data) return { error: "La cotización no existe" };
 
   // A la biblioteca: solo lo que no esté ya (por texto, sin importar mayúsculas).
+  // El embudo no tiene biblioteca.
   const nuevos =
-    seccion === "incluye"
+    seccion === "embudo"
+      ? []
+      : seccion === "incluye"
       ? validarIncluye(jsonDe(fd, "a_biblioteca")).map((title) => ({ title, body: null as string | null }))
       : validarPreguntas(jsonDe(fd, "a_biblioteca")).map((p) => ({ title: p.q, body: p.a as string | null }));
   let sumados = 0;

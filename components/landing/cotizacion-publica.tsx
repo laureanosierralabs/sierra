@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { lineasDeRespuesta } from "@/lib/landing/propuesta";
+import { DiagramaEmbudo } from "@/components/landing/diagrama-embudo";
 import type { CotizacionPublica } from "@/lib/landing/datos";
 import {
   codigoCotizacion,
@@ -266,6 +267,12 @@ export function DocumentoCotizacionPublica({ cotizacion }: { cotizacion: Cotizac
           ) : null}
         </div>
       </section>
+
+      {cotizacion.funnel.length > 0 && (
+        <section className="mt-14">
+          <DiagramaEmbudo pasos={cotizacion.funnel} />
+        </section>
+      )}
 
       {cotizacion.faq.length > 0 && (
         <section className="mt-14">
