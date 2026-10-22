@@ -1,5 +1,6 @@
 import "server-only";
 
+import { cache } from "react";
 import { supabaseAdmin } from "@/lib/landing/supabase";
 import {
   diaDe,
@@ -32,7 +33,24 @@ export interface LanzamientoConTotal extends Lanzamiento {
   registros: number;
 }
 
+/**
+ * Cierra los lanzamientos activos de un cliente (o de todos) cuya fecha de
+ * fin ya pasó: un lanzamiento vencido no puede seguir figurando como activo.
+ * Corre antes de leerlos, una vez por pedido; si falla, se lee igual.
+ */
+export const cerrarVencidos = cache(async (clientId?: string) => {
+  let consulta = supabaseAdmin()
+    .from("launches")
+    .update({ status: "cerrado", updated_at: new Date().toISOString() })
+    .eq("status", "activo")
+    .lt("ends_on", diaDe(new Date()));
+  if (clientId) consulta = consulta.eq("client_id", clientId);
+  const { error } = await consulta;
+  if (error) console.error("[lanzamientos] no se pudieron cerrar los vencidos:", error.message);
+});
+
 export async function lanzamientosDeCliente(clientId: string): Promise<LanzamientoConTotal[]> {
+  await cerrarVencidos(clientId);
   const { data, error } = await supabaseAdmin()
     .from("launches")
     .select(`${COLUMNAS_LANZAMIENTO}, launch_registrations(count)`)
@@ -71,6 +89,7 @@ export async function lanzamientoDeCliente(
   clientId: string,
   id: string,
 ): Promise<DetalleLanzamiento | null> {
+  await cerrarVencidos(clientId);
   const db = supabaseAdmin();
 
   const { data: lanzamiento, error } = await db

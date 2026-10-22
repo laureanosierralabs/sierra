@@ -8,6 +8,7 @@ import {
   cambiarEstadoProyecto,
   cambiarEstadoTarea,
 } from "@/app/landing-pages/acciones";
+import { cambiarEstadoLanzamiento } from "@/app/landing-pages/lanzamiento-acciones";
 import {
   Select,
   SelectContent,
@@ -26,8 +27,9 @@ import {
   LABEL_ESTADO_PROYECTO,
   LABEL_ESTADO_TAREA,
 } from "@/lib/landing/tipos";
+import { ESTADOS_LANZAMIENTO, LABEL_ESTADO_LANZAMIENTO } from "@/lib/lanzamientos/tipos";
 
-type Tipo = "proyecto" | "tarea" | "cliente" | "cotizacion";
+type Tipo = "proyecto" | "tarea" | "cliente" | "cotizacion" | "lanzamiento";
 
 /* Misma familia de color que los badges de estado (components/landing/ui.tsx). */
 const OK = "text-badge-success-text";
@@ -59,6 +61,10 @@ const TONO: Record<string, string> = {
   approved: OK,
   rejected: CRITICAL,
   cancelled: NEUTRO,
+  // Lanzamiento
+  preparacion: IDLE,
+  activo: OK,
+  cerrado: NEUTRO,
 };
 
 const CONFIG: Record<
@@ -66,7 +72,9 @@ const CONFIG: Record<
   {
     opciones: readonly string[];
     labels: Record<string, string>;
-    accion: (id: string, estado: string) => Promise<void>;
+    /* Las acciones nuevas devuelven `{ error }` (en producción Next oculta el
+       mensaje de un Error lanzado); las viejas lanzan. Se aceptan las dos. */
+    accion: (id: string, estado: string) => Promise<void | { error: string }>;
   }
 > = {
   proyecto: {
@@ -88,6 +96,11 @@ const CONFIG: Record<
     opciones: ESTADOS_COTIZACION,
     labels: LABEL_ESTADO_COTIZACION,
     accion: cambiarEstadoCotizacion,
+  },
+  lanzamiento: {
+    opciones: ESTADOS_LANZAMIENTO,
+    labels: LABEL_ESTADO_LANZAMIENTO,
+    accion: cambiarEstadoLanzamiento,
   },
 };
 
@@ -123,7 +136,8 @@ export function EstadoSelect({
         if (nuevo === valor) return;
         iniciar(async () => {
           try {
-            await accion(id, nuevo);
+            const r = await accion(id, nuevo);
+            if (r && "error" in r) toast.error(r.error);
           } catch (e) {
             toast.error(e instanceof Error ? e.message : "No se pudo cambiar el estado");
           }

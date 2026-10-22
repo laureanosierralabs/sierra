@@ -1,6 +1,7 @@
 import "server-only";
 
 import { supabaseAdmin } from "@/lib/landing/supabase";
+import { cerrarVencidos } from "@/lib/lanzamientos/datos";
 import { diaDe } from "@/lib/lanzamientos/tipos";
 import { evaluarAlertas, type Alerta, type EstadoLanzamientoActivo } from "@/lib/lanzamientos/alertas";
 
@@ -16,6 +17,7 @@ const masReciente = (...fechas: (string | null | undefined)[]) =>
  * o dos activos a la vez.
  */
 export async function alertasDeLanzamientos(): Promise<Alerta[]> {
+  await cerrarVencidos();
   const db = supabaseAdmin();
   const hoy = diaDe(new Date());
 

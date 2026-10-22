@@ -95,6 +95,14 @@ export function diaDe(instante: string | Date): string {
   return DIA_BA.format(typeof instante === "string" ? new Date(instante) : instante);
 }
 
+/**
+ * Un lanzamiento activo cuya fecha de fin ya pasó (`hoy` en AAAA-MM-DD, hora
+ * de Buenos Aires). El día de cierre todavía cuenta como activo.
+ */
+export function estaVencido(l: { status: EstadoLanzamiento; ends_on: string | null }, hoy: string): boolean {
+  return l.status === "activo" && Boolean(l.ends_on) && (l.ends_on as string) < hoy;
+}
+
 const DIA_MS = 86_400_000;
 const aUtc = (dia: string) => Date.parse(`${dia}T00:00:00Z`);
 

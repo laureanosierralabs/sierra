@@ -8,7 +8,9 @@ import { accesoActual } from "@/lib/landing/auth";
 import { cifrar, hayClave } from "@/lib/landing/cifrado";
 import { supabaseAdmin } from "@/lib/landing/supabase";
 import {
+  diaDe,
   ESTADOS_LANZAMIENTO,
+  estaVencido,
   TIPOS_LANDING,
   tipoLandingDeProyecto,
   type EstadoLanzamiento,
@@ -60,6 +62,30 @@ function revalidar(clientId: string, launchId?: string) {
   if (launchId) revalidatePath(`/landing-pages/launches/${launchId}`);
 }
 
+/**
+ * Cambio de estado en un paso, desde el selector de la página del
+ * lanzamiento. Un lanzamiento vencido no se puede reabrir sin extender su
+ * fecha de cierre: se volvería a cerrar solo.
+ */
+export async function cambiarEstadoLanzamiento(id: string, estado: string): Promise<Resultado> {
+  await exigirOwner();
+  if (!ESTADOS_LANZAMIENTO.includes(estado as EstadoLanzamiento)) return { error: "Estado inválido" };
+
+  const db = supabaseAdmin();
+  const { data: actual } = await db.from("launches").select("client_id, ends_on").eq("id", id).maybeSingle();
+  if (!actual) return { error: "El lanzamiento no existe" };
+  if (estaVencido({ status: estado as EstadoLanzamiento, ends_on: actual.ends_on as string | null }, diaDe(new Date()))) {
+    return { error: "La fecha de cierre ya pasó: para reabrirlo, editá el lanzamiento y extendé la fecha de cierre." };
+  }
+
+  const { error } = await db
+    .from("launches")
+    .update({ status: estado, updated_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) return { error: `No se pudo cambiar el estado: ${error.message}` };
+  revalidar(actual.client_id as string, id);
+}
+
 export async function guardarLanzamiento(fd: FormData): Promise<Resultado> {
   await exigirOwner();
 
@@ -73,6 +99,9 @@ export async function guardarLanzamiento(fd: FormData): Promise<Resultado> {
   const fin = fecha(fd, "ends_on");
   if (inicio === undefined || fin === undefined) return { error: "Fecha inválida" };
   if (inicio && fin && fin < inicio) return { error: "El cierre no puede ser anterior al inicio" };
+  if (estaVencido({ status: estado, ends_on: fin }, diaDe(new Date()))) {
+    return { error: "La fecha de cierre ya pasó: para dejarlo activo, extendé la fecha de cierre." };
+  }
 
   const metaCruda = texto(fd, "goal_registrations");
   const meta = metaCruda === "" ? null : Number(metaCruda);

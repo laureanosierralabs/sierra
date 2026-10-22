@@ -32,6 +32,7 @@ import {
 } from "@/lib/lanzamientos/datos";
 import { LABEL_ESTADO_LANZAMIENTO, LABEL_TIPO_LANDING } from "@/lib/lanzamientos/tipos";
 import { PestanasUrl } from "@/components/common/pestanas-url";
+import { EstadoSelect } from "@/components/landing/estado-select";
 import { EmptyState } from "@/components/common/empty-state";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { rutasDeSitio, sitiosDeCliente } from "@/lib/sitios/datos";
@@ -126,6 +127,7 @@ export default async function LanzamientoDetalle({
                 Ver en el portal
               </a>
             )}
+            <EstadoSelect id={lanzamiento.id} valor={lanzamiento.status} tipo="lanzamiento" />
             <LanzamientoForm lanzamiento={lanzamiento} />
             <BorrarLanzamiento id={lanzamiento.id} />
           </span>

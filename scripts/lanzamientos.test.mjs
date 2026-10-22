@@ -117,7 +117,7 @@ test("las lecturas de lanzamientos siempre filtran por cliente y no exponen secr
 
   const acciones = leer("../app/landing-pages/lanzamiento-acciones.ts");
   const exportadas = acciones.split("export async function ").slice(1);
-  assert.equal(exportadas.length, 12);
+  assert.equal(exportadas.length, 13);
   for (const f of exportadas) {
     assert.match(f.slice(f.indexOf("{\n") + 1).trimStart(), /^await exigirOwner\(\);/, f.slice(0, 30));
   }
@@ -283,4 +283,27 @@ test("el script de la landing avisa la visita y completa los UTM del formulario"
   vm.runInNewContext(codigo, sinClave);
   vm.runInNewContext(codigo, { document: { currentScript: null } });
   assert.equal(enviados.length, antes);
+});
+
+/* ───────────── Vencimiento ───────────── */
+
+test("un lanzamiento activo vence el día después de su cierre", async () => {
+  const { estaVencido } = await import("../lib/lanzamientos/tipos.ts");
+  const hoy = "2026-10-22";
+  assert.equal(estaVencido({ status: "activo", ends_on: "2026-10-21" }, hoy), true);
+  // El día de cierre todavía cuenta como activo.
+  assert.equal(estaVencido({ status: "activo", ends_on: "2026-10-22" }, hoy), false);
+  assert.equal(estaVencido({ status: "activo", ends_on: null }, hoy), false);
+  // Solo los activos vencen: uno en preparación o cerrado queda como está.
+  assert.equal(estaVencido({ status: "preparacion", ends_on: "2026-01-01" }, hoy), false);
+  assert.equal(estaVencido({ status: "cerrado", ends_on: "2026-01-01" }, hoy), false);
+});
+
+test("los lanzamientos vencidos se cierran antes de leerlos", () => {
+  const datos = leer("../lib/lanzamientos/datos.ts");
+  for (const nombre of ["lanzamientosDeCliente", "lanzamientoDeCliente"]) {
+    const cuerpo = datos.slice(datos.indexOf(`export async function ${nombre}(`));
+    assert.match(cuerpo.slice(0, 200), /await cerrarVencidos\(clientId\);/, nombre);
+  }
+  assert.match(leer("../lib/lanzamientos/alertas-datos.ts"), /await cerrarVencidos\(\);/);
 });
