@@ -153,6 +153,9 @@ export default async function ClienteDetalle({
   const nombrePor = new Map(todos.map((c) => [c.id, c.name]));
 
   const susCotizaciones = cotizaciones.filter((q) => q.client_id === id);
+  // Si opera marcas, también ve las de ellas (cada cotización sigue siendo de la marca que paga).
+  const idsMarcas = new Set(marcas.map((m) => m.id));
+  const deSusMarcas = cotizaciones.filter((q) => q.client_id && idsMarcas.has(q.client_id));
   const susProyectos = proyectos.filter((p) => p.client_id === id);
   const wa = urlWhatsapp(cliente.phone);
   const ig = urlInstagram(cliente.instagram);
@@ -179,7 +182,14 @@ export default async function ClienteDetalle({
       ? [{ id: "portal" as const, label: "Portal del cliente", href: `${base}?vista=portal` }]
       : []),
     ...(esOwner
-      ? [{ id: "cotizaciones" as const, label: "Cotizaciones", href: `${base}?vista=cotizaciones`, cantidad: susCotizaciones.length }]
+      ? [
+          {
+            id: "cotizaciones" as const,
+            label: "Cotizaciones",
+            href: `${base}?vista=cotizaciones`,
+            cantidad: susCotizaciones.length + deSusMarcas.length,
+          },
+        ]
       : []),
   ];
   const pedida = VISTAS.find((v) => v === vistaCruda) ?? "resumen";
@@ -447,8 +457,31 @@ export default async function ClienteDetalle({
         />
       )}
 
+      {vista === "cotizaciones" && esOwner && deSusMarcas.length > 0 && (
+        <div className="mb-6">
+          <SeccionCard titulo="De las marcas que opera" cantidad={deSusMarcas.length}>
+            {deSusMarcas.map((q) => (
+              <div key={q.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
+                <span className="flex min-w-0 items-center gap-2">
+                  <Link href={`/landing-pages/quotes/${q.id}`} className="truncate text-sm text-text-primary hover:underline">
+                    {q.title}
+                  </Link>
+                  <span className="shrink-0 text-xs text-text-tertiary">{nombrePor.get(q.client_id as string)}</span>
+                </span>
+                <span className="flex shrink-0 items-center gap-2">
+                  <span className="text-sm tabular-nums text-text-secondary">
+                    {formatearMonto(q.total_amount, q.currency)}
+                  </span>
+                  <EstadoCotizacionPill estado={q.commercial_status} />
+                </span>
+              </div>
+            ))}
+          </SeccionCard>
+        </div>
+      )}
+
       {vista === "cotizaciones" && esOwner && (
-        <SeccionCard titulo="Cotizaciones" cantidad={susCotizaciones.length}>
+        <SeccionCard titulo={deSusMarcas.length > 0 ? "A su nombre" : "Cotizaciones"} cantidad={susCotizaciones.length}>
           {susCotizaciones.length === 0 ? (
             <Vacio>Sin cotizaciones.</Vacio>
           ) : (

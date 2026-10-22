@@ -44,6 +44,7 @@ import { EmptyState } from "@/components/common/empty-state";
 import { BorrarCotizacion } from "@/components/landing/borrar";
 import { Cobros } from "@/components/landing/cobros";
 import { CotizacionForm } from "@/components/landing/cotizacion-form";
+import { MoverCotizacionAMarca } from "@/components/landing/cotizacion-marca";
 import { DuplicarCotizacion } from "@/components/landing/duplicar-cotizacion";
 import { EnlaceBoton } from "@/components/landing/enlace-boton";
 import { LinkCotizacion } from "@/components/landing/link-cotizacion";
@@ -72,6 +73,8 @@ export default async function CotizacionDetalle({
   if (!cotizacion) notFound();
 
   const nombrePor = new Map(clientes.map((c) => [c.id, c.name]));
+  // Cargada al operador (Oriana) y no a la marca que paga (Aida Qui).
+  const marcasDelCliente = cotizacion.client_id ? clientes.filter((c) => c.operated_by === cotizacion.client_id) : [];
   const vinculados = proyectos.filter((p) => cotizacion.project_ids.includes(p.id));
   const pendiente = pendienteDeCobro(cotizacion);
   const precio = resumenPrecio(cotizacion.items, cotizacion.total_amount);
@@ -98,6 +101,16 @@ export default async function CotizacionDetalle({
           </span>
         }
       />
+
+      {marcasDelCliente.length > 0 && cotizacion.client_id && (
+        <div className="mb-4">
+          <MoverCotizacionAMarca
+            id={cotizacion.id}
+            operador={nombrePor.get(cotizacion.client_id) ?? "Este cliente"}
+            marcas={marcasDelCliente.map((m) => ({ id: m.id, name: m.name }))}
+          />
+        </div>
+      )}
 
       <Card className="mb-8 overflow-hidden p-0">
         <div className="grid gap-x-10 px-5 py-3 md:grid-cols-2">

@@ -123,6 +123,8 @@ interface FormSelectFieldProps extends Omit<BaseFieldProps, "onChange"> {
   options: FormSelectOption[];
   placeholder?: string;
   defaultValue?: string;
+  /** Valor controlado (opcional): para cambiarlo desde afuera del select. */
+  value?: string;
   /** Recibe el valor elegido; `form.fieldProps(name).onChange` lo ignora. */
   onChange?: (value: string) => void;
 }
@@ -142,11 +144,13 @@ export function FormSelectField({
   options,
   placeholder,
   defaultValue,
+  value,
 }: FormSelectFieldProps) {
   return (
     <Select
       name={name}
       defaultValue={defaultValue}
+      value={value}
       isRequired={required}
       isDisabled={disabled}
       isInvalid={Boolean(error)}

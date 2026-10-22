@@ -1944,6 +1944,63 @@ export async function guardarRecursoCliente(fd: FormData) {
 }
 
 /**
+ * Pasa una cotización a la marca que paga (cargada por error al operador:
+ * Oriana en vez de Aida Qui). Sus proyectos vinculados que eran del mismo
+ * cliente se mueven con ella, así la ficha y el portal de la marca la ven
+ * completa. Proyectos de otros clientes no se tocan.
+ */
+export async function moverCotizacionACliente(
+  id: string,
+  clientId: string,
+): Promise<{ aviso: string } | { error: string }> {
+  await exigirOwner();
+  const db = supabaseAdmin();
+
+  const [{ data: cotizacion }, { data: destino }] = await Promise.all([
+    db.from("quotes").select("id, client_id").eq("id", id).maybeSingle(),
+    db.from("clients").select("id, name").eq("id", clientId).maybeSingle(),
+  ]);
+  if (!cotizacion) return { error: "La cotización no existe" };
+  if (!destino) return { error: "Ese cliente no existe" };
+  const anterior = cotizacion.client_id as string | null;
+  if (anterior === clientId) return { aviso: `Ya es de ${destino.name}` };
+
+  const { error } = await db
+    .from("quotes")
+    .update({ client_id: clientId, updated_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) return { error: `No se pudo mover la cotización: ${error.message}` };
+
+  let movidos = 0;
+  if (anterior) {
+    const { data: vinculos } = await db.from("quote_projects").select("project_id").eq("quote_id", id);
+    const ids = (vinculos ?? []).map((v) => v.project_id as string);
+    if (ids.length > 0) {
+      const { data, error: errProyectos } = await db
+        .from("projects")
+        .update({ client_id: clientId, updated_at: new Date().toISOString() })
+        .in("id", ids)
+        .eq("client_id", anterior)
+        .select("id");
+      if (errProyectos) {
+        revalidar();
+        return { error: `La cotización pasó a ${destino.name}, pero sus proyectos no: ${errProyectos.message}` };
+      }
+      movidos = data?.length ?? 0;
+    }
+  }
+
+  revalidar();
+  revalidatePath(`/landing-pages/quotes/${id}`);
+  return {
+    aviso:
+      movidos === 0
+        ? `La cotización pasó a ${destino.name}`
+        : `La cotización pasó a ${destino.name}, con ${movidos === 1 ? "su proyecto" : `sus ${movidos} proyectos`}`,
+  };
+}
+
+/**
  * Cuelga varios proyectos de un cliente (la marca) de una vez. Es lo que se
  * hace al ordenar: las landings de Aida cargadas a nombre de Oriana pasan a
  * Aida. La marca es quien paga, así que también pasan las cotizaciones cuyos

@@ -8,6 +8,7 @@ import {
   FormTextField,
 } from "@/components/common/form/form-fields";
 import { cotizacionEsquema } from "@/components/landing/cotizacion-esquema";
+import { SugerenciaMarca } from "@/components/landing/cotizacion-marca";
 import { DialogoForm, type ZodFormApi } from "@/components/landing/dialogo-form";
 import { ItemsCotizacion, itemsIniciales } from "@/components/landing/items-cotizacion";
 import { SIN_OPCION } from "@/components/landing/proyecto-esquema";
@@ -36,7 +37,7 @@ function guardar(fd: FormData) {
 }
 
 type Props = {
-  clientes: Pick<Cliente, "id" | "name">[];
+  clientes: (Pick<Cliente, "id" | "name"> & { operated_by?: string | null })[];
   proyectos: Pick<Proyecto, "id" | "name" | "client_id" | "site_url">[];
   cotizacion?: Cotizacion;
   clienteFijo?: string;
@@ -74,6 +75,9 @@ function Campos({ form, clientes, proyectos, cotizacion, clienteFijo }: Props & 
     { value: SIN_OPCION, label: "Sin cliente" },
     ...clientes.map((c) => ({ value: c.id, label: c.name })),
   ];
+  // Si el elegido opera marcas (Oriana con Aida Qui), la cotización va a la marca que paga.
+  const marcasDelElegido = clientes.filter((c) => c.operated_by && c.operated_by === cliente);
+  const nombreElegido = clientes.find((c) => c.id === cliente)?.name ?? "";
 
   return (
     <>
@@ -88,7 +92,7 @@ function Campos({ form, clientes, proyectos, cotizacion, clienteFijo }: Props & 
           }}
           label="Cliente que paga"
           options={opcionesCliente}
-          defaultValue={clienteInicial}
+          value={cliente}
         />
         <FormTextField
           {...form.fieldProps("service")}
@@ -98,6 +102,17 @@ function Campos({ form, clientes, proyectos, cotizacion, clienteFijo }: Props & 
           defaultValue={cotizacion?.service ?? ""}
         />
       </div>
+
+      {marcasDelElegido.length > 0 && (
+        <SugerenciaMarca
+          operador={nombreElegido}
+          marcas={marcasDelElegido.map((m) => ({ id: m.id, name: m.name }))}
+          onElegir={(id) => {
+            form.clearError("client_id");
+            setCliente(id);
+          }}
+        />
+      )}
 
       <FormTextField
         {...form.fieldProps("title")}

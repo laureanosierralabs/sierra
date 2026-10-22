@@ -29,8 +29,12 @@ export interface NavSection {
   items: NavEntry[];
 }
 
-/** Unidades que el owner ve en el sidebar (Wonder Digital solo la ven los members). */
-const UNIDADES_OWNER: Unidad[] = ["landing-pages", "marca-personal", "synous-ai"];
+/**
+ * Unidades que el owner ve agrupadas bajo "Unidades". Landing Pages va aparte,
+ * como sección propia con sus páginas a la vista (es donde se trabaja todos
+ * los días). Wonder Digital solo la ven los members.
+ */
+const UNIDADES_OWNER: Unidad[] = ["synous-ai"];
 
 /** Secciones de una unidad según rol: las `owner` no las ve un Builder. */
 function seccionesDe(unidad: Unidad, esOwner: boolean) {
@@ -57,6 +61,18 @@ function entradaUnidad(unidad: Unidad, esOwner: boolean): NavEntry {
   return { ...base, url: def.href, external: def.externa };
 }
 
+/** Secciones de una unidad como entradas planas, cada una con su ícono. */
+function seccionesPlanas(unidad: Unidad, esOwner: boolean): NavEntry[] {
+  const def = DEFINICIONES[unidad];
+  return seccionesDe(unidad, esOwner).map((s) => ({
+    id: s.href,
+    title: s.label,
+    icon: s.icono,
+    url: s.href,
+    exact: s.href === def.href,
+  }));
+}
+
 /**
  * Un member con una sola unidad ve sus secciones planas, sin el nivel de
  * agrupación: no hay nada entre qué elegir.
@@ -70,18 +86,7 @@ export function buildNav(esOwner: boolean, unidades: Unidad[]): NavSection[] {
       return [{ label: def.nombre, items: [entradaUnidad(unidad, esOwner)] }];
     }
 
-    return [
-      {
-        label: def.nombre,
-        items: seccionesDe(unidad, esOwner).map((s) => ({
-          id: s.href,
-          title: s.label,
-          icon: s.icono,
-          url: s.href,
-          exact: s.href === def.href,
-        })),
-      },
-    ];
+    return [{ label: def.nombre, items: seccionesPlanas(unidad, esOwner) }];
   }
 
   const visibles = esOwner ? UNIDADES_OWNER : unidades;
@@ -93,8 +98,11 @@ export function buildNav(esOwner: boolean, unidades: Unidad[]): NavSection[] {
       items: [
         { id: "inicio", title: "Inicio", icon: "inicio", url: "/", exact: true },
         { id: "finanzas", title: "Finanzas", icon: "finanzas", url: "/finanzas/personal" },
-        { id: "equipo", title: "Equipo", icon: "equipo", url: "/equipo" },
       ],
+    });
+    secciones.push({
+      label: DEFINICIONES["landing-pages"].nombre,
+      items: seccionesPlanas("landing-pages", esOwner),
     });
   }
 
