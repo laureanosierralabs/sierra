@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { lineasDeRespuesta } from "@/lib/landing/propuesta";
 import type { CotizacionPublica } from "@/lib/landing/datos";
 import {
   codigoCotizacion,
@@ -198,6 +199,33 @@ export function DocumentoCotizacionPublica({ cotizacion }: { cotizacion: Cotizac
         </ul>
       </section>
 
+      {(cotizacion.includes.length > 0 || cotizacion.delivery_time) && (
+        <section className="mt-10 grid grid-cols-1 gap-8 break-inside-avoid sm:grid-cols-[1fr_15rem] print:grid-cols-[1fr_15rem]">
+          <div>
+            {cotizacion.includes.length > 0 && (
+              <>
+                <p className="mb-2 text-[15px] font-semibold">Este servicio incluye</p>
+                <ul className="list-disc space-y-1 pl-5 text-[15px]">
+                  {cotizacion.includes.map((t) => (
+                    <li key={t}>{t}</li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </div>
+          {cotizacion.delivery_time && (
+            <div className="self-start">
+              <span className="inline-block rounded-t-lg bg-doc-navy px-5 py-1 text-sm text-doc-paper">
+                Tiempo de entrega
+              </span>
+              <div className="rounded-xl rounded-tl-none border-2 border-doc-navy px-4 py-3 text-base font-semibold">
+                {cotizacion.delivery_time}
+              </div>
+            </div>
+          )}
+        </section>
+      )}
+
       <div className="mt-8 border-t-2 border-doc-box" />
 
       <section className="mt-8 flex flex-col-reverse gap-8 sm:flex-row sm:items-end sm:justify-between print:flex-row print:items-end print:justify-between">
@@ -238,6 +266,33 @@ export function DocumentoCotizacionPublica({ cotizacion }: { cotizacion: Cotizac
           ) : null}
         </div>
       </section>
+
+      {cotizacion.faq.length > 0 && (
+        <section className="mt-14">
+          <Etiqueta>Importantes</Etiqueta>
+          <dl className="mt-4 divide-y divide-doc-rule">
+            {cotizacion.faq.map((p) => {
+              const lineas = lineasDeRespuesta(p.a);
+              return (
+                <div key={p.q} className="break-inside-avoid py-4">
+                  <dt className="text-lg font-medium">{p.q}</dt>
+                  <dd className="mt-1 text-[15px] text-doc-muted">
+                    {lineas.length > 1 ? (
+                      <ul className="list-disc space-y-0.5 pl-5">
+                        {lineas.map((l, i) => (
+                          <li key={`${i}-${l}`}>{l}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      lineas[0]
+                    )}
+                  </dd>
+                </div>
+              );
+            })}
+          </dl>
+        </section>
+      )}
 
       <footer className="mt-12 flex items-end justify-between gap-6 text-xs">
         <span className="flex items-center gap-3">

@@ -1,5 +1,6 @@
 import "server-only";
 
+import { validarIncluye, validarPreguntas, type ElementoBiblioteca } from "@/lib/landing/propuesta";
 import { supabaseAdmin } from "@/lib/landing/supabase";
 import type {
   AcuerdoEquipo,
@@ -287,6 +288,9 @@ export interface CotizacionPublica {
   created_at: string;
   cliente: string | null;
   items: ItemCotizacion[];
+  includes: string[];
+  faq: { q: string; a: string }[];
+  delivery_time: string | null;
 }
 
 export async function obtenerCotizacionPublica(
@@ -295,7 +299,7 @@ export async function obtenerCotizacionPublica(
   const { data, error } = await supabaseAdmin()
     .from("quotes")
     .select(
-      "numero, title, service, currency, total_amount, payment_terms, payment_url, payment_status, sent_at, created_at, clients(name), quote_items(id, position, title, detail, url, amount, project_id, is_extension)",
+      "numero, title, service, currency, total_amount, payment_terms, payment_url, payment_status, sent_at, created_at, includes, faq, delivery_time, clients(name), quote_items(id, position, title, detail, url, amount, project_id, is_extension)",
     )
     .eq("public_token", token)
     .maybeSingle();
@@ -314,6 +318,9 @@ export async function obtenerCotizacionPublica(
     cliente: cliente?.name ?? null,
     // El proyecto es dato interno: no viaja al cliente.
     items: aItems(quote_items).map((i) => ({ ...i, project_id: null })),
+    // Se revalidan al leer: el documento nunca se rompe por un dato raro.
+    includes: validarIncluye((resto as { includes?: unknown }).includes),
+    faq: validarPreguntas((resto as { faq?: unknown }).faq),
   };
 }
 
@@ -505,4 +512,16 @@ export async function listarCotizacionesDeProyecto(
   if (errQuotes)
     throw new Error(`No se pudieron leer las cotizaciones: ${errQuotes.message}`);
   return (data ?? []).map(conProyectos);
+}
+
+/** Biblioteca de la propuesta: "incluye" y preguntas predefinidas, en orden. */
+export async function listarBiblioteca(): Promise<ElementoBiblioteca[]> {
+  const { data, error } = await supabaseAdmin()
+    .from("quote_library")
+    .select("id, kind, title, body, position")
+    .order("kind")
+    .order("position")
+    .order("created_at");
+  if (error) throw new Error(`No se pudo leer la biblioteca: ${error.message}`);
+  return (data ?? []) as ElementoBiblioteca[];
 }

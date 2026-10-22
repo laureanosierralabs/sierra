@@ -12,11 +12,14 @@ import {
   Wallet2,
 } from "@tailgrids/icons";
 import {
+  listarBiblioteca,
   listarClientes,
   listarPagos,
   listarProyectos,
   obtenerCotizacion,
 } from "@/lib/landing/datos";
+import { EditorIncluye, EditorPreguntas } from "@/components/landing/propuesta-editor";
+import { lineasDeRespuesta } from "@/lib/landing/propuesta";
 import {
   codigoCotizacion,
   formatearMonto,
@@ -49,11 +52,13 @@ export default async function CotizacionDetalle({
 }) {
   const { id } = await params;
 
-  const [cotizacion, clientes, proyectos, pagos] = await Promise.all([
+  const [cotizacion, clientes, proyectos, pagos, biblioteca] = await Promise.all([
     obtenerCotizacion(id),
     listarClientes(),
     listarProyectos(),
     listarPagos(id),
+    // Sin biblioteca (todavía sin migrar, o falla) se edita igual, con textos propios.
+    listarBiblioteca().catch(() => []),
   ]);
 
   if (!cotizacion) notFound();
@@ -135,6 +140,10 @@ export default async function CotizacionDetalle({
             <p className="truncate text-text-secondary">{cotizacion.payment_terms ?? "—"}</p>
           </Propiedad>
 
+          <Propiedad icono={CalendarTime} label="Tiempo de entrega">
+            <p className="truncate text-text-secondary">{cotizacion.delivery_time ?? "—"}</p>
+          </Propiedad>
+
           <Propiedad icono={CalendarTime} label="Enviada">
             <p className="tabular-nums text-text-secondary">{cotizacion.sent_at ?? "—"}</p>
           </Propiedad>
@@ -201,6 +210,48 @@ export default async function CotizacionDetalle({
               )}
             </ul>
           )}
+          {/* Lo que convierte la cotización en propuesta: qué incluye y las preguntas de siempre. */}
+          <div className="border-t border-card-border px-5 py-4">
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <h3 className="text-sm font-semibold text-text-primary">Este servicio incluye</h3>
+              <EditorIncluye
+                quoteId={cotizacion.id}
+                valores={cotizacion.includes ?? []}
+                biblioteca={biblioteca.filter((b) => b.kind === "incluye")}
+              />
+            </div>
+            {(cotizacion.includes ?? []).length === 0 ? (
+              <p className="text-sm text-text-tertiary">Sin cargar: elegí de tu biblioteca o sumá los propios.</p>
+            ) : (
+              <ul className="list-disc space-y-0.5 pl-5 text-sm text-text-secondary">
+                {cotizacion.includes.map((t) => (
+                  <li key={t}>{t}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+          <div className="border-t border-card-border px-5 py-4">
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <h3 className="text-sm font-semibold text-text-primary">Importantes</h3>
+              <EditorPreguntas
+                quoteId={cotizacion.id}
+                valores={cotizacion.faq ?? []}
+                biblioteca={biblioteca.filter((b) => b.kind === "pregunta")}
+              />
+            </div>
+            {(cotizacion.faq ?? []).length === 0 ? (
+              <p className="text-sm text-text-tertiary">Sin preguntas: plazos, formas de pago, qué necesitás del cliente.</p>
+            ) : (
+              <dl className="flex flex-col gap-2 text-sm">
+                {cotizacion.faq.map((p) => (
+                  <div key={p.q}>
+                    <dt className="font-medium text-text-primary">{p.q}</dt>
+                    <dd className="text-text-secondary">{lineasDeRespuesta(p.a).join(" · ")}</dd>
+                  </div>
+                ))}
+              </dl>
+            )}
+          </div>
           <div className="border-t border-card-border px-5 py-3">
             <LinkCotizacion id={cotizacion.id} token={cotizacion.public_token} />
           </div>

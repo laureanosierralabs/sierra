@@ -172,6 +172,12 @@ function Campos({ form, clientes, proyectos, cotizacion, clienteFijo }: Props & 
           defaultValue={cotizacion?.payment_terms ?? ""}
         />
         <FormTextField
+          {...form.fieldProps("delivery_time")}
+          label="Tiempo de entrega"
+          placeholder="7 a 10 días hábiles"
+          defaultValue={cotizacion?.delivery_time ?? ""}
+        />
+        <FormTextField
           {...form.fieldProps("sent_at")}
           type="date"
           label="Fecha de envío"

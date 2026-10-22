@@ -395,6 +395,12 @@ export interface Cotizacion {
   items: ItemCotizacion[];
   /** Token del link público para el cliente; null = sin link. */
   public_token: string | null;
+  /** "Este servicio incluye" del documento. */
+  includes: string[];
+  /** "Importantes": preguntas con su respuesta. */
+  faq: { q: string; a: string }[];
+  /** "Tiempo de entrega" ("7 a 10 días hábiles"). */
+  delivery_time: string | null;
   created_at: string;
   updated_at: string;
 }

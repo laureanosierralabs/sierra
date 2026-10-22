@@ -5,6 +5,8 @@ import {
   obtenerAjuste,
 } from "@/lib/landing/datos";
 import { PageHeader } from "@/components/landing/ui";
+import { EnlaceBoton } from "@/components/landing/enlace-boton";
+import { FileText } from "@tailgrids/icons";
 import { CotizacionForm } from "@/components/landing/cotizacion-form";
 import { CotizacionesTabla } from "@/components/landing/cotizaciones-tabla";
 import { PlantillaCotizacion } from "@/components/landing/plantilla-cotizacion";
@@ -24,7 +26,14 @@ export default async function CotizacionesPage() {
       <PageHeader
         titulo="Cotizaciones"
         descripcion={`${cotizaciones.length} ${cotizaciones.length === 1 ? "cotización" : "cotizaciones"}`}
-        accion={<CotizacionForm clientes={clientes} proyectos={proyectos} />}
+        accion={
+          <span className="flex items-center gap-3">
+            <EnlaceBoton href="/landing-pages/quotes/biblioteca" icono={<FileText />}>
+              Biblioteca
+            </EnlaceBoton>
+            <CotizacionForm clientes={clientes} proyectos={proyectos} />
+          </span>
+        }
       />
 
       <PlantillaCotizacion url={plantillaUrl} />

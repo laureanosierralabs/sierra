@@ -37,6 +37,7 @@ export const cotizacionEsquema = z
     currency: z.enum(MONEDAS, { error: "Moneda inválida" }),
     commercial_status: z.enum(ESTADOS_COTIZACION, { error: "Estado comercial inválido" }),
     payment_terms: z.string().optional(),
+    delivery_time: z.string().trim().max(80, "Máximo 80 caracteres").optional(),
     sent_at: fechaOpcional,
     proposal_url: urlOpcional,
     payment_url: urlOpcional,

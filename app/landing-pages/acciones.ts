@@ -7,6 +7,7 @@ import { auth, clerkClient } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/landing/supabase";
 import { accesoActual } from "@/lib/landing/auth";
 import { cifrar, descifrar } from "@/lib/landing/cifrado";
+import { validarEntrega, validarIncluye, validarPreguntas } from "@/lib/landing/propuesta";
 import { slugify } from "@/lib/escritura";
 import { esUsuarioCliente } from "@/lib/unidades";
 import { plantillaDe } from "@/lib/landing/plantillas";
@@ -607,6 +608,8 @@ export async function guardarCotizacion(fd: FormData) {
     // amount_paid y payment_status son derivados de quote_payments: el form
     // no los toca, los mantiene el registro de cobros.
     payment_terms: opcional(fd, "payment_terms"),
+    // Solo si vino en el form: un form que no lo tiene no lo borra.
+    ...(fd.has("delivery_time") ? { delivery_time: validarEntrega(fd.get("delivery_time")) } : {}),
     proposal_url: url(fd, "proposal_url", "El link a la propuesta"),
     payment_url: url(fd, "payment_url", "El link de pago"),
     sent_at: fecha(fd, "sent_at"),
@@ -919,6 +922,10 @@ export async function duplicarCotizacion(id: string) {
       // Un abono mensual se paga con el mismo link.
       payment_url: original.payment_url,
       notes: original.notes,
+      // La propuesta (qué incluye, preguntas, plazo) es lo que más se reusa.
+      includes: original.includes,
+      faq: original.faq,
+      delivery_time: original.delivery_time,
     })
     .select("id")
     .single();
@@ -2030,4 +2037,110 @@ export async function moverTarea(
 
   revalidar();
   revalidatePath(`/landing-pages/projects/${projectId}`);
+}
+
+/* ───────────── Propuesta de la cotización ───────────── */
+
+type ResultadoPropuesta = { error: string } | { aviso: string };
+
+function jsonDe(fd: FormData, campo: string): unknown {
+  try {
+    return JSON.parse(String(fd.get(campo) ?? "[]"));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Guarda una sección de la propuesta ("incluye" o "importantes") de una
+ * cotización. Lo nuevo que se marca para la biblioteca queda disponible para
+ * las próximas cotizaciones.
+ */
+export async function guardarPropuesta(fd: FormData): Promise<ResultadoPropuesta> {
+  await exigirOwner();
+
+  const id = texto(fd, "quote_id");
+  const seccion = texto(fd, "seccion");
+  if (!id) return { error: "Falta la cotización" };
+  if (seccion !== "incluye" && seccion !== "pregunta") return { error: "Sección inválida" };
+
+  const crudo = jsonDe(fd, "valores");
+  if (crudo === null) return { error: "No se pudo leer lo cargado" };
+  const cambio =
+    seccion === "incluye" ? { includes: validarIncluye(crudo) } : { faq: validarPreguntas(crudo) };
+
+  const db = supabaseAdmin();
+  const { data, error } = await db
+    .from("quotes")
+    .update({ ...cambio, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .select("id")
+    .maybeSingle();
+  if (error) return { error: `No se pudo guardar: ${error.message}` };
+  if (!data) return { error: "La cotización no existe" };
+
+  // A la biblioteca: solo lo que no esté ya (por texto, sin importar mayúsculas).
+  const nuevos =
+    seccion === "incluye"
+      ? validarIncluye(jsonDe(fd, "a_biblioteca")).map((title) => ({ title, body: null as string | null }))
+      : validarPreguntas(jsonDe(fd, "a_biblioteca")).map((p) => ({ title: p.q, body: p.a as string | null }));
+  let sumados = 0;
+  if (nuevos.length > 0) {
+    const { data: existentes } = await db.from("quote_library").select("title, position").eq("kind", seccion);
+    const yaEstan = new Set((existentes ?? []).map((e) => String(e.title).toLowerCase()));
+    let posicion = Math.max(0, ...(existentes ?? []).map((e) => Number(e.position) || 0));
+    const filas = nuevos
+      .filter((n) => !yaEstan.has(n.title.toLowerCase()))
+      .map((n) => ({ kind: seccion, title: n.title, body: n.body, position: ++posicion }));
+    if (filas.length > 0) {
+      const { error: errBiblioteca } = await db.from("quote_library").insert(filas);
+      if (!errBiblioteca) sumados = filas.length;
+    }
+  }
+
+  revalidatePath(`/landing-pages/quotes/${id}`);
+  revalidatePath("/landing-pages/quotes/biblioteca");
+  return {
+    aviso: sumados > 0 ? `Guardado. ${sumados} ${sumados === 1 ? "texto nuevo quedó" : "textos nuevos quedaron"} en la biblioteca` : "Guardado",
+  };
+}
+
+/** Alta o edición de un texto de la biblioteca. */
+export async function guardarElementoBiblioteca(fd: FormData): Promise<ResultadoPropuesta> {
+  await exigirOwner();
+
+  const kind = texto(fd, "kind");
+  if (kind !== "incluye" && kind !== "pregunta") return { error: "Tipo inválido" };
+  const title = texto(fd, "title");
+  const body = texto(fd, "body");
+  if (!title || title.length > 300) return { error: "El texto es obligatorio (máximo 300 caracteres)" };
+  if (kind === "pregunta" && !body) return { error: "La pregunta necesita una respuesta" };
+  if (body.length > 2000) return { error: "La respuesta es muy larga (máximo 2000 caracteres)" };
+
+  const db = supabaseAdmin();
+  const id = texto(fd, "id");
+  const fila = { kind, title, body: kind === "pregunta" ? body : null };
+  if (id) {
+    const { error } = await db.from("quote_library").update(fila).eq("id", id);
+    if (error) return { error: `No se pudo guardar: ${error.message}` };
+  } else {
+    const { data: ultimo } = await db
+      .from("quote_library")
+      .select("position")
+      .eq("kind", kind)
+      .order("position", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const { error } = await db.from("quote_library").insert({ ...fila, position: (Number(ultimo?.position) || 0) + 1 });
+    if (error) return { error: `No se pudo guardar: ${error.message}` };
+  }
+  revalidatePath("/landing-pages/quotes/biblioteca");
+  return { aviso: "Guardado en la biblioteca" };
+}
+
+export async function borrarElementoBiblioteca(id: string): Promise<void | { error: string }> {
+  await exigirOwner();
+  const { error } = await supabaseAdmin().from("quote_library").delete().eq("id", id);
+  if (error) return { error: `No se pudo borrar: ${error.message}` };
+  revalidatePath("/landing-pages/quotes/biblioteca");
 }
