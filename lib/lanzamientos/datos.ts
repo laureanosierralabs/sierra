@@ -11,6 +11,7 @@ import {
 } from "@/lib/lanzamientos/tipos";
 import { conversionesDeRutas, visitasDeRutas } from "@/lib/sitios/datos";
 import { cruzarListas, type ListaCruzada, type Miembro } from "@/lib/lanzamientos/listas";
+import { validarEntregables } from "@/lib/portal/entrega";
 
 /**
  * Lecturas de lanzamientos. Toda función recibe el `clientId` y filtra por
@@ -21,9 +22,9 @@ import { cruzarListas, type ListaCruzada, type Miembro } from "@/lib/lanzamiento
  * secreto del webhook, que nunca salen de `conexionDeLanzamiento`.
  */
 const COLUMNAS_LANZAMIENTO =
-  "id, client_id, name, status, starts_on, ends_on, goal_registrations, closing_notes, created_at";
+  "id, client_id, name, status, starts_on, ends_on, goal_registrations, closing_notes, cover_url, banner_url, created_at";
 const COLUMNAS_PAGINA =
-  "id, launch_id, name, url, thanks_url, whatsapp_url, checkout_url, project_id, mailerlite_group_id, track_key, site_id, path, kind, position";
+  "id, launch_id, name, url, thanks_url, whatsapp_url, checkout_url, project_id, mailerlite_group_id, track_key, site_id, path, kind, deliverables, position";
 const COLUMNAS_REGISTRO =
   "id, page_id, email, name, phone, utm_source, utm_medium, utm_campaign, utm_content, registered_at, extra";
 
@@ -117,7 +118,11 @@ export async function lanzamientoDeCliente(
   if (errVisitas) console.error("[lanzamientos] no se pudieron leer las visitas:", errVisitas.message);
 
   const l = lanzamiento as unknown as Lanzamiento;
-  const listaPaginas = (paginas ?? []) as unknown as PaginaLanzamiento[];
+  // Los entregables se revalidan al leer: un dato raro nunca rompe el portal.
+  const listaPaginas = ((paginas ?? []) as unknown as PaginaLanzamiento[]).map((p) => ({
+    ...p,
+    deliverables: validarEntregables(p.deliverables),
+  }));
   const visitasTotales = ((visitas ?? []) as VisitaAgregada[]).map((v) => ({
     ...v,
     visitors: Number(v.visitors),

@@ -1,5 +1,8 @@
 "use client";
 
+import { useTransition } from "react";
+import { toast } from "sonner";
+import { accesoEnPortal } from "@/app/landing-pages/portal-entrega-acciones";
 import {
   Clouds,
   ColourPalette3,
@@ -104,6 +107,7 @@ export function RecursoFila({
               {r.notes}
             </span>
           )}
+          {editable && tabla === "client" && <VisibleEnPortal recurso={r} clientId={duenoId} />}
           {editable && (
             <>
               <RecursoForm duenoId={duenoId} tabla={tabla} recurso={r} />
@@ -138,5 +142,28 @@ export function RecursoFila({
         </div>
       )}
     </li>
+  );
+}
+
+/** Interruptor: el cliente ve este acceso (y su contraseña, con un click) en su portal. */
+function VisibleEnPortal({ recurso, clientId }: { recurso: RecursoVista; clientId: string }) {
+  const [pendiente, iniciar] = useTransition();
+  return (
+    <label className="flex items-center gap-1.5 text-xs text-text-tertiary" title="El cliente lo ve en su portal">
+      <input
+        type="checkbox"
+        defaultChecked={Boolean(recurso.portal_visible)}
+        disabled={pendiente}
+        onChange={(e) => {
+          const visible = e.target.checked;
+          iniciar(async () => {
+            const r = await accesoEnPortal(recurso.id, clientId, visible).catch(() => ({ error: "No se pudo guardar" }));
+            if ("error" in r) toast.error(r.error);
+            else toast.success(r.aviso);
+          });
+        }}
+      />
+      En el portal
+    </label>
   );
 }

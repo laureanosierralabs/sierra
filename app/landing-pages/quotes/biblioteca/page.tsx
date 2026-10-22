@@ -8,11 +8,19 @@ import {
   FilaPlantilla,
   TarjetaPortfolio,
   TrabajoPortfolioForm,
+  FilaVideo,
+  VideoSoporteForm,
 } from "@/components/landing/biblioteca-propuesta";
 import { SeccionCard } from "@/components/landing/seccion-card";
 import { PageHeader } from "@/components/landing/ui";
 import { accesoActual } from "@/lib/landing/auth";
-import { listarBiblioteca, listarClientes, listarPlantillas, listarPortfolio } from "@/lib/landing/datos";
+import {
+  listarBiblioteca,
+  listarClientes,
+  listarPlantillas,
+  listarPortfolio,
+  listarVideosSoporte,
+} from "@/lib/landing/datos";
 
 export const dynamic = "force-dynamic";
 
@@ -24,11 +32,12 @@ export default async function BibliotecaPropuesta() {
   const { esOwner } = await accesoActual();
   if (!esOwner) redirect("/landing-pages");
 
-  const [biblioteca, plantillas, portfolio, clientes] = await Promise.all([
+  const [biblioteca, plantillas, portfolio, clientes, videos] = await Promise.all([
     listarBiblioteca(),
     listarPlantillas(),
     listarPortfolio(),
     listarClientes(),
+    listarVideosSoporte(),
   ]);
   const incluye = biblioteca.filter((b) => b.kind === "incluye");
   const preguntas = biblioteca.filter((b) => b.kind === "pregunta");
@@ -45,7 +54,7 @@ export default async function BibliotecaPropuesta() {
 
       <PageHeader
         titulo="Biblioteca de propuestas"
-        descripcion="Tu kit de propuestas: plantillas por servicio, los textos que se repiten y tu portfolio."
+        descripcion="Tu kit: plantillas por servicio, los textos que se repiten, tu portfolio y los videos de soporte del portal."
       />
 
       <div className="flex flex-col gap-6">
@@ -102,6 +111,23 @@ export default async function BibliotecaPropuesta() {
             <ul className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4">
               {portfolio.map((t) => (
                 <TarjetaPortfolio key={t.id} trabajo={t} />
+              ))}
+            </ul>
+          )}
+        </SeccionCard>
+
+        <SeccionCard titulo="Videos de soporte" cantidad={videos.length} accion={<VideoSoporteForm />}>
+          {videos.length === 0 ? (
+            <EmptyState
+              variant="inline"
+              className="px-4 py-6"
+              title="Sin videos todavía"
+              description="Tutoriales para tus clientes (cómo entrar a WordPress, cómo cambiar un link…): salen en su portal."
+            />
+          ) : (
+            <ul className="divide-y divide-card-border">
+              {videos.map((v) => (
+                <FilaVideo key={v.id} video={v} />
               ))}
             </ul>
           )}

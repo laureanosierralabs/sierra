@@ -6,13 +6,16 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { FormSelectField, FormTextField } from "@/components/common/form/form-fields";
 import { BorrarBoton } from "@/components/landing/borrar-boton";
-import { DialogoForm, Select } from "@/components/landing/dialogo-form";
+import { DialogoForm, Input, Select } from "@/components/landing/dialogo-form";
 import { SIN_OPCION } from "@/components/landing/proyecto-esquema";
 import { Button } from "@/components/tailgrids/core/button";
 import { TextArea } from "@/components/tailgrids/core/text-area";
 import { FormError } from "@/components/common/form/form-error";
 import { useZodForm } from "@/components/common/form/use-zod-form";
 import { Checkbox } from "@/components/tailgrids/core/checkbox";
+import { guardarEntregables } from "@/app/landing-pages/portal-entrega-acciones";
+import { RECURSOS, VERSIONES_PDF, tieneEntregables } from "@/lib/portal/entrega";
+import { cn } from "@/utils/cn";
 import {
   leerRegistros,
   TOPE_ARCHIVO_BYTES,
@@ -902,5 +905,94 @@ export function CargarTodasLasLandings({ launchId }: { launchId: string }) {
     >
       {pendiente ? "Cargando…" : "Cargar todas"}
     </Button>
+  );
+}
+
+/* ───────────── Entregables de una landing (portal del cliente) ───────────── */
+
+function CamposEntregables({ pagina }: { pagina: PaginaLanzamiento }) {
+  const inicial = pagina.deliverables ?? {};
+  const [valores, setValores] = useState<Record<string, string>>(() => {
+    const v: Record<string, string> = {};
+    for (const x of [...VERSIONES_PDF, ...RECURSOS]) v[x.clave] = (inicial as Record<string, string | undefined>)[x.clave] ?? "";
+    return v;
+  });
+  const [extras, setExtras] = useState(inicial.extras ?? []);
+  const fila = (clave: string, etiqueta: string) => (
+    <label key={clave} className="grid grid-cols-[8rem_1fr] items-center gap-3 text-sm">
+      <span className="text-text-secondary">{etiqueta}</span>
+      <Input
+        type="url"
+        value={valores[clave]}
+        onChange={(e) => setValores((v) => ({ ...v, [clave]: e.target.value }))}
+        placeholder="https://drive.google.com/…"
+      />
+    </label>
+  );
+
+  return (
+    <>
+      <input type="hidden" name="page_id" value={pagina.id} />
+      <input type="hidden" name="entregables" value={JSON.stringify({ ...valores, extras })} />
+      <fieldset className="flex flex-col gap-2">
+        <legend className="mb-2 text-sm font-medium text-input-label-text">Versiones de la página en PDF</legend>
+        {VERSIONES_PDF.map((v) => fila(v.clave, v.etiqueta))}
+      </fieldset>
+      <fieldset className="flex flex-col gap-2">
+        <legend className="mb-2 text-sm font-medium text-input-label-text">Recursos descargables</legend>
+        {RECURSOS.map((r) => fila(r.clave, r.etiqueta))}
+        {extras.map((x, i) => (
+          <div key={i} className="grid grid-cols-[8rem_1fr_auto] items-center gap-3">
+            <Input
+              value={x.etiqueta}
+              maxLength={40}
+              placeholder="Nombre"
+              onChange={(e) => setExtras((l) => l.map((y, j) => (j === i ? { ...y, etiqueta: e.target.value } : y)))}
+              aria-label="Nombre del recurso"
+            />
+            <Input
+              type="url"
+              value={x.url}
+              placeholder="https://…"
+              onChange={(e) => setExtras((l) => l.map((y, j) => (j === i ? { ...y, url: e.target.value } : y)))}
+              aria-label="Link del recurso"
+            />
+            <button type="button" onClick={() => setExtras((l) => l.filter((_, j) => j !== i))} className="text-xs text-text-tertiary hover:text-badge-error-text">
+              Quitar
+            </button>
+          </div>
+        ))}
+        <Button
+          type="button"
+          appearance="outline"
+          className="self-start"
+          isDisabled={extras.length >= 8}
+          onPress={() => setExtras((l) => [...l, { etiqueta: "", url: "" }])}
+        >
+          Sumar otro recurso
+        </Button>
+      </fieldset>
+      <p className="text-xs text-text-tertiary">
+        Links de Drive (o donde estén los archivos). Lo que dejes vacío no aparece en el portal.
+      </p>
+    </>
+  );
+}
+
+export function EntregablesForm({ pagina }: { pagina: PaginaLanzamiento }) {
+  const cargados = tieneEntregables(pagina.deliverables ?? {});
+  return (
+    <DialogoForm
+      titulo={`Entregables · ${pagina.name}`}
+      action={guardarEntregables}
+      ancho="2xl"
+      disparador={
+        <span className={cn("text-xs font-medium hover:underline", cargados ? "text-badge-success-text" : "text-primary-500")}>
+          {cargados ? "Entregables ✓" : "Entregables"}
+        </span>
+      }
+    >
+      <CamposEntregables pagina={pagina} />
+    </DialogoForm>
   );
 }

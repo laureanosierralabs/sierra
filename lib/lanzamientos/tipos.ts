@@ -1,3 +1,5 @@
+import type { Entregables } from "@/lib/portal/entrega";
+
 /**
  * Lanzamientos: tipos y cálculos puros (sin I/O), compartidos por el panel,
  * el portal y el webhook.
@@ -22,6 +24,10 @@ export interface Lanzamiento {
   goal_registrations: number | null;
   /** Conclusiones del reporte de cierre (las escribe el owner). */
   closing_notes: string | null;
+  /** Flyer del lanzamiento (tarjeta del inicio del portal). */
+  cover_url: string | null;
+  /** Banner de la pantalla del lanzamiento en el portal. */
+  banner_url: string | null;
   created_at: string;
 }
 
@@ -42,6 +48,8 @@ export interface PaginaLanzamiento {
   path: string | null;
   /** De registro (convierte en registros) o de venta (convierte en compras). */
   kind: TipoLanding;
+  /** Entregables de la landing (PDFs por dispositivo, recursos): links. */
+  deliverables: Entregables;
   position: number;
 }
 

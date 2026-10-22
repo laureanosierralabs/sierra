@@ -338,6 +338,8 @@ export interface Recurso {
   /** Cifrado en la base. Nunca se expone crudo al cliente. */
   secret_encrypted: string | null;
   notes: string | null;
+  /** Solo accesos de cliente: lo ve en su portal. */
+  portal_visible?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -362,6 +364,8 @@ export interface Cliente {
    * cliente de los proyectos; el operador suele ser quien paga.
    */
   operated_by: string | null;
+  /** Imagen de la marca en el inicio de su portal. */
+  portal_cover_url?: string | null;
   created_at: string;
   updated_at: string;
 }

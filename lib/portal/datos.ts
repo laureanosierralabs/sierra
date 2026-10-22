@@ -59,3 +59,42 @@ export async function cotizacionesCompartidas(ctx: ContextoPortal): Promise<Coti
     total_amount: q.total_amount === null ? null : Number(q.total_amount),
   }));
 }
+
+/** Imagen de portada de la marca para el inicio de su portal. */
+export async function portadaCliente(ctx: ContextoPortal): Promise<string | null> {
+  const { data } = await supabaseAdmin()
+    .from("clients")
+    .select("portal_cover_url")
+    .eq("id", ctx.clientId)
+    .maybeSingle();
+  return (data?.portal_cover_url as string | null | undefined) ?? null;
+}
+
+export interface AccesoPortal {
+  id: string;
+  name: string;
+  url: string | null;
+  username: string | null;
+  tieneSecreto: boolean;
+}
+
+/**
+ * Accesos que el owner marcó como visibles para este cliente. La contraseña
+ * no viaja: se pide aparte, con un click (revelarAccesoPortal).
+ */
+export async function accesosPortal(ctx: ContextoPortal): Promise<AccesoPortal[]> {
+  const { data, error } = await supabaseAdmin()
+    .from("client_resources")
+    .select("id, name, url, username, secret_encrypted")
+    .eq("client_id", ctx.clientId)
+    .eq("portal_visible", true)
+    .order("created_at");
+  if (error) throw new Error("No se pudieron leer los accesos");
+  return (data ?? []).map((r) => ({
+    id: r.id as string,
+    name: r.name as string,
+    url: (r.url as string | null) ?? null,
+    username: (r.username as string | null) ?? null,
+    tieneSecreto: Boolean(r.secret_encrypted),
+  }));
+}

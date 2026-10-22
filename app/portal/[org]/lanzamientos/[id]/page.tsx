@@ -2,26 +2,39 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "@tailgrids/icons";
 import { PanelLanzamiento } from "@/components/lanzamientos/panel-lanzamiento";
-import { Badge } from "@/components/tailgrids/core/badge";
+import { AccesosPortal, VideosSoporte } from "@/components/portal/accesos-videos";
+import { EntregablesLanding } from "@/components/portal/entregables-landing";
+import { HeroPortal, SeccionPortal } from "@/components/portal/portal-ui";
+import { listarVideosSoporte } from "@/lib/landing/datos";
 import { fechaCorta } from "@/lib/landing/tipos";
 import { LABEL_ESTADO_LANZAMIENTO } from "@/lib/lanzamientos/tipos";
 import { contextoPortal } from "@/lib/portal/contexto";
-import { lanzamientoPortal } from "@/lib/portal/datos";
+import { accesosPortal, lanzamientoPortal } from "@/lib/portal/datos";
 
 export const dynamic = "force-dynamic";
 
-export default async function PortalLanzamiento({
-  params,
-}: {
-  params: Promise<{ org: string; id: string }>;
-}) {
+/**
+ * Un lanzamiento en el portal: su banner, los resultados, cada landing con
+ * sus entregables, los accesos y los videos de soporte. Lo que no se cargó no
+ * aparece.
+ */
+export default async function PortalLanzamiento({ params }: { params: Promise<{ org: string; id: string }> }) {
   const { org, id } = await params;
   const ctx = await contextoPortal(org);
   if (!ctx) notFound();
 
   const detalle = await lanzamientoPortal(ctx, id);
   if (!detalle) notFound();
-  const { lanzamiento } = detalle;
+  const { lanzamiento, paginas } = detalle;
+
+  // Accesos y videos son extras: si fallan, el lanzamiento se ve igual.
+  const [accesos, videos] = await Promise.all([
+    accesosPortal(ctx).catch(() => []),
+    listarVideosSoporte().catch(() => []),
+  ]);
+  const fechas = lanzamiento.starts_on
+    ? `${fechaCorta(lanzamiento.starts_on)}${lanzamiento.ends_on ? ` → ${fechaCorta(lanzamiento.ends_on)}` : ""}`
+    : null;
 
   return (
     <>
@@ -33,26 +46,49 @@ export default async function PortalLanzamiento({
         {ctx.clienteNombre}
       </Link>
 
-      <div className="mb-6 flex flex-wrap items-center gap-3">
-        <h1 className="text-xl font-semibold text-text-primary">{lanzamiento.name}</h1>
-        <Badge color={lanzamiento.status === "activo" ? "success" : "gray"} size="sm">
-          {LABEL_ESTADO_LANZAMIENTO[lanzamiento.status]}
-        </Badge>
-        <Link
-          href={`/portal/${ctx.slug}/lanzamientos/${lanzamiento.id}/reporte`}
-          className="ml-auto text-sm font-medium text-primary-500 hover:underline"
+      <HeroPortal
+        imagen={lanzamiento.banner_url}
+        titulo={lanzamiento.name}
+        subtitulo={[LABEL_ESTADO_LANZAMIENTO[lanzamiento.status], fechas].filter(Boolean).join(" · ")}
+        anclaAbajo="#resultados"
+      />
+
+      <div className="flex flex-col gap-16">
+        <SeccionPortal
+          id="resultados"
+          titulo="Resultados"
+          accion={
+            <Link
+              href={`/portal/${ctx.slug}/lanzamientos/${lanzamiento.id}/reporte`}
+              className="shrink-0 text-sm font-medium text-primary-400 hover:underline"
+            >
+              {lanzamiento.status === "cerrado" ? "Reporte de cierre →" : "Reporte (parcial) →"}
+            </Link>
+          }
         >
-          {lanzamiento.status === "cerrado" ? "Reporte de cierre" : "Reporte (parcial)"}
-        </Link>
-        {lanzamiento.starts_on && (
-          <span className="text-sm tabular-nums text-text-tertiary">
-            {fechaCorta(lanzamiento.starts_on)}
-            {lanzamiento.ends_on ? ` → ${fechaCorta(lanzamiento.ends_on)}` : ""}
-          </span>
+          {paginas.length === 0 ? (
+            <p className="text-sm text-text-tertiary">Los resultados aparecen cuando el lanzamiento tenga sus landings.</p>
+          ) : (
+            <PanelLanzamiento detalle={detalle} />
+          )}
+        </SeccionPortal>
+
+        {paginas.map((p) => (
+          <EntregablesLanding key={p.id} nombre={p.name} url={p.url} entregables={p.deliverables} />
+        ))}
+
+        {accesos.length > 0 && (
+          <SeccionPortal titulo="Accesos">
+            <AccesosPortal slug={ctx.slug} accesos={accesos} />
+          </SeccionPortal>
+        )}
+
+        {videos.length > 0 && (
+          <SeccionPortal titulo="Videos de soporte">
+            <VideosSoporte videos={videos} />
+          </SeccionPortal>
         )}
       </div>
-
-      <PanelLanzamiento detalle={detalle} />
     </>
   );
 }

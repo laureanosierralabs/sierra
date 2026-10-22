@@ -8,6 +8,7 @@ import {
   type TrabajoPortfolio,
 } from "@/lib/landing/propuesta";
 import { validarEmbudo, type PasoEmbudo } from "@/lib/landing/embudo";
+import type { VideoSoporte } from "@/lib/portal/entrega";
 import { supabaseAdmin } from "@/lib/landing/supabase";
 import type {
   AcuerdoEquipo,
@@ -563,4 +564,15 @@ export async function listarPortfolio(): Promise<TrabajoPortfolio[]> {
     .order("created_at");
   if (error) throw new Error(`No se pudo leer el portfolio: ${error.message}`);
   return (data ?? []) as TrabajoPortfolio[];
+}
+
+/** Videos de soporte, en orden: se muestran en todos los portales. */
+export async function listarVideosSoporte(): Promise<VideoSoporte[]> {
+  const { data, error } = await supabaseAdmin()
+    .from("support_videos")
+    .select("id, title, url, position")
+    .order("position")
+    .order("created_at");
+  if (error) throw new Error(`No se pudieron leer los videos: ${error.message}`);
+  return (data ?? []) as VideoSoporte[];
 }

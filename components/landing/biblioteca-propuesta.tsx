@@ -12,6 +12,8 @@ import {
   usarPlantilla,
 } from "@/app/landing-pages/acciones";
 import { formatearMonto, type Moneda } from "@/lib/landing/tipos";
+import { borrarVideoSoporte, guardarVideoSoporte } from "@/app/landing-pages/portal-entrega-acciones";
+import type { VideoSoporte } from "@/lib/portal/entrega";
 import type { ElementoBiblioteca, PlantillaCotizacion, TrabajoPortfolio } from "@/lib/landing/propuesta";
 
 /** Alta o edición de un texto de la biblioteca ("incluye" o pregunta con respuesta). */
@@ -186,6 +188,47 @@ export function TarjetaPortfolio({ trabajo }: { trabajo: TrabajoPortfolio }) {
           <BorrarBoton etiqueta="Borrar del portfolio" onConfirmar={() => borrarTrabajoPortfolio(trabajo.id)} />
         </span>
       </div>
+    </li>
+  );
+}
+
+/* ───────────── Videos de soporte (portal) ───────────── */
+
+export function VideoSoporteForm({ video }: { video?: VideoSoporte }) {
+  return (
+    <DialogoForm
+      titulo={video ? "Editar video" : "Nuevo video de soporte"}
+      etiquetaAbrir="Agregar video"
+      action={guardarVideoSoporte}
+      disparador={video ? <Pencil1 /> : undefined}
+    >
+      {video && <input type="hidden" name="id" value={video.id} />}
+      <Campo label="Título">
+        <Input name="title" required maxLength={80} defaultValue={video?.title ?? ""} placeholder="Cómo acceder a WordPress" />
+      </Campo>
+      <Campo label="Link del video">
+        <Input name="url" type="url" required defaultValue={video?.url ?? ""} placeholder="https://youtu.be/… o https://loom.com/…" />
+      </Campo>
+      <p className="text-xs text-text-tertiary">
+        Se ve en el portal de todos los clientes, en cada lanzamiento. Con YouTube sale con su miniatura.
+      </p>
+    </DialogoForm>
+  );
+}
+
+export function FilaVideo({ video }: { video: VideoSoporte }) {
+  return (
+    <li className="flex items-center justify-between gap-3 px-4 py-3">
+      <span className="min-w-0">
+        <span className="block truncate text-sm font-medium text-text-primary">{video.title}</span>
+        <a href={video.url} target="_blank" rel="noopener noreferrer" className="block truncate text-xs text-text-tertiary hover:underline">
+          {video.url.replace(/^https?:\/\//, "")}
+        </a>
+      </span>
+      <span className="flex shrink-0 items-center gap-3">
+        <VideoSoporteForm video={video} />
+        <BorrarBoton etiqueta="Borrar video" onConfirmar={() => borrarVideoSoporte(video.id)} />
+      </span>
     </li>
   );
 }

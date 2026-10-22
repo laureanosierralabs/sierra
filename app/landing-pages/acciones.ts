@@ -700,8 +700,9 @@ export async function subirPortada(fd: FormData) {
   if (!IMAGENES.includes(archivo.type)) {
     throw new Error("El archivo debe ser una imagen (PNG, JPG, WEBP o GIF)");
   }
-  if (archivo.size > 5 * 1024 * 1024) {
-    throw new Error("La imagen supera los 5 MB");
+  // Vercel corta los pedidos en 4,5 MB.
+  if (archivo.size > 4 * 1024 * 1024) {
+    throw new Error("La imagen supera los 4 MB");
   }
 
   const db = supabaseAdmin();

@@ -12,6 +12,7 @@ import {
   ConclusionesForm,
   CruzarLista,
   ElegirLandings,
+  EntregablesForm,
   ImportarRegistros,
   LanzamientoForm,
   ListasCargadas,
@@ -19,6 +20,7 @@ import {
 } from "@/components/lanzamientos/lanzamiento-gestion";
 import { PanelLanzamiento } from "@/components/lanzamientos/panel-lanzamiento";
 import { VerificarLandings } from "@/components/lanzamientos/verificar-landings";
+import { ImagenPortal } from "@/components/landing/imagen-portal";
 import { accesoActual } from "@/lib/landing/auth";
 import { listarProyectos, obtenerCliente } from "@/lib/landing/datos";
 import { supabaseAdmin } from "@/lib/landing/supabase";
@@ -199,6 +201,7 @@ export default async function LanzamientoDetalle({
                   <span className="flex shrink-0 items-center gap-3">
                     {/* Con proyecto conectado las visitas llegan por el kit: no hace falta el script suelto. */}
                     {!p.site_id && <CopiarScriptVisitas trackKey={p.track_key} />}
+                    <EntregablesForm pagina={p} />
                     <PaginaLanzamientoForm
                       launchId={lanzamiento.id}
                       pagina={p}
@@ -210,6 +213,31 @@ export default async function LanzamientoDetalle({
                 </div>
               ))
             )}
+          </SeccionCard>
+
+          <SeccionCard titulo="Portal del cliente">
+            <div className="grid grid-cols-1 gap-6 px-4 py-4 md:grid-cols-2">
+              <ImagenPortal
+                destino="flyer"
+                id={lanzamiento.id}
+                url={lanzamiento.cover_url}
+                titulo="Flyer"
+                ayuda="La tarjeta del lanzamiento en el inicio del portal. Vertical (3:4)."
+                formato="vertical"
+              />
+              <ImagenPortal
+                destino="banner"
+                id={lanzamiento.id}
+                url={lanzamiento.banner_url}
+                titulo="Banner"
+                ayuda="Arriba de todo al entrar al lanzamiento. Horizontal y ancha."
+                formato="horizontal"
+              />
+            </div>
+            <p className="border-t border-card-border px-4 py-3 text-xs text-text-tertiary">
+              Los entregables de cada landing (PDFs y recursos) se cargan desde la tarjeta Landings. Los accesos que ve el
+              cliente se marcan en su ficha, con &quot;En el portal&quot;.
+            </p>
           </SeccionCard>
 
           <SeccionCard

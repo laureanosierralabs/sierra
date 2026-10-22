@@ -275,7 +275,7 @@ export default async function ClienteDetalle({
         </SeccionCard>
 
         {esOwner && portal !== undefined && (
-          <PortalCliente clientId={cliente.id} estado={portal} />
+          <PortalCliente clientId={cliente.id} estado={portal} portada={cliente.portal_cover_url ?? null} />
         )}
 
         {esOwner && (

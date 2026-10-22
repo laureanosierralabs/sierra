@@ -3,6 +3,7 @@
 import { useTransition } from "react";
 import { Envelope1, ExpandArrowTopRightSquare1, User2 } from "@tailgrids/icons";
 import { toast } from "sonner";
+import { ImagenPortal } from "@/components/landing/imagen-portal";
 import { z } from "zod";
 import { FormTextField } from "@/components/common/form/form-fields";
 import { BorrarBoton } from "@/components/landing/borrar-boton";
@@ -56,7 +57,15 @@ function InvitarAlPortal({ clientId }: { clientId: string }) {
  * Portal del cliente en su ficha: habilitarlo, invitar personas y quitar
  * accesos. Solo lo ve el owner.
  */
-export function PortalCliente({ clientId, estado }: { clientId: string; estado: EstadoPortal | null }) {
+export function PortalCliente({
+  clientId,
+  estado,
+  portada = null,
+}: {
+  clientId: string;
+  estado: EstadoPortal | null;
+  portada?: string | null;
+}) {
   const [pendiente, iniciar] = useTransition();
 
   if (!estado) {
@@ -103,6 +112,17 @@ export function PortalCliente({ clientId, estado }: { clientId: string; estado: 
           Ver el portal como el cliente
         </a>
         <InvitarAlPortal clientId={clientId} />
+      </div>
+
+      <div className="px-4 py-4">
+        <ImagenPortal
+          destino="cliente"
+          id={clientId}
+          url={portada}
+          titulo="Portada del portal"
+          ayuda="Es lo primero que ve el cliente al entrar: una imagen de su marca, horizontal."
+          formato="horizontal"
+        />
       </div>
 
       {estado.miembros.map((m) => (
