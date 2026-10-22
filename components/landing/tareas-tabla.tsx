@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { EmptyState } from "@/components/common/empty-state";
 import { DataTable } from "@/components/common/data-table/data-table";
 import { crearColumnasTareas } from "@/components/landing/tareas-columnas";
+import { AccionesMasivasTareas } from "@/components/landing/tareas-masivas";
 import {
   TabContent,
   TabList,
@@ -19,6 +20,7 @@ import {
 
 const OBTENER_ID = (t: Tarea) => t.id;
 const IR_A_TAREA = (t: Tarea) => `/landing-pages/tasks/${t.id}`;
+const ACCIONES_MASIVAS = (ids: string[], limpiar: () => void) => <AccionesMasivasTareas ids={ids} limpiar={limpiar} />;
 
 function TablaDeTareas({
   tareas,
@@ -36,6 +38,7 @@ function TablaDeTareas({
       label="Tareas"
       getRowId={OBTENER_ID}
       getRowHref={IR_A_TAREA}
+      selectionActions={ACCIONES_MASIVAS}
       emptyState={<EmptyState variant="inline">{vacio}</EmptyState>}
     />
   );
@@ -59,7 +62,6 @@ export function TareasTabla({
     () => tareas.filter((t) => esTareaAbierta(t.status)),
     [tareas],
   );
-  const ocultas = tareas.length - abiertas.length;
 
   return (
     <TabRoot
@@ -67,19 +69,14 @@ export function TareasTabla({
       variant="minimal"
       className="border-0 px-0 pt-0"
     >
-      <div className="flex flex-wrap items-center gap-x-4">
-        <TabList>
-          <TabTrigger value="abiertas" badge={String(abiertas.length)}>
-            Abiertas
-          </TabTrigger>
-          <TabTrigger value="todas" badge={String(tareas.length)}>
-            Todas
-          </TabTrigger>
-        </TabList>
-        {ocultas > 0 && (
-          <span className="text-xs text-text-tertiary">{ocultas} completadas ocultas</span>
-        )}
-      </div>
+      <TabList>
+        <TabTrigger value="abiertas" badge={String(abiertas.length)}>
+          Abiertas
+        </TabTrigger>
+        <TabTrigger value="todas" badge={String(tareas.length)}>
+          Todas
+        </TabTrigger>
+      </TabList>
 
       <TabContent value="abiertas" className="px-0 py-4">
         <TablaDeTareas

@@ -7,6 +7,23 @@ import { Breadcrumbs } from "@/components/tailgrids/core/breadcrumbs";
 
 const STATIC_LABELS: Record<string, string> = { nuevo: "Nuevo" };
 
+/* Nombre del detalle según la sección de la que cuelga ("Lanzamiento" en vez de "Detalle"). */
+const DETAIL_LABELS: Record<string, string> = {
+  clients: "Cliente",
+  projects: "Proyecto",
+  tasks: "Tarea",
+  quotes: "Cotización",
+  pedidos: "Pedido",
+  launches: "Lanzamiento",
+  acuerdo: "Acuerdo",
+};
+
+/* Tramos sin página propia que en realidad viven dentro de otra sección:
+   a un lanzamiento se llega desde la ficha del cliente. */
+const PARENT_ALIASES: Record<string, string> = {
+  "/landing-pages/launches": "/landing-pages/clients",
+};
+
 interface Crumb {
   href: string;
   label: string;
@@ -28,10 +45,16 @@ function crumbsFor(pathname: string, conInicio: boolean): Crumb[] {
   segments.forEach((segment, i) => {
     acumulado += `/${segment}`;
     const label = ROUTE_LABELS[acumulado];
+    const alias = PARENT_ALIASES[acumulado];
     if (label) {
       crumbs.push({ href: acumulado, label });
+    } else if (alias && ROUTE_LABELS[alias]) {
+      crumbs.push({ href: alias, label: ROUTE_LABELS[alias] });
     } else if (i === segments.length - 1) {
-      crumbs.push({ href: acumulado, label: STATIC_LABELS[segment] ?? "Detalle" });
+      crumbs.push({
+        href: acumulado,
+        label: STATIC_LABELS[segment] ?? DETAIL_LABELS[segments[i - 1] ?? ""] ?? "Detalle",
+      });
     }
   });
 

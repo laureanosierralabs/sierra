@@ -40,5 +40,11 @@ export interface DataTableProps<TData> {
   emptyState?: ReactNode;
   /** Botones a la derecha de la barra de filtros. */
   toolbarActions?: ReactNode;
+  /**
+   * Activa la selección por casillas (con "seleccionar todas" en el
+   * encabezado). Recibe los ids elegidos y una función para limpiar la
+   * selección; lo que devuelve se muestra en la barra de acciones masivas.
+   */
+  selectionActions?: (selectedIds: string[], clear: () => void) => ReactNode;
   className?: string;
 }

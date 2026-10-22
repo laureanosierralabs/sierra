@@ -335,6 +335,27 @@ export async function cambiarEstadoTarea(id: string, estado: string) {
   revalidar();
 }
 
+/** Mismo cambio de estado, para varias tareas seleccionadas en la tabla. */
+export async function cambiarEstadoTareas(
+  ids: string[],
+  estado: string,
+): Promise<{ aviso: string } | { error: string }> {
+  await exigirSesion();
+  const status = unaDe<EstadoTarea>(estado, ESTADOS_TAREA, "Estado");
+  const validos = [...new Set(ids)].filter((id) => /^[0-9a-f-]{36}$/i.test(id));
+  if (validos.length === 0) return { error: "Elegí al menos una tarea" };
+  if (validos.length > 1000) return { error: "Son demasiadas tareas de una vez (máximo 1000)" };
+
+  const { error } = await supabaseAdmin()
+    .from("tasks")
+    .update({ status, updated_at: new Date().toISOString() })
+    .in("id", validos);
+
+  if (error) return { error: `No se pudo cambiar el estado: ${error.message}` };
+  revalidar();
+  return { aviso: validos.length === 1 ? "1 tarea actualizada" : `${validos.length} tareas actualizadas` };
+}
+
 export async function cambiarEstadoProyecto(id: string, estado: string) {
   await exigirSesion();
   const status = unaDe<EstadoProyecto>(estado, ESTADOS_PROYECTO, "Estado");

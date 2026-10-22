@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import { EmptyState } from "@/components/common/empty-state";
+import { CarpetasClientes, type Carpeta } from "@/components/landing/carpetas-clientes";
 import { FiltroBotones, type OpcionFiltro } from "@/components/landing/filtro-botones";
 import { FiltroSelect } from "@/components/landing/filtro-select";
 import { ListaProyectos, type DatosLista } from "@/components/landing/lista-proyectos";
@@ -82,22 +82,40 @@ export function VistaProyectos({
         })).filter((g) => g.items.length > 0)
       : [];
 
-  // Por cliente: un bloque por marca con todos sus proyectos (y quién la
-  // opera). Respeta los filtros de estado, empresa y tipo.
-  const porCliente = (() => {
+  // Por cliente: una carpeta por marca con todos sus proyectos (y quién la
+  // opera). Quien opera UNA sola marca (Simón con Manuela) no tiene carpeta
+  // propia: sus proyectos van a la de esa marca. Quien opera varias
+  // (Santiago) conserva la suya. Respeta los filtros de estado, empresa y tipo.
+  const porCliente: Carpeta[] = (() => {
     const operadorDe = new Map(clientes.map((c) => [c.id, c.operated_by]));
-    const mapa = new Map<string, Proyecto[]>();
+    const portadaDe = new Map(clientes.map((c) => [c.id, c.portal_cover_url ?? null]));
+    const marcasDe = new Map<string, string[]>();
+    for (const c of clientes) {
+      if (c.operated_by) marcasDe.set(c.operated_by, [...(marcasDe.get(c.operated_by) ?? []), c.id]);
+    }
+    const carpetaDe = (id: string) => {
+      const marcas = marcasDe.get(id);
+      return marcas?.length === 1 ? marcas[0] : id;
+    };
+
+    const mapa = new Map<string, { items: Proyecto[]; incluye: Set<string> }>();
     for (const p of visibles) {
-      const clave = p.client_id ?? "";
-      mapa.set(clave, [...(mapa.get(clave) ?? []), p]);
+      const propio = p.client_id ?? "";
+      const clave = propio ? carpetaDe(propio) : "";
+      const grupo = mapa.get(clave) ?? { items: [], incluye: new Set<string>() };
+      grupo.items.push(p);
+      if (clave !== propio) grupo.incluye.add(clientePor.get(propio) ?? "Cliente");
+      mapa.set(clave, grupo);
     }
     return [...mapa.entries()]
-      .map(([id, items]) => {
+      .map(([id, { items, incluye }]) => {
         const operador = id ? operadorDe.get(id) : null;
         return {
           id,
           nombre: id ? (clientePor.get(id) ?? "Cliente") : "Sin cliente",
           operador: operador ? (clientePor.get(operador) ?? null) : null,
+          incluye: [...incluye],
+          portada: id ? (portadaDe.get(id) ?? null) : null,
           items,
         };
       })
@@ -165,31 +183,7 @@ export function VistaProyectos({
       </div>
 
       {agrupar === "cliente" ? (
-        <div className="flex flex-col gap-8">
-          {porCliente.map((g) => (
-            <section key={g.id || "sin-cliente"} aria-label={g.nombre}>
-              <div className="mb-3 flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                {g.id ? (
-                  <Link
-                    href={`/landing-pages/clients/${g.id}`}
-                    className="text-sm font-semibold text-title-50 hover:underline"
-                  >
-                    {g.nombre}
-                  </Link>
-                ) : (
-                  <h2 className="text-sm font-semibold text-title-50">{g.nombre}</h2>
-                )}
-                {g.operador && (
-                  <span className="text-xs text-text-tertiary">operado por {g.operador}</span>
-                )}
-                <span className="text-xs tabular-nums text-text-tertiary">{g.items.length}</span>
-              </div>
-              <ListaProyectos vista={vista} proyectos={g.items} datos={datos} />
-            </section>
-          ))}
-
-          {porCliente.length === 0 && <EmptyState title="No hay proyectos con estos filtros" />}
-        </div>
+        <CarpetasClientes carpetas={porCliente} vista={vista} datos={datos} />
       ) : filtro === TODOS ? (
         <div className="flex flex-col gap-8">
           {grupos.map((g) => (

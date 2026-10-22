@@ -7,9 +7,11 @@ import {
   getSortedRowModel,
   useReactTable,
   type ColumnDef,
+  type Table,
 } from "@tanstack/react-table";
 import { useMemo } from "react";
 import { Card } from "@/components/tailgrids/core/card";
+import { Checkbox } from "@/components/tailgrids/core/checkbox";
 import {
   TableBody,
   TableCell,
@@ -33,6 +35,35 @@ function columnKey<TData>(column: ColumnDef<TData>): string | undefined {
   return "accessorKey" in column ? String(column.accessorKey) : undefined;
 }
 
+/* "Seleccionar todas" toma solo las filas visibles con los filtros actuales:
+   nunca algo que el usuario no está viendo. */
+function SeleccionarTodas<TData>({ table }: { table: Table<TData> }) {
+  const visibles = table.getFilteredRowModel().rows;
+  const todas = visibles.length > 0 && visibles.every((r) => r.getIsSelected());
+  const algunas = visibles.some((r) => r.getIsSelected());
+  return (
+    <Checkbox
+      aria-label={todas ? "Quitar la selección" : "Seleccionar todas"}
+      isSelected={todas}
+      isIndeterminate={algunas && !todas}
+      onChange={() => table.setRowSelection(todas ? {} : Object.fromEntries(visibles.map((r) => [r.id, true])))}
+    />
+  );
+}
+
+function columnaSeleccion<TData>(): ColumnDef<TData> {
+  return {
+    id: "_seleccion",
+    enableSorting: false,
+    enableGlobalFilter: false,
+    meta: { headerClassName: "w-10" },
+    header: ({ table }) => <SeleccionarTodas table={table} />,
+    cell: ({ row }) => (
+      <Checkbox aria-label="Seleccionar fila" isSelected={row.getIsSelected()} onChange={(v) => row.toggleSelected(v)} />
+    ),
+  };
+}
+
 /**
  * Tabla genérica sobre TanStack Table y los primitivos `table`/`pagination` del
  * template. Ordena, filtra y pagina en el cliente: pensada para los volúmenes
@@ -54,18 +85,21 @@ export function DataTable<TData>({
   isLoading = false,
   emptyState,
   toolbarActions,
+  selectionActions,
   className,
 }: DataTableProps<TData>) {
+  const conSeleccion = Boolean(selectionActions);
   // Las columnas con facet filtran por igualdad exacta, no por "contiene".
   const resolvedColumns = useMemo(() => {
     const facetIds = new Set(facets.map((facet) => facet.columnId));
-    return columns.map((column) => {
+    const resueltas = columns.map((column) => {
       const key = columnKey(column);
       return key && facetIds.has(key) && !column.filterFn
         ? { ...column, filterFn: "equalsString" as const }
         : column;
     });
-  }, [columns, facets]);
+    return conSeleccion ? [columnaSeleccion<TData>(), ...resueltas] : resueltas;
+  }, [columns, facets, conSeleccion]);
 
   // TanStack devuelve funciones no memoizables: el React Compiler se salta este
   // componente (esperado, no hay props memoizadas que dependan de `table`).
@@ -74,6 +108,7 @@ export function DataTable<TData>({
     data,
     columns: resolvedColumns,
     getRowId,
+    enableRowSelection: conSeleccion,
     initialState: {
       sorting: initialSorting,
       pagination: { pageIndex: 0, pageSize },
@@ -87,6 +122,12 @@ export function DataTable<TData>({
 
   const rows = table.getRowModel().rows;
   const columnCount = resolvedColumns.length;
+  // Solo las elegidas que se ven con los filtros actuales: una acción masiva
+  // nunca toca filas ocultas por la búsqueda o un filtro.
+  const elegidas = conSeleccion
+    ? table.getFilteredRowModel().rows.filter((r) => r.getIsSelected()).map((r) => r.id)
+    : [];
+  const limpiar = () => table.resetRowSelection();
 
   return (
     <Card className={cn("overflow-hidden p-0", className)}>
@@ -97,6 +138,26 @@ export function DataTable<TData>({
         facets={facets}
         actions={toolbarActions}
       />
+
+      {selectionActions && elegidas.length > 0 && (
+        <div
+          role="region"
+          aria-label="Acciones sobre la selección"
+          className="flex flex-wrap items-center gap-3 border-b border-card-border bg-primary-500/5 px-4 py-2.5"
+        >
+          <span className="text-sm font-semibold text-text-primary tabular-nums">
+            {elegidas.length === 1 ? "1 seleccionada" : `${elegidas.length} seleccionadas`}
+          </span>
+          <div className="flex flex-wrap items-center gap-2">{selectionActions(elegidas, limpiar)}</div>
+          <button
+            type="button"
+            onClick={limpiar}
+            className="ml-auto text-sm font-medium text-text-tertiary hover:text-text-primary"
+          >
+            Quitar selección
+          </button>
+        </div>
+      )}
 
       <TableRoot fullBleed aria-label={label} aria-busy={isLoading || undefined}>
         <TableHeader>
