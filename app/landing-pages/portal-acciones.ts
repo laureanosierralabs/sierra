@@ -153,6 +153,14 @@ export async function invitarAlPortal(fd: FormData): Promise<Resultado | { aviso
             aviso: `${email} ya tenía una invitación pendiente a este portal: no se manda otra. Si no la encuentra (revisar spam), revocala e invitala de nuevo.`,
           };
         }
+        // Un operador con varias marcas: una invitación lleva un solo portal.
+        // Cuando cree su cuenta, invitarlo de nuevo le suma este sin mail.
+        if (meta.role === "client") {
+          return {
+            error:
+              "Ese email ya tiene una invitación pendiente al portal de otra marca. Cuando cree su cuenta, invitalo acá de nuevo y se le suma este portal al instante.",
+          };
+        }
         return {
           error:
             "Ese email ya tiene una invitación pendiente (del equipo o de otro portal). Revocala primero.",
@@ -215,5 +223,44 @@ export async function revocarInvitacionPortal(
     revalidarCliente(clientId);
   } catch (e) {
     return { error: motivo(e, "No se pudo revocar la invitación") };
+  }
+}
+
+/**
+ * Elimina el portal de un cliente (por ejemplo, uno creado por error para un
+ * operador que en realidad entra al portal de su marca). Primero se corta el
+ * vínculo, así nadie puede entrar aunque lo de Clerk falle; después se revocan
+ * las invitaciones pendientes y se borra la organización (con sus accesos).
+ * Las cuentas de las personas no se tocan: si tienen otros portales, los
+ * siguen viendo.
+ */
+export async function eliminarPortal(clientId: string): Promise<Resultado> {
+  await exigirOwner();
+  try {
+    const orgId = await orgDelCliente(clientId);
+    if (!orgId) return;
+
+    const { error } = await supabaseAdmin().from("client_orgs").delete().eq("client_id", clientId);
+    if (error) return { error: `No se pudo eliminar el portal: ${error.message}` };
+
+    const clerk = await clerkClient();
+    const { data: pendientes } = await clerk.invitations
+      .getInvitationList({ status: "pending", limit: 100 })
+      .catch(() => ({ data: [] as { id: string; publicMetadata: unknown }[] }));
+    await Promise.all(
+      pendientes
+        .filter((i) => (i.publicMetadata as { portalOrgId?: unknown } | null)?.portalOrgId === orgId)
+        .map((i) => clerk.invitations.revokeInvitation(i.id).catch(() => undefined)),
+    );
+    // Sin vínculo, la organización ya no da acceso a nada: si no se puede
+    // borrar, queda huérfana pero inofensiva.
+    await clerk.organizations
+      .deleteOrganization(orgId)
+      .catch((e) => console.error("[portal] no se pudo borrar la organización:", e));
+
+    revalidarCliente(clientId);
+    revalidatePath("/portal");
+  } catch (e) {
+    return { error: motivo(e, "No se pudo eliminar el portal") };
   }
 }

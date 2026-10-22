@@ -3,6 +3,7 @@ import { Plus_Jakarta_Sans } from "next/font/google";
 import Image from "next/image";
 import Link from "next/link";
 import { UserProfileButton } from "@/components/common/header/user-profile";
+import { portalesDisponibles } from "@/lib/portal/contexto";
 import "./portal.css";
 
 export const metadata: Metadata = {
@@ -26,7 +27,10 @@ const marca = Plus_Jakarta_Sans({
  * presentación; en las demás, sobre el fondo. Los documentos (reporte de
  * cierre) usan sus propios colores de papel, así que no se oscurecen.
  */
-export default function PortalLayout({ children }: { children: React.ReactNode }) {
+export default async function PortalLayout({ children }: { children: React.ReactNode }) {
+  // Quien opera varias marcas ve "Cambiar de marca"; si falla, simplemente no aparece.
+  const variasMarcas = (await portalesDisponibles().catch(() => [])).length > 1;
+
   return (
     <div
       className={`${marca.variable} portal-raiz relative flex min-h-screen flex-col overflow-x-clip bg-neutral-950 font-(family-name:--font-portal) text-white print:bg-white`}
@@ -46,7 +50,17 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
               Portal <span className="text-white">de clientes</span>
             </span>
           </Link>
-          <UserProfileButton />
+          <span className="flex items-center gap-4">
+            {variasMarcas && (
+              <Link
+                href="/portal"
+                className="rounded-full bg-white/10 px-3.5 py-1.5 text-xs font-bold text-white ring-1 ring-white/15 backdrop-blur transition-colors hover:bg-white/20"
+              >
+                Cambiar de marca
+              </Link>
+            )}
+            <UserProfileButton />
+          </span>
         </div>
       </header>
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 pt-28 pb-20 sm:px-6 print:max-w-none print:p-0">{children}</main>

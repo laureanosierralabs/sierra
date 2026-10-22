@@ -22,17 +22,18 @@ export interface ContextoPortal {
 export interface PortalDisponible {
   slug: string;
   nombre: string;
+  portada: string | null;
 }
 
 type FilaPortal = {
   client_id: string;
   clerk_org_id: string;
   slug: string;
-  clients: { name: string } | { name: string }[] | null;
+  clients: { name: string; portal_cover_url?: string | null } | { name: string; portal_cover_url?: string | null }[] | null;
 };
 
-const nombreDe = (f: FilaPortal) =>
-  (Array.isArray(f.clients) ? f.clients[0]?.name : f.clients?.name) ?? f.slug;
+const clienteDe = (f: FilaPortal) => (Array.isArray(f.clients) ? f.clients[0] : f.clients) ?? null;
+const nombreDe = (f: FilaPortal) => clienteDe(f)?.name ?? f.slug;
 
 /**
  * Ids de las organizaciones de Clerk de las que el usuario de cliente es
@@ -91,7 +92,9 @@ export const portalesDisponibles = cache(async (): Promise<PortalDisponible[]> =
   const acceso = await accesoActual();
   if (!acceso.esCliente && !acceso.esOwner) return [];
 
-  let consulta = supabaseAdmin().from("client_orgs").select("client_id, clerk_org_id, slug, clients(name)");
+  let consulta = supabaseAdmin()
+    .from("client_orgs")
+    .select("client_id, clerk_org_id, slug, clients(name, portal_cover_url)");
   if (acceso.esCliente) {
     const ids = await organizacionesDelUsuario();
     if (ids.length === 0) return [];
@@ -101,7 +104,7 @@ export const portalesDisponibles = cache(async (): Promise<PortalDisponible[]> =
   const { data, error } = await consulta;
   if (error) throw new Error("No se pudieron cargar los portales");
   return ((data ?? []) as FilaPortal[])
-    .map((f) => ({ slug: f.slug, nombre: nombreDe(f) }))
+    .map((f) => ({ slug: f.slug, nombre: nombreDe(f), portada: clienteDe(f)?.portal_cover_url ?? null }))
     .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
 });
 

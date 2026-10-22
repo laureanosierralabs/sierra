@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useTransition } from "react";
 import { Envelope1, ExpandArrowTopRightSquare1, User2 } from "@tailgrids/icons";
 import { toast } from "sonner";
@@ -11,6 +12,7 @@ import { DialogoForm } from "@/components/landing/dialogo-form";
 import { SeccionCard } from "@/components/landing/seccion-card";
 import { Button } from "@/components/tailgrids/core/button";
 import {
+  eliminarPortal,
   habilitarPortal,
   invitarAlPortal,
   quitarAccesoPortal,
@@ -54,27 +56,61 @@ function InvitarAlPortal({ clientId }: { clientId: string }) {
 }
 
 /**
- * Portal del cliente en su ficha: habilitarlo, invitar personas y quitar
- * accesos. Solo lo ve el owner.
+ * Portal del cliente en su ficha: habilitarlo, invitar personas, quitar
+ * accesos y eliminarlo. Solo lo ve el owner.
+ *
+ * El portal es de la MARCA. Quien la opera (Ismael con Pilar Sousa) no
+ * necesita portal propio: se lo invita al de la marca, y si opera varias
+ * (Santiago con Pilar y Aida) elige cuál ver al entrar.
  */
 export function PortalCliente({
   clientId,
   estado,
   portada = null,
+  operador = null,
+  marcas = [],
 }: {
   clientId: string;
   estado: EstadoPortal | null;
   portada?: string | null;
+  /** Quien opera esta marca, para darle acceso con un click. */
+  operador?: { nombre: string; email: string | null } | null;
+  /** Marcas que opera este cliente: entra a sus portales, no necesita uno propio. */
+  marcas?: { id: string; name: string }[];
 }) {
   const [pendiente, iniciar] = useTransition();
+
+  const invitarOperador = (email: string) =>
+    iniciar(async () => {
+      const fd = new FormData();
+      fd.set("client_id", clientId);
+      fd.set("email", email);
+      const r = await invitarAlPortal(fd).catch(() => ({ error: "No se pudo invitar" }));
+      if (r && "error" in r) toast.error(r.error);
+      else toast.success(r?.aviso ?? "Listo");
+    });
 
   if (!estado) {
     return (
       <SeccionCard titulo="Portal del cliente">
+        {marcas.length > 0 && (
+          <div className="border-b border-card-border bg-badge-blue-background/40 px-4 py-3 text-sm text-text-secondary">
+            Opera{" "}
+            {marcas.map((m, i) => (
+              <span key={m.id}>
+                {i > 0 && (i === marcas.length - 1 ? " y " : ", ")}
+                <Link href={`/landing-pages/clients/${m.id}?vista=portal`} className="font-medium text-primary-500 hover:underline">
+                  {m.name}
+                </Link>
+              </span>
+            ))}
+            : no necesita portal propio. Invitalo desde el portal de cada marca y, al entrar, elige cuál ver.
+          </div>
+        )}
         <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
           <p className="text-sm text-text-tertiary">
-            Dale a este cliente un acceso propio para ver sus cotizaciones (y más adelante sus
-            lanzamientos).
+            Dale a este cliente un acceso propio para ver sus lanzamientos, entregas, pedidos y
+            cotizaciones.
           </p>
           <Button
             size="sm"
@@ -111,8 +147,34 @@ export function PortalCliente({
           <ExpandArrowTopRightSquare1 />
           Ver el portal como el cliente
         </a>
-        <InvitarAlPortal clientId={clientId} />
+        <span className="flex items-center gap-3">
+          <InvitarAlPortal clientId={clientId} />
+          <BorrarBoton
+            etiqueta="Eliminar portal"
+            advertencia="Nadie más va a poder entrar a este portal y se cancelan las invitaciones pendientes. Las cuentas de las personas siguen existiendo: si tienen acceso a otros portales, los siguen viendo. Las imágenes y entregas cargadas no se borran."
+            onConfirmar={() => eliminarPortal(clientId)}
+          />
+        </span>
       </div>
+
+      {operador?.email &&
+        !estado.miembros.some((m) => m.email?.toLowerCase() === operador.email?.toLowerCase()) &&
+        !estado.invitaciones.some((i) => i.email.toLowerCase() === operador.email?.toLowerCase()) && (
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-badge-blue-background/40 px-4 py-3">
+            <p className="text-sm text-text-secondary">
+              <span className="font-medium text-text-primary">{operador.nombre}</span> opera esta marca y todavía no
+              tiene acceso a este portal.
+            </p>
+            <Button
+              size="sm"
+              appearance="outline"
+              isDisabled={pendiente}
+              onPress={() => invitarOperador(operador.email as string)}
+            >
+              Darle acceso
+            </Button>
+          </div>
+        )}
 
       <div className="px-4 py-4">
         <ImagenPortal

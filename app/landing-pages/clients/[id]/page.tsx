@@ -400,7 +400,13 @@ export default async function ClienteDetalle({
       {vista === "reuniones" && <NotasCliente clientId={cliente.id} notas={notas} />}
 
       {vista === "portal" && esOwner && portal !== undefined && (
-        <PortalCliente clientId={cliente.id} estado={portal} portada={cliente.portal_cover_url ?? null} />
+        <PortalCliente
+          clientId={cliente.id}
+          estado={portal}
+          portada={cliente.portal_cover_url ?? null}
+          operador={operador ? { nombre: operador.name, email: operador.email } : null}
+          marcas={marcas.map((m) => ({ id: m.id, name: m.name }))}
+        />
       )}
 
       {vista === "cotizaciones" && esOwner && (
