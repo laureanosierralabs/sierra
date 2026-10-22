@@ -22,7 +22,10 @@ import { PanelLanzamiento } from "@/components/lanzamientos/panel-lanzamiento";
 import { VerificarLandings } from "@/components/lanzamientos/verificar-landings";
 import { ImagenPortal } from "@/components/landing/imagen-portal";
 import { accesoActual } from "@/lib/landing/auth";
-import { listarProyectos, obtenerCliente } from "@/lib/landing/datos";
+import { listarProyectos, listarRecursosCliente, obtenerCliente } from "@/lib/landing/datos";
+import { estadoPortalCliente } from "@/lib/portal/admin";
+import { evaluarPuesta } from "@/lib/lanzamientos/puesta";
+import { ListoParaCompartir } from "@/components/lanzamientos/listo-para-compartir";
 import { supabaseAdmin } from "@/lib/landing/supabase";
 import { fechaCorta } from "@/lib/landing/tipos";
 import {
@@ -62,7 +65,7 @@ export default async function LanzamientoDetalle({
   const clientId = await clienteDeLanzamiento(id);
   if (!clientId) notFound();
 
-  const [detalle, conexion, cliente, proyectos, portal, sitios] = await Promise.all([
+  const [detalle, conexion, cliente, proyectos, portal, sitios, estadoPortal, accesos] = await Promise.all([
     lanzamientoDeCliente(clientId, id),
     conexionDeLanzamiento(clientId, id),
     obtenerCliente(clientId),
@@ -79,6 +82,9 @@ export default async function LanzamientoDetalle({
         ),
       )
       .catch(() => []),
+    // Para "Listo para compartir": si Clerk no responde, el portal no se evalúa (no se marca como falta).
+    estadoPortalCliente(clientId).catch(() => undefined),
+    listarRecursosCliente(clientId).catch(() => []),
   ]);
   const nombreSitio = new Map(sitios.map((s) => [s.id, s.name]));
   if (!detalle || !conexion) notFound();
@@ -93,6 +99,24 @@ export default async function LanzamientoDetalle({
     .filter((p) => p.client_id === clientId && !enLanzamiento.has(p.id))
     .map((p) => ({ id: p.id, name: p.name, site_url: p.site_url }));
   const slugPortal = portal.data?.slug as string | undefined;
+
+  const chequeos = evaluarPuesta({
+    lanzamiento,
+    paginas,
+    registros: detalle.registros,
+    visitas: detalle.visitas,
+    compras: detalle.compras,
+    mailerliteConectado: conexion.conectado,
+    portal:
+      estadoPortal === undefined
+        ? undefined
+        : {
+            habilitado: estadoPortal !== null,
+            personas: estadoPortal ? estadoPortal.miembros.length + estadoPortal.invitaciones.length : 0,
+            portada: Boolean(cliente?.portal_cover_url),
+          },
+    accesosEnPortal: accesos.filter((a) => a.portal_visible).length,
+  });
 
   return (
     <>
@@ -133,6 +157,8 @@ export default async function LanzamientoDetalle({
           </span>
         }
       />
+
+      <ListoParaCompartir chequeos={chequeos} launchId={lanzamiento.id} clientId={clientId} />
 
       <PestanasUrl
         etiqueta="Secciones del lanzamiento"
