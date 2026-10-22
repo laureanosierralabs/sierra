@@ -403,6 +403,8 @@ export interface Cotizacion {
   delivery_time: string | null;
   /** Diagrama del embudo: pasos en orden. */
   funnel: { tipo: string; etiqueta?: string }[];
+  /** Mostrar el portfolio al pie del documento. */
+  show_portfolio: boolean;
   created_at: string;
   updated_at: string;
 }

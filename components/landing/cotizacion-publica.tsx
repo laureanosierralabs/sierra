@@ -301,6 +301,35 @@ export function DocumentoCotizacionPublica({ cotizacion }: { cotizacion: Cotizac
         </section>
       )}
 
+      {cotizacion.portfolio.length > 0 && (
+        <section className="mt-14 break-inside-avoid">
+          <ul className="grid grid-cols-2 gap-1 overflow-hidden rounded-xl sm:grid-cols-5 print:grid-cols-5">
+            {cotizacion.portfolio.map((t) => {
+              const tarjeta = (
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element -- imágenes de sitios del portfolio, de cualquier dominio */}
+                  <img src={t.image_url} alt="" loading="lazy" className="h-28 w-full object-cover sm:h-32" />
+                  <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-2 pt-6 pb-2 text-center text-xs font-medium text-white">
+                    {t.title}
+                  </span>
+                </>
+              );
+              return (
+                <li key={t.id} className="relative overflow-hidden">
+                  {t.link ? (
+                    <a href={t.link} target="_blank" rel="noopener noreferrer" className="block transition-opacity hover:opacity-90">
+                      {tarjeta}
+                    </a>
+                  ) : (
+                    tarjeta
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+
       <footer className="mt-12 flex items-end justify-between gap-6 text-xs">
         <span className="flex items-center gap-3">
           {/* Solo el isotipo: se recorta del logotipo para no sumar otro archivo. */}

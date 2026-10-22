@@ -74,3 +74,46 @@ export function lineasDeRespuesta(a: string): string[] {
     .map((l) => l.trim().replace(/^[-•*]\s*/, ""))
     .filter(Boolean);
 }
+
+/* ───────────── Plantillas y portfolio ───────────── */
+
+export interface ItemPlantilla {
+  title: string;
+  detail: string | null;
+  url: string | null;
+  amount: number;
+  is_extension: boolean;
+}
+
+export interface PlantillaCotizacion {
+  id: string;
+  name: string;
+  service: string | null;
+  currency: string;
+  total_amount: number | null;
+  items: ItemPlantilla[];
+  includes: string[];
+  faq: PreguntaPropuesta[];
+  funnel: { tipo: string; etiqueta?: string }[];
+  delivery_time: string | null;
+  payment_terms: string | null;
+}
+
+export interface TrabajoPortfolio {
+  id: string;
+  title: string;
+  image_url: string;
+  link: string | null;
+  position: number;
+}
+
+/** Link http(s) válido y normalizado, o null. */
+export function urlHttp(valor: unknown): string | null {
+  if (typeof valor !== "string" || !valor.trim()) return null;
+  try {
+    const u = new URL(valor.trim());
+    return u.protocol === "http:" || u.protocol === "https:" ? u.toString() : null;
+  } catch {
+    return null;
+  }
+}

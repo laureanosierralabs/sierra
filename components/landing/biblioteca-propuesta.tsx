@@ -2,9 +2,17 @@
 
 import { Pencil1 } from "@tailgrids/icons";
 import { BorrarBoton } from "@/components/landing/borrar-boton";
-import { Campo, DialogoForm, Input, Textarea } from "@/components/landing/dialogo-form";
-import { borrarElementoBiblioteca, guardarElementoBiblioteca } from "@/app/landing-pages/acciones";
-import type { ElementoBiblioteca } from "@/lib/landing/propuesta";
+import { Campo, DialogoForm, Input, Select, Textarea } from "@/components/landing/dialogo-form";
+import {
+  borrarElementoBiblioteca,
+  borrarPlantilla,
+  borrarTrabajoPortfolio,
+  guardarElementoBiblioteca,
+  guardarTrabajoPortfolio,
+  usarPlantilla,
+} from "@/app/landing-pages/acciones";
+import { formatearMonto, type Moneda } from "@/lib/landing/tipos";
+import type { ElementoBiblioteca, PlantillaCotizacion, TrabajoPortfolio } from "@/lib/landing/propuesta";
 
 /** Alta o edición de un texto de la biblioteca ("incluye" o pregunta con respuesta). */
 export function ElementoBibliotecaForm({
@@ -65,6 +73,119 @@ export function FilaBiblioteca({ elemento }: { elemento: ElementoBiblioteca }) {
         <ElementoBibliotecaForm kind={elemento.kind} elemento={elemento} />
         <BorrarBoton etiqueta="Borrar de la biblioteca" onConfirmar={() => borrarElementoBiblioteca(elemento.id)} />
       </span>
+    </li>
+  );
+}
+
+/* ───────────── Plantillas ───────────── */
+
+/** Crea una cotización nueva desde la plantilla y la abre. */
+function UsarPlantilla({ plantilla, clientes }: { plantilla: PlantillaCotizacion; clientes: { id: string; name: string }[] }) {
+  return (
+    <DialogoForm
+      titulo={`Nueva cotización: ${plantilla.name}`}
+      etiquetaAbrir="Usar"
+      action={usarPlantilla}
+      etiquetaEnviar="Crear cotización"
+      etiquetaEnviando="Creando…"
+    >
+      <input type="hidden" name="template_id" value={plantilla.id} />
+      <Campo label="Título">
+        <Input name="title" required maxLength={200} defaultValue={plantilla.name} />
+      </Campo>
+      <Campo label="Cliente">
+        <Select name="client_id" defaultValue="">
+          <option value="">Sin cliente por ahora</option>
+          {clientes.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </Select>
+      </Campo>
+      <p className="text-xs text-text-tertiary">
+        Sale como borrador con los ítems, lo que incluye, el diagrama, el plazo y las preguntas de la plantilla. Después
+        ajustás lo que haga falta.
+      </p>
+    </DialogoForm>
+  );
+}
+
+export function FilaPlantilla({
+  plantilla,
+  clientes,
+}: {
+  plantilla: PlantillaCotizacion;
+  clientes: { id: string; name: string }[];
+}) {
+  const principales = plantilla.items.filter((i) => !i.is_extension).length;
+  return (
+    <li className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+      <span className="min-w-0">
+        <span className="block text-sm font-medium text-text-primary">{plantilla.name}</span>
+        <span className="text-xs text-text-tertiary">
+          {[
+            plantilla.total_amount !== null ? formatearMonto(plantilla.total_amount, plantilla.currency as Moneda) : null,
+            `${principales} ${principales === 1 ? "ítem" : "ítems"}`,
+            plantilla.includes.length ? `${plantilla.includes.length} incluye` : null,
+            plantilla.funnel.length ? "con diagrama" : null,
+            plantilla.delivery_time,
+          ]
+            .filter(Boolean)
+            .join(" · ")}
+        </span>
+      </span>
+      <span className="flex shrink-0 items-center gap-3">
+        <UsarPlantilla plantilla={plantilla} clientes={clientes} />
+        <BorrarBoton etiqueta="Borrar plantilla" onConfirmar={() => borrarPlantilla(plantilla.id)} />
+      </span>
+    </li>
+  );
+}
+
+/* ───────────── Portfolio ───────────── */
+
+export function TrabajoPortfolioForm({ trabajo }: { trabajo?: TrabajoPortfolio }) {
+  return (
+    <DialogoForm
+      titulo={trabajo ? "Editar trabajo" : "Nuevo trabajo"}
+      etiquetaAbrir="Agregar trabajo"
+      action={guardarTrabajoPortfolio}
+      disparador={trabajo ? <Pencil1 /> : undefined}
+    >
+      {trabajo && <input type="hidden" name="id" value={trabajo.id} />}
+      <Campo label="Nombre">
+        <Input name="title" required maxLength={60} defaultValue={trabajo?.title ?? ""} placeholder="Páginas de venta" />
+      </Campo>
+      <Campo label="Imagen (link)">
+        <Input
+          name="image_url"
+          type="url"
+          required
+          defaultValue={trabajo?.image_url ?? ""}
+          placeholder="https://laureanosierra.com/…/captura.jpg"
+        />
+      </Campo>
+      <Campo label="Link al trabajo (opcional)">
+        <Input name="link" type="url" defaultValue={trabajo?.link ?? ""} placeholder="https://…" />
+      </Campo>
+      <p className="text-xs text-text-tertiary">Sale al pie de las propuestas, en el orden en que lo cargás.</p>
+    </DialogoForm>
+  );
+}
+
+export function TarjetaPortfolio({ trabajo }: { trabajo: TrabajoPortfolio }) {
+  return (
+    <li className="overflow-hidden rounded-lg border border-card-border">
+      {/* eslint-disable-next-line @next/next/no-img-element -- imágenes de sitios del portfolio, de cualquier dominio */}
+      <img src={trabajo.image_url} alt="" loading="lazy" className="h-28 w-full object-cover" />
+      <div className="flex items-center justify-between gap-2 px-3 py-2">
+        <span className="min-w-0 truncate text-sm font-medium text-text-primary">{trabajo.title}</span>
+        <span className="flex shrink-0 items-center gap-2">
+          <TrabajoPortfolioForm trabajo={trabajo} />
+          <BorrarBoton etiqueta="Borrar del portfolio" onConfirmar={() => borrarTrabajoPortfolio(trabajo.id)} />
+        </span>
+      </div>
     </li>
   );
 }

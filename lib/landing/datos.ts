@@ -1,6 +1,12 @@
 import "server-only";
 
-import { validarIncluye, validarPreguntas, type ElementoBiblioteca } from "@/lib/landing/propuesta";
+import {
+  validarIncluye,
+  validarPreguntas,
+  type ElementoBiblioteca,
+  type PlantillaCotizacion,
+  type TrabajoPortfolio,
+} from "@/lib/landing/propuesta";
 import { validarEmbudo, type PasoEmbudo } from "@/lib/landing/embudo";
 import { supabaseAdmin } from "@/lib/landing/supabase";
 import type {
@@ -293,6 +299,8 @@ export interface CotizacionPublica {
   faq: { q: string; a: string }[];
   delivery_time: string | null;
   funnel: PasoEmbudo[];
+  /** Trabajos al pie de la propuesta (vacío si esa cotización no lo muestra). */
+  portfolio: TrabajoPortfolio[];
 }
 
 export async function obtenerCotizacionPublica(
@@ -301,7 +309,7 @@ export async function obtenerCotizacionPublica(
   const { data, error } = await supabaseAdmin()
     .from("quotes")
     .select(
-      "numero, title, service, currency, total_amount, payment_terms, payment_url, payment_status, sent_at, created_at, includes, faq, delivery_time, funnel, clients(name), quote_items(id, position, title, detail, url, amount, project_id, is_extension)",
+      "numero, title, service, currency, total_amount, payment_terms, payment_url, payment_status, sent_at, created_at, includes, faq, delivery_time, funnel, show_portfolio, clients(name), quote_items(id, position, title, detail, url, amount, project_id, is_extension)",
     )
     .eq("public_token", token)
     .maybeSingle();
@@ -309,13 +317,16 @@ export async function obtenerCotizacionPublica(
   if (error) throw new Error(`No se pudo leer la cotización: ${error.message}`);
   if (!data) return null;
 
-  const { clients, quote_items, ...resto } = data as typeof data & {
+  const { clients, quote_items, show_portfolio, ...resto } = data as typeof data & {
     clients: { name: string } | { name: string }[] | null;
     quote_items: ItemCrudo[] | null;
+    show_portfolio: boolean | null;
   };
   const cliente = Array.isArray(clients) ? clients[0] : clients;
+  // El portfolio es un extra: si falla, la cotización se ve igual.
+  const portfolio = show_portfolio === false ? [] : await listarPortfolio().catch(() => []);
   return {
-    ...(resto as Omit<CotizacionPublica, "cliente" | "items">),
+    ...(resto as unknown as Omit<CotizacionPublica, "cliente" | "items" | "portfolio">),
     total_amount: resto.total_amount === null ? null : Number(resto.total_amount),
     cliente: cliente?.name ?? null,
     // El proyecto es dato interno: no viaja al cliente.
@@ -324,6 +335,7 @@ export async function obtenerCotizacionPublica(
     includes: validarIncluye((resto as { includes?: unknown }).includes),
     faq: validarPreguntas((resto as { faq?: unknown }).faq),
     funnel: validarEmbudo((resto as { funnel?: unknown }).funnel),
+    portfolio,
   };
 }
 
@@ -527,4 +539,28 @@ export async function listarBiblioteca(): Promise<ElementoBiblioteca[]> {
     .order("created_at");
   if (error) throw new Error(`No se pudo leer la biblioteca: ${error.message}`);
   return (data ?? []) as ElementoBiblioteca[];
+}
+
+/** Plantillas de cotización, por nombre. */
+export async function listarPlantillas(): Promise<PlantillaCotizacion[]> {
+  const { data, error } = await supabaseAdmin()
+    .from("quote_templates")
+    .select("id, name, service, currency, total_amount, items, includes, faq, funnel, delivery_time, payment_terms")
+    .order("name");
+  if (error) throw new Error(`No se pudieron leer las plantillas: ${error.message}`);
+  return (data ?? []).map((p) => ({
+    ...(p as unknown as PlantillaCotizacion),
+    total_amount: p.total_amount === null ? null : Number(p.total_amount),
+  }));
+}
+
+/** Trabajos del portfolio, en orden. */
+export async function listarPortfolio(): Promise<TrabajoPortfolio[]> {
+  const { data, error } = await supabaseAdmin()
+    .from("portfolio_items")
+    .select("id, title, image_url, link, position")
+    .order("position")
+    .order("created_at");
+  if (error) throw new Error(`No se pudo leer el portfolio: ${error.message}`);
+  return (data ?? []) as TrabajoPortfolio[];
 }

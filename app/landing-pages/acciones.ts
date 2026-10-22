@@ -7,7 +7,7 @@ import { auth, clerkClient } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/landing/supabase";
 import { accesoActual } from "@/lib/landing/auth";
 import { cifrar, descifrar } from "@/lib/landing/cifrado";
-import { validarEntrega, validarIncluye, validarPreguntas } from "@/lib/landing/propuesta";
+import { urlHttp, validarEntrega, validarIncluye, validarPreguntas } from "@/lib/landing/propuesta";
 import { validarEmbudo } from "@/lib/landing/embudo";
 import { slugify } from "@/lib/escritura";
 import { esUsuarioCliente } from "@/lib/unidades";
@@ -2152,4 +2152,170 @@ export async function borrarElementoBiblioteca(id: string): Promise<void | { err
   const { error } = await supabaseAdmin().from("quote_library").delete().eq("id", id);
   if (error) return { error: `No se pudo borrar: ${error.message}` };
   revalidatePath("/landing-pages/quotes/biblioteca");
+}
+
+/* ───────────── Plantillas de cotización ───────────── */
+
+/**
+ * Guarda una cotización como plantilla: ítems (sin proyectos, que son del
+ * cliente de esa cotización), lo que incluye, preguntas, plazo y diagrama.
+ */
+export async function guardarComoPlantilla(fd: FormData): Promise<ResultadoPropuesta> {
+  await exigirOwner();
+
+  const id = texto(fd, "quote_id");
+  const nombre = texto(fd, "name");
+  if (!id) return { error: "Falta la cotización" };
+  if (!nombre || nombre.length > 120) return { error: "Poné un nombre a la plantilla (máximo 120 caracteres)" };
+
+  const db = supabaseAdmin();
+  const { data: q, error: errLeer } = await db
+    .from("quotes")
+    .select("service, currency, total_amount, includes, faq, funnel, delivery_time, payment_terms, quote_items(position, title, detail, url, amount, is_extension)")
+    .eq("id", id)
+    .maybeSingle();
+  if (errLeer || !q) return { error: "No se pudo leer la cotización" };
+
+  const items = ((q.quote_items ?? []) as (ItemNuevo & { position: number })[])
+    .sort((a, b) => a.position - b.position)
+    .map((i) => ({
+      title: i.title,
+      detail: i.detail,
+      url: i.url,
+      amount: Number(i.amount),
+      is_extension: Boolean(i.is_extension),
+    }));
+
+  const { error } = await db.from("quote_templates").insert({
+    name: nombre,
+    service: q.service,
+    currency: q.currency,
+    total_amount: q.total_amount,
+    items,
+    includes: validarIncluye(q.includes),
+    faq: validarPreguntas(q.faq),
+    funnel: validarEmbudo(q.funnel),
+    delivery_time: q.delivery_time,
+    payment_terms: q.payment_terms,
+  });
+  if (error) return { error: `No se pudo guardar la plantilla: ${error.message}` };
+
+  revalidatePath("/landing-pages/quotes/biblioteca");
+  return { aviso: `Plantilla "${nombre}" guardada: la usás desde la Biblioteca` };
+}
+
+/** Crea una cotización nueva (borrador) a partir de una plantilla y la abre. */
+export async function usarPlantilla(fd: FormData): Promise<ResultadoPropuesta> {
+  await exigirOwner();
+
+  const plantillaId = texto(fd, "template_id");
+  const titulo = texto(fd, "title");
+  if (!plantillaId) return { error: "Falta la plantilla" };
+  if (!titulo) return { error: "Poné un título a la cotización" };
+  const clientId = opcional(fd, "client_id");
+
+  const db = supabaseAdmin();
+  const { data: p, error: errLeer } = await db.from("quote_templates").select("*").eq("id", plantillaId).maybeSingle();
+  if (errLeer || !p) return { error: "La plantilla no existe" };
+  if (clientId) {
+    const { data: cliente } = await db.from("clients").select("id").eq("id", clientId).maybeSingle();
+    if (!cliente) return { error: "El cliente no existe" };
+  }
+
+  const total = p.total_amount === null ? null : Number(p.total_amount);
+  const { data: nueva, error } = await db
+    .from("quotes")
+    .insert({
+      title: titulo,
+      client_id: clientId,
+      service: p.service,
+      total_amount: total,
+      currency: p.currency,
+      commercial_status: "draft",
+      payment_status: estadoPagoSegun(total, 0),
+      payment_terms: p.payment_terms,
+      includes: validarIncluye(p.includes),
+      faq: validarPreguntas(p.faq),
+      funnel: validarEmbudo(p.funnel),
+      delivery_time: p.delivery_time,
+    })
+    .select("id")
+    .single();
+  if (error || !nueva) return { error: `No se pudo crear la cotización: ${error?.message ?? "sin id"}` };
+
+  const items = Array.isArray(p.items) ? (p.items as Record<string, unknown>[]) : [];
+  await reemplazarItems(
+    nueva.id,
+    items
+      .filter((i) => typeof i.title === "string" && i.title.trim())
+      .map((i) => ({
+        title: String(i.title).trim(),
+        detail: typeof i.detail === "string" && i.detail.trim() ? i.detail.trim() : null,
+        url: urlHttp(i.url),
+        amount: Number(i.amount) || 0,
+        project_id: null,
+        is_extension: Boolean(i.is_extension),
+      })),
+  );
+
+  revalidar();
+  redirect(`/landing-pages/quotes/${nueva.id}`);
+}
+
+export async function borrarPlantilla(id: string): Promise<void | { error: string }> {
+  await exigirOwner();
+  const { error } = await supabaseAdmin().from("quote_templates").delete().eq("id", id);
+  if (error) return { error: `No se pudo borrar: ${error.message}` };
+  revalidatePath("/landing-pages/quotes/biblioteca");
+}
+
+/* ───────────── Portfolio ───────────── */
+
+export async function guardarTrabajoPortfolio(fd: FormData): Promise<ResultadoPropuesta> {
+  await exigirOwner();
+
+  const titulo = texto(fd, "title");
+  const imagen = urlHttp(fd.get("image_url"));
+  const link = urlHttp(fd.get("link"));
+  if (!titulo || titulo.length > 60) return { error: "Poné un nombre (máximo 60 caracteres)" };
+  if (!imagen) return { error: "La imagen tiene que ser un link que empiece con http:// o https://" };
+  if (texto(fd, "link") && !link) return { error: "El link tiene que empezar con http:// o https://" };
+
+  const db = supabaseAdmin();
+  const id = texto(fd, "id");
+  const fila = { title: titulo, image_url: imagen, link };
+  if (id) {
+    const { error } = await db.from("portfolio_items").update(fila).eq("id", id);
+    if (error) return { error: `No se pudo guardar: ${error.message}` };
+  } else {
+    const { data: ultimo } = await db
+      .from("portfolio_items")
+      .select("position")
+      .order("position", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const { error } = await db.from("portfolio_items").insert({ ...fila, position: (Number(ultimo?.position) || 0) + 1 });
+    if (error) return { error: `No se pudo guardar: ${error.message}` };
+  }
+  revalidatePath("/landing-pages/quotes/biblioteca");
+  return { aviso: "Guardado en el portfolio" };
+}
+
+export async function borrarTrabajoPortfolio(id: string): Promise<void | { error: string }> {
+  await exigirOwner();
+  const { error } = await supabaseAdmin().from("portfolio_items").delete().eq("id", id);
+  if (error) return { error: `No se pudo borrar: ${error.message}` };
+  revalidatePath("/landing-pages/quotes/biblioteca");
+}
+
+/** Mostrar u ocultar el portfolio al pie de una cotización. */
+export async function mostrarPortfolio(quoteId: string, mostrar: boolean): Promise<ResultadoPropuesta> {
+  await exigirOwner();
+  const { error } = await supabaseAdmin()
+    .from("quotes")
+    .update({ show_portfolio: mostrar, updated_at: new Date().toISOString() })
+    .eq("id", quoteId);
+  if (error) return { error: `No se pudo guardar: ${error.message}` };
+  revalidatePath(`/landing-pages/quotes/${quoteId}`);
+  return { aviso: mostrar ? "El portfolio se muestra en esta cotización" : "El portfolio no se muestra en esta cotización" };
 }

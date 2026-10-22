@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { toast } from "sonner";
 import { Pencil1, Plus } from "@tailgrids/icons";
 import { DialogoForm, Input, Textarea } from "@/components/landing/dialogo-form";
 import { Button } from "@/components/tailgrids/core/button";
-import { guardarPropuesta } from "@/app/landing-pages/acciones";
+import { guardarComoPlantilla, guardarPropuesta, mostrarPortfolio } from "@/app/landing-pages/acciones";
 import { MAX_INCLUYE, MAX_PREGUNTAS, type ElementoBiblioteca, type PreguntaPropuesta } from "@/lib/landing/propuesta";
 import { MAX_PASOS, PASOS, TIPOS_PASO, type PasoEmbudo, type TipoPaso } from "@/lib/landing/embudo";
 import { DiagramaEmbudo } from "@/components/landing/diagrama-embudo";
@@ -409,5 +410,51 @@ export function EditorEmbudo(props: { quoteId: string; valores: PasoEmbudo[]; su
     >
       <CamposEmbudo {...props} />
     </DialogoForm>
+  );
+}
+
+/* ───────────── Plantilla y portfolio ───────────── */
+
+/** Guarda esta cotización como plantilla para reusarla con otros clientes. */
+export function GuardarComoPlantilla({ quoteId, nombre }: { quoteId: string; nombre: string }) {
+  return (
+    <DialogoForm
+      titulo="Guardar como plantilla"
+      action={guardarComoPlantilla}
+      etiquetaEnviar="Guardar plantilla"
+      disparador={<span className={DISPARADOR}>Guardar como plantilla</span>}
+    >
+      <input type="hidden" name="quote_id" value={quoteId} />
+      <label className="flex flex-col gap-1.5">
+        <span className="text-sm font-medium text-input-label-text">Nombre de la plantilla</span>
+        <Input name="name" required maxLength={120} defaultValue={nombre} placeholder="Funnel de lanzamiento" />
+      </label>
+      <p className="text-xs text-text-tertiary">
+        Guarda los ítems, lo que incluye, el diagrama, el plazo y las preguntas. No guarda el cliente ni los proyectos.
+      </p>
+    </DialogoForm>
+  );
+}
+
+/** Mostrar u ocultar el portfolio al pie de esta cotización. */
+export function InterruptorPortfolio({ quoteId, valor }: { quoteId: string; valor: boolean }) {
+  const [pendiente, iniciar] = useTransition();
+  return (
+    <label className="flex items-center gap-2 text-sm text-text-secondary">
+      <input
+        type="checkbox"
+        defaultChecked={valor}
+        disabled={pendiente}
+        onChange={(e) => {
+          const mostrar = e.target.checked;
+          iniciar(async () => {
+            const r = await mostrarPortfolio(quoteId, mostrar).catch(() => ({ error: "No se pudo guardar" }));
+            if ("error" in r) toast.error(r.error);
+            else toast.success(r.aviso);
+          });
+        }}
+      />
+      Mostrar el portfolio al pie
+    </label>
   );
 }

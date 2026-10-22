@@ -2,11 +2,17 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowLeft } from "@tailgrids/icons";
 import { EmptyState } from "@/components/common/empty-state";
-import { ElementoBibliotecaForm, FilaBiblioteca } from "@/components/landing/biblioteca-propuesta";
+import {
+  ElementoBibliotecaForm,
+  FilaBiblioteca,
+  FilaPlantilla,
+  TarjetaPortfolio,
+  TrabajoPortfolioForm,
+} from "@/components/landing/biblioteca-propuesta";
 import { SeccionCard } from "@/components/landing/seccion-card";
 import { PageHeader } from "@/components/landing/ui";
 import { accesoActual } from "@/lib/landing/auth";
-import { listarBiblioteca } from "@/lib/landing/datos";
+import { listarBiblioteca, listarClientes, listarPlantillas, listarPortfolio } from "@/lib/landing/datos";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +24,12 @@ export default async function BibliotecaPropuesta() {
   const { esOwner } = await accesoActual();
   if (!esOwner) redirect("/landing-pages");
 
-  const biblioteca = await listarBiblioteca();
+  const [biblioteca, plantillas, portfolio, clientes] = await Promise.all([
+    listarBiblioteca(),
+    listarPlantillas(),
+    listarPortfolio(),
+    listarClientes(),
+  ]);
   const incluye = biblioteca.filter((b) => b.kind === "incluye");
   const preguntas = biblioteca.filter((b) => b.kind === "pregunta");
 
@@ -34,10 +45,27 @@ export default async function BibliotecaPropuesta() {
 
       <PageHeader
         titulo="Biblioteca de propuestas"
-        descripcion="Lo que se repite en tus cotizaciones. En cada una tildás lo que va y sumás lo propio."
+        descripcion="Tu kit de propuestas: plantillas por servicio, los textos que se repiten y tu portfolio."
       />
 
       <div className="flex flex-col gap-6">
+        <SeccionCard titulo="Plantillas" cantidad={plantillas.length}>
+          {plantillas.length === 0 ? (
+            <EmptyState
+              variant="inline"
+              className="px-4 py-6"
+              title="Sin plantillas todavía"
+              description="Armá bien una cotización y tocá Guardar como plantilla: la próxima vez sale armada en un minuto."
+            />
+          ) : (
+            <ul className="divide-y divide-card-border">
+              {plantillas.map((p) => (
+                <FilaPlantilla key={p.id} plantilla={p} clientes={clientes.map((c) => ({ id: c.id, name: c.name }))} />
+              ))}
+            </ul>
+          )}
+        </SeccionCard>
+
         <SeccionCard titulo="Este servicio incluye" cantidad={incluye.length} accion={<ElementoBibliotecaForm kind="incluye" />}>
           {incluye.length === 0 ? (
             <EmptyState variant="inline" className="px-4 py-6" title="Sin ítems todavía" />
@@ -57,6 +85,23 @@ export default async function BibliotecaPropuesta() {
             <ul className="divide-y divide-card-border">
               {preguntas.map((e) => (
                 <FilaBiblioteca key={e.id} elemento={e} />
+              ))}
+            </ul>
+          )}
+        </SeccionCard>
+
+        <SeccionCard titulo="Portfolio" cantidad={portfolio.length} accion={<TrabajoPortfolioForm />}>
+          {portfolio.length === 0 ? (
+            <EmptyState
+              variant="inline"
+              className="px-4 py-6"
+              title="Sin trabajos todavía"
+              description="Los que cargues salen al pie de las propuestas, como en tus PDFs."
+            />
+          ) : (
+            <ul className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4">
+              {portfolio.map((t) => (
+                <TarjetaPortfolio key={t.id} trabajo={t} />
               ))}
             </ul>
           )}

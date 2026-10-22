@@ -18,7 +18,13 @@ import {
   listarProyectos,
   obtenerCotizacion,
 } from "@/lib/landing/datos";
-import { EditorEmbudo, EditorIncluye, EditorPreguntas } from "@/components/landing/propuesta-editor";
+import {
+  EditorEmbudo,
+  EditorIncluye,
+  EditorPreguntas,
+  GuardarComoPlantilla,
+  InterruptorPortfolio,
+} from "@/components/landing/propuesta-editor";
 import { DiagramaEmbudo } from "@/components/landing/diagrama-embudo";
 import { sugerirEmbudo, validarEmbudo } from "@/lib/landing/embudo";
 import { lineasDeRespuesta } from "@/lib/landing/propuesta";
@@ -274,6 +280,10 @@ export default async function CotizacionDetalle({
                 <DiagramaEmbudo pasos={embudo} animado={false} />
               </div>
             )}
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-card-border px-5 py-3">
+            <InterruptorPortfolio quoteId={cotizacion.id} valor={cotizacion.show_portfolio ?? true} />
+            <GuardarComoPlantilla quoteId={cotizacion.id} nombre={cotizacion.service ?? cotizacion.title} />
           </div>
           <div className="border-t border-card-border px-5 py-3">
             <LinkCotizacion id={cotizacion.id} token={cotizacion.public_token} />
