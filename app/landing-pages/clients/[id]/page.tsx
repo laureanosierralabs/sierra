@@ -16,9 +16,13 @@ import {
   Folder1,
   Globe2,
   Instagram,
+  Layers2,
+  Message1,
   Phone,
+  Rocket1,
   Target3,
   UserMultiple1,
+  UserMultiple4,
 } from "@tailgrids/icons";
 import {
   listarClientes,
@@ -34,6 +38,7 @@ import { NuevaAprobacion } from "@/components/pedidos/pedido-formularios";
 import { ListaPedidos } from "@/components/pedidos/pedido-ui";
 import { crearAprobacion } from "@/app/landing-pages/pedidos-acciones";
 import { pedidosDeCliente } from "@/lib/pedidos/datos";
+import { estaCerrado } from "@/lib/pedidos/tipos";
 import {
   EstadoClientePill,
   EstadoCotizacionPill,
@@ -47,11 +52,18 @@ import { NotasCliente } from "@/components/landing/notas-cliente";
 import { Propiedad } from "@/components/landing/propiedad";
 import { Recursos } from "@/components/landing/recursos";
 import { SeccionCard } from "@/components/landing/seccion-card";
+import { KpiCard } from "@/components/common/kpi-card";
+import { PestanasUrl } from "@/components/common/pestanas-url";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Card } from "@/components/tailgrids/core/card";
 import { EmptyState } from "@/components/common/empty-state";
 
 export const dynamic = "force-dynamic";
+
+const VISTAS = ["resumen", "landings", "accesos", "reuniones", "portal", "cotizaciones"] as const;
+type Vista = (typeof VISTAS)[number];
+/* Pestañas que solo ve el owner: lo comercial, lo conectado y el portal. */
+const SOLO_OWNER: Vista[] = ["landings", "portal", "cotizaciones"];
 
 function Texto({ valor }: { valor: string | null }) {
   return <p className="truncate">{valor || "—"}</p>;
@@ -70,12 +82,21 @@ function Vacio({ children }: { children: React.ReactNode }) {
   return <EmptyState variant="inline" className="px-4 py-6">{children}</EmptyState>;
 }
 
+const numero = (n: number) => n.toLocaleString("es-AR");
+
+/**
+ * Ficha de un cliente como un tablero: arriba las métricas que importan y el
+ * resto repartido en pestañas (resumen, landings, accesos, reuniones, portal,
+ * cotizaciones) en vez de una sola columna larga.
+ */
 export default async function ClienteDetalle({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ vista?: string }>;
 }) {
-  const { id } = await params;
+  const [{ id }, { vista: vistaCruda }] = await Promise.all([params, searchParams]);
 
   // Lo comercial es del owner: a un member ni se le cargan las cotizaciones.
   const { esOwner } = await accesoActual();
@@ -96,7 +117,7 @@ export default async function ClienteDetalle({
         })
       : Promise.resolve([]),
     // Proyectos conectados con sus landings detectadas. Si falla, la ficha
-    // se sigue viendo (la tarjeta no aparece).
+    // se sigue viendo (la pestaña no aparece).
     esOwner
       ? sitiosDeCliente(id)
           .then((sitios) =>
@@ -125,6 +146,35 @@ export default async function ClienteDetalle({
   const susProyectos = proyectos.filter((p) => p.client_id === id);
   const wa = urlWhatsapp(cliente.phone);
   const ig = urlInstagram(cliente.instagram);
+
+  // Métricas del tablero.
+  const registros = lanzamientos.reduce((n, l) => n + l.registros, 0);
+  const activos = lanzamientos.filter((l) => l.status === "activo").length;
+  const rutas = (conectados ?? []).flatMap((c) => c.rutas);
+  const visitas = rutas.reduce((n, r) => n + r.visitors, 0);
+  const conversiones = rutas.reduce((n, r) => n + r.conversions, 0);
+  const abiertos = pedidos.filter((p) => !estaCerrado(p.status));
+  const porAprobar = abiertos.filter((p) => p.kind === "aprobacion").length;
+  const proyectosEnCurso = susProyectos.filter((p) => p.status !== "entregado").length;
+
+  // Pestañas: las que no aplican (member, o datos que no se pudieron leer) no se muestran.
+  const base = `/landing-pages/clients/${cliente.id}`;
+  const pestanas: { id: Vista; label: string; href: string; cantidad?: number }[] = [
+    { id: "resumen", label: "Resumen", href: base },
+    ...(esOwner && conectados
+      ? [{ id: "landings" as const, label: "Landings", href: `${base}?vista=landings`, cantidad: rutas.length }]
+      : []),
+    { id: "accesos", label: "Accesos", href: `${base}?vista=accesos`, cantidad: accesos.length },
+    { id: "reuniones", label: "Reuniones", href: `${base}?vista=reuniones`, cantidad: notas.length },
+    ...(esOwner && portal !== undefined
+      ? [{ id: "portal" as const, label: "Portal del cliente", href: `${base}?vista=portal` }]
+      : []),
+    ...(esOwner
+      ? [{ id: "cotizaciones" as const, label: "Cotizaciones", href: `${base}?vista=cotizaciones`, cantidad: susCotizaciones.length }]
+      : []),
+  ];
+  const pedida = VISTAS.find((v) => v === vistaCruda) ?? "resumen";
+  const vista: Vista = pestanas.some((p) => p.id === pedida) && (esOwner || !SOLO_OWNER.includes(pedida)) ? pedida : "resumen";
 
   return (
     <>
@@ -156,189 +206,231 @@ export default async function ClienteDetalle({
         }
       />
 
-      <div className="flex flex-col gap-8">
-        <Card className="px-5 py-3">
-          <div className="grid gap-x-10 md:grid-cols-2">
-            <Propiedad icono={CheckCircle1} label="Estado">
-              <EstadoClientePill estado={cliente.status} />
-            </Propiedad>
+      <div className="mb-6 grid grid-cols-2 gap-4 md:gap-6 xl:grid-cols-4">
+        {esOwner ? (
+          <>
+            <KpiCard
+              label="Registros"
+              value={numero(registros)}
+              hint={lanzamientos.length === 1 ? "En 1 lanzamiento" : `En ${lanzamientos.length} lanzamientos`}
+              icon={<UserMultiple4 />}
+              tone="primary"
+            />
+            <KpiCard
+              label="Lanzamientos activos"
+              value={activos}
+              hint={`De ${lanzamientos.length} en total`}
+              icon={<Rocket1 />}
+              tone="success"
+            />
+            <KpiCard
+              label="Landings detectadas"
+              value={conectados ? rutas.length : "—"}
+              hint={conectados ? `${numero(visitas)} visitas · ${numero(conversiones)} conversiones` : "No se pudieron leer"}
+              icon={<Layers2 />}
+              tone="blue"
+            />
+          </>
+        ) : (
+          <KpiCard
+            label="Proyectos en curso"
+            value={proyectosEnCurso}
+            hint={`De ${susProyectos.length} en total`}
+            icon={<Layers2 />}
+            tone="blue"
+          />
+        )}
+        <KpiCard
+          label="Pedidos abiertos"
+          value={abiertos.length}
+          hint={porAprobar > 0 ? `${porAprobar} esperan aprobación` : "Nada esperando aprobación"}
+          icon={<Message1 />}
+          tone="warning"
+        />
+      </div>
 
-            {operador && (
-              <Propiedad icono={UserMultiple1} label="Operado por">
-                <Link href={`/landing-pages/clients/${operador.id}`} className="font-medium hover:underline">
-                  {operador.name}
-                </Link>
-              </Propiedad>
-            )}
+      <PestanasUrl etiqueta="Secciones del cliente" actual={vista} pestanas={pestanas} />
 
-            {marcas.length > 0 && (
-              <Propiedad icono={UserMultiple1} label="Opera">
-                <span className="flex flex-wrap gap-x-2">
-                  {marcas.map((m) => (
-                    <Link key={m.id} href={`/landing-pages/clients/${m.id}`} className="font-medium hover:underline">
-                      {m.name}
+      {vista === "resumen" && (
+        <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-12">
+          <div className="flex min-w-0 flex-col gap-6 xl:col-span-8">
+            {esOwner && <LanzamientosCliente clientId={cliente.id} lanzamientos={lanzamientos} />}
+
+            <SeccionCard
+              titulo="Pedidos"
+              cantidad={pedidos.length}
+              accion={
+                <NuevaAprobacion
+                  action={crearAprobacion}
+                  clientId={cliente.id}
+                  lanzamientos={lanzamientos.map((l) => ({ id: l.id, name: l.name }))}
+                />
+              }
+            >
+              <ListaPedidos
+                pedidos={pedidos}
+                href={(p) => `/landing-pages/pedidos/${p}`}
+                vacio="Sin pedidos. El cliente los crea desde su portal; vos podés pedirle una aprobación."
+              />
+            </SeccionCard>
+
+            <SeccionCard
+              titulo="Proyectos"
+              cantidad={susProyectos.length}
+              accion={
+                esOwner && (
+                  <AgregarProyectos
+                    clientId={cliente.id}
+                    proyectos={proyectos
+                      .filter((p) => p.client_id !== id)
+                      .map((p) => ({ id: p.id, name: p.name, cliente: nombreCliente(p, nombrePor) }))}
+                  />
+                )
+              }
+            >
+              {susProyectos.length === 0 ? (
+                <Vacio>Sin proyectos.</Vacio>
+              ) : (
+                susProyectos.map((p) => (
+                  <div key={p.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
+                    <Link
+                      href={`/landing-pages/projects/${p.id}`}
+                      className="min-w-0 truncate text-sm text-text-primary hover:underline"
+                    >
+                      {p.name}
                     </Link>
-                  ))}
-                </span>
-              </Propiedad>
-            )}
-
-            <Propiedad icono={Target3} label="Origen">
-              {cliente.source ? (
-                <span className="flex min-w-0 items-center gap-2">
-                  <Badge color="blue" size="sm" className="shrink-0 rounded-md px-1.5">
-                    {LABEL_ORIGEN[cliente.source]}
-                  </Badge>
-                  {cliente.source_detail && (
-                    <span className="truncate text-text-secondary">{cliente.source_detail}</span>
-                  )}
-                </span>
-              ) : (
-                <Texto valor={null} />
+                    <span className="flex shrink-0 items-center gap-2">
+                      <EstadoProyectoPill estado={p.status} />
+                      <Vencimiento fecha={p.due_date} cerrado={p.status === "entregado"} />
+                    </span>
+                  </div>
+                ))
               )}
-            </Propiedad>
-
-            <Propiedad icono={Phone} label="WhatsApp">
-              {wa ? <Enlace href={wa} texto={cliente.phone ?? ""} /> : <Texto valor={cliente.phone} />}
-            </Propiedad>
-
-            <Propiedad icono={Instagram} label="Instagram">
-              {ig ? (
-                <Enlace href={ig} texto={cliente.instagram ?? ""} />
-              ) : (
-                <Texto valor={cliente.instagram} />
-              )}
-            </Propiedad>
-
-            <Propiedad icono={Envelope1} label="Email">
-              {cliente.email ? (
-                <a href={`mailto:${cliente.email}`} className="block truncate hover:underline">
-                  {cliente.email}
-                </a>
-              ) : (
-                <Texto valor={null} />
-              )}
-            </Propiedad>
-
-            <Propiedad icono={Briefcase4} label="Nicho">
-              <Texto valor={cliente.niche} />
-            </Propiedad>
-
-            <Propiedad icono={Globe2} label="Sitio web">
-              <Enlace href={cliente.website} />
-            </Propiedad>
-
-            <Propiedad icono={Folder1} label="Drive">
-              <Enlace href={cliente.drive_url} texto="Drive de archivos" />
-            </Propiedad>
+            </SeccionCard>
           </div>
 
-          {cliente.notes && (
-            <p className="mt-3 border-t border-card-border pt-3 text-sm text-text-secondary">
-              {cliente.notes}
-            </p>
-          )}
-        </Card>
+          <Card className="min-w-0 px-5 py-4 xl:col-span-4">
+            <h2 className="mb-2 text-sm font-semibold text-title-50">Ficha</h2>
+            <div className="grid gap-x-10 md:grid-cols-2 xl:grid-cols-1">
+              <Propiedad icono={CheckCircle1} label="Estado">
+                <EstadoClientePill estado={cliente.status} />
+              </Propiedad>
 
-        <Recursos
-          duenoId={cliente.id}
-          tabla="client"
-          titulo="Accesos del cliente"
-          recursos={accesos}
-          editable={esOwner}
-        />
+              {operador && (
+                <Propiedad icono={UserMultiple1} label="Operado por">
+                  <Link href={`/landing-pages/clients/${operador.id}`} className="font-medium hover:underline">
+                    {operador.name}
+                  </Link>
+                </Propiedad>
+              )}
 
-        <NotasCliente clientId={cliente.id} notas={notas} />
+              {marcas.length > 0 && (
+                <Propiedad icono={UserMultiple1} label="Opera">
+                  <span className="flex flex-wrap gap-x-2">
+                    {marcas.map((m) => (
+                      <Link key={m.id} href={`/landing-pages/clients/${m.id}`} className="font-medium hover:underline">
+                        {m.name}
+                      </Link>
+                    ))}
+                  </span>
+                </Propiedad>
+              )}
 
-        {esOwner && conectados && (
-          <ProyectosConectados clientId={cliente.id} proyectos={conectados} />
-        )}
-
-        {esOwner && <LanzamientosCliente clientId={cliente.id} lanzamientos={lanzamientos} />}
-
-        <SeccionCard
-          titulo="Pedidos"
-          cantidad={pedidos.length}
-          accion={
-            <NuevaAprobacion
-              action={crearAprobacion}
-              clientId={cliente.id}
-              lanzamientos={lanzamientos.map((l) => ({ id: l.id, name: l.name }))}
-            />
-          }
-        >
-          <ListaPedidos
-            pedidos={pedidos}
-            href={(p) => `/landing-pages/pedidos/${p}`}
-            vacio="Sin pedidos. El cliente los crea desde su portal; vos podés pedirle una aprobación."
-          />
-        </SeccionCard>
-
-        {esOwner && portal !== undefined && (
-          <PortalCliente clientId={cliente.id} estado={portal} portada={cliente.portal_cover_url ?? null} />
-        )}
-
-        {esOwner && (
-          <SeccionCard titulo="Cotizaciones" cantidad={susCotizaciones.length}>
-            {susCotizaciones.length === 0 ? (
-              <Vacio>Sin cotizaciones.</Vacio>
-            ) : (
-              susCotizaciones.map((q) => (
-                <div key={q.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
-                  <span className="flex min-w-0 items-center gap-2">
-                    <span className="truncate text-sm text-text-primary">{q.title}</span>
-                    {q.proposal_url && (
-                      <EnlaceExterno href={q.proposal_url}>
-                        <span className="sr-only">Abrir propuesta</span>
-                      </EnlaceExterno>
+              <Propiedad icono={Target3} label="Origen">
+                {cliente.source ? (
+                  <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                    <Badge color="blue" size="sm" className="shrink-0 rounded-md px-1.5">
+                      {LABEL_ORIGEN[cliente.source]}
+                    </Badge>
+                    {cliente.source_detail && (
+                      <span className="truncate text-text-secondary">{cliente.source_detail}</span>
                     )}
                   </span>
-                  <span className="flex shrink-0 items-center gap-2">
-                    <span className="text-sm tabular-nums text-text-secondary">
-                      {formatearMonto(q.total_amount, q.currency)}
-                    </span>
-                    <EstadoCotizacionPill estado={q.commercial_status} />
-                  </span>
-                </div>
-              ))
-            )}
-          </SeccionCard>
-        )}
+                ) : (
+                  <Texto valor={null} />
+                )}
+              </Propiedad>
 
-        <SeccionCard
-          titulo="Proyectos"
-          cantidad={susProyectos.length}
-          accion={
-            esOwner && (
-              <AgregarProyectos
-                clientId={cliente.id}
-                proyectos={proyectos
-                  .filter((p) => p.client_id !== id)
-                  .map((p) => ({ id: p.id, name: p.name, cliente: nombreCliente(p, nombrePor) }))}
-              />
-            )
-          }
-        >
-          {susProyectos.length === 0 ? (
-            <Vacio>Sin proyectos.</Vacio>
+              <Propiedad icono={Phone} label="WhatsApp">
+                {wa ? <Enlace href={wa} texto={cliente.phone ?? ""} /> : <Texto valor={cliente.phone} />}
+              </Propiedad>
+
+              <Propiedad icono={Instagram} label="Instagram">
+                {ig ? <Enlace href={ig} texto={cliente.instagram ?? ""} /> : <Texto valor={cliente.instagram} />}
+              </Propiedad>
+
+              <Propiedad icono={Envelope1} label="Email">
+                {cliente.email ? (
+                  <a href={`mailto:${cliente.email}`} className="block truncate hover:underline">
+                    {cliente.email}
+                  </a>
+                ) : (
+                  <Texto valor={null} />
+                )}
+              </Propiedad>
+
+              <Propiedad icono={Briefcase4} label="Nicho">
+                <Texto valor={cliente.niche} />
+              </Propiedad>
+
+              <Propiedad icono={Globe2} label="Sitio web">
+                <Enlace href={cliente.website} />
+              </Propiedad>
+
+              <Propiedad icono={Folder1} label="Drive">
+                <Enlace href={cliente.drive_url} texto="Drive de archivos" />
+              </Propiedad>
+            </div>
+
+            {cliente.notes && (
+              <p className="mt-3 border-t border-card-border pt-3 text-sm text-text-secondary">{cliente.notes}</p>
+            )}
+          </Card>
+        </div>
+      )}
+
+      {vista === "landings" && esOwner && conectados && (
+        <ProyectosConectados clientId={cliente.id} proyectos={conectados} />
+      )}
+
+      {vista === "accesos" && (
+        <Recursos duenoId={cliente.id} tabla="client" titulo="Accesos del cliente" recursos={accesos} editable={esOwner} />
+      )}
+
+      {vista === "reuniones" && <NotasCliente clientId={cliente.id} notas={notas} />}
+
+      {vista === "portal" && esOwner && portal !== undefined && (
+        <PortalCliente clientId={cliente.id} estado={portal} portada={cliente.portal_cover_url ?? null} />
+      )}
+
+      {vista === "cotizaciones" && esOwner && (
+        <SeccionCard titulo="Cotizaciones" cantidad={susCotizaciones.length}>
+          {susCotizaciones.length === 0 ? (
+            <Vacio>Sin cotizaciones.</Vacio>
           ) : (
-            susProyectos.map((p) => (
-              <div key={p.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
-                <Link
-                  href={`/landing-pages/projects/${p.id}`}
-                  className="min-w-0 truncate text-sm text-text-primary hover:underline"
-                >
-                  {p.name}
-                </Link>
+            susCotizaciones.map((q) => (
+              <div key={q.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
+                <span className="flex min-w-0 items-center gap-2">
+                  <Link href={`/landing-pages/quotes/${q.id}`} className="truncate text-sm text-text-primary hover:underline">
+                    {q.title}
+                  </Link>
+                  {q.proposal_url && (
+                    <EnlaceExterno href={q.proposal_url}>
+                      <span className="sr-only">Abrir propuesta</span>
+                    </EnlaceExterno>
+                  )}
+                </span>
                 <span className="flex shrink-0 items-center gap-2">
-                  <EstadoProyectoPill estado={p.status} />
-                  <Vencimiento fecha={p.due_date} cerrado={p.status === "entregado"} />
+                  <span className="text-sm tabular-nums text-text-secondary">
+                    {formatearMonto(q.total_amount, q.currency)}
+                  </span>
+                  <EstadoCotizacionPill estado={q.commercial_status} />
                 </span>
               </div>
             ))
           )}
         </SeccionCard>
-      </div>
+      )}
     </>
   );
 }

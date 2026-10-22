@@ -197,3 +197,46 @@ export function TarjetaLanzamiento({
     </Link>
   );
 }
+
+/**
+ * Métrica del portal, como las tarjetas del template de dashboards: ícono en
+ * su caja, el número grande y una línea de contexto.
+ */
+export function MetricaPortal({
+  etiqueta,
+  valor,
+  detalle,
+  icono,
+  destacada,
+}: {
+  etiqueta: string;
+  valor: string;
+  detalle?: string;
+  icono: React.ReactNode;
+  /** Pide atención (por ejemplo, aprobaciones pendientes). */
+  destacada?: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex flex-col gap-4 rounded-2xl p-4 ring-1 sm:p-5",
+        destacada ? "bg-badge-warning-text/10 ring-badge-warning-text/30" : "bg-white/4 ring-white/10",
+      )}
+    >
+      <span
+        aria-hidden="true"
+        className={cn(
+          "flex size-10 items-center justify-center rounded-xl [&>svg]:size-5",
+          destacada ? "bg-badge-warning-text/15 text-badge-warning-text" : "bg-primary-500/15 text-primary-300",
+        )}
+      >
+        {icono}
+      </span>
+      <div>
+        <p className="text-2xl font-extrabold tracking-tight text-white tabular-nums sm:text-3xl">{valor}</p>
+        <p className="mt-1 text-sm font-medium text-white/70">{etiqueta}</p>
+        {detalle && <p className="mt-0.5 text-xs text-white/45">{detalle}</p>}
+      </div>
+    </div>
+  );
+}

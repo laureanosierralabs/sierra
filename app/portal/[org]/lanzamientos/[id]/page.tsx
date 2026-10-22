@@ -20,8 +20,8 @@ type Vista = "entrega" | "resultados";
 /** Pestañas Entrega / Resultados: links, así cada vista tiene su URL. */
 function Pestanas({ base, actual }: { base: string; actual: Vista }) {
   const pestanas: { vista: Vista; etiqueta: string; href: string }[] = [
-    { vista: "entrega", etiqueta: "Entrega", href: base },
-    { vista: "resultados", etiqueta: "Resultados", href: `${base}?vista=resultados` },
+    { vista: "resultados", etiqueta: "Resultados", href: base },
+    { vista: "entrega", etiqueta: "Entrega", href: `${base}?vista=entrega` },
   ];
   return (
     <nav aria-label="Secciones del lanzamiento" className="flex w-full rounded-full bg-white/5 p-1 ring-1 ring-white/10 sm:w-auto">
@@ -44,10 +44,10 @@ function Pestanas({ base, actual }: { base: string; actual: Vista }) {
 }
 
 /**
- * Un lanzamiento en el portal, como el panel de archivos de la referencia:
- * el banner y, debajo, dos pestañas. "Entrega" tiene cada landing con sus
- * PDFs y recursos, los accesos y los videos de soporte; "Resultados", las
- * métricas y el reporte.
+ * Un lanzamiento en el portal: el banner y, debajo, dos pestañas. Primero
+ * "Resultados" (las métricas y el reporte: lo que el cliente quiere ver al
+ * entrar); después "Entrega", con cada landing y sus PDFs y recursos, los
+ * accesos y los videos de soporte.
  */
 export default async function PortalLanzamiento({
   params,
@@ -63,7 +63,7 @@ export default async function PortalLanzamiento({
   const detalle = await lanzamientoPortal(ctx, id);
   if (!detalle) notFound();
   const { lanzamiento, paginas } = detalle;
-  const vista: Vista = vistaCruda === "resultados" ? "resultados" : "entrega";
+  const vista: Vista = vistaCruda === "entrega" ? "entrega" : "resultados";
 
   // Accesos y videos son extras: si fallan, el lanzamiento se ve igual.
   const [accesos, videos] =

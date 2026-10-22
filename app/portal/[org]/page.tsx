@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ExpandArrowTopRightSquare1 } from "@tailgrids/icons";
+import { CheckCircle1, ExpandArrowTopRightSquare1, Message1, Rocket1, UserMultiple4 } from "@tailgrids/icons";
 import { EstadoPagoPill } from "@/components/landing/ui";
-import { HeroPortal, SeccionPortal, TarjetaLanzamiento } from "@/components/portal/portal-ui";
+import { HeroPortal, MetricaPortal, SeccionPortal, TarjetaLanzamiento } from "@/components/portal/portal-ui";
 import { AvisoVistaInterna } from "@/components/portal/vista-interna";
 import { codigoCotizacion, fechaCorta, fechaCotizacion, formatearMonto } from "@/lib/landing/tipos";
 import { LABEL_ESTADO_LANZAMIENTO } from "@/lib/lanzamientos/tipos";
@@ -39,6 +39,8 @@ export default async function PortalCliente({ params }: { params: Promise<{ org:
   ]);
   const porAprobar = pedidos.filter((p) => p.kind === "aprobacion" && p.status === "abierta").length;
   const abiertos = pedidos.filter((p) => !estaCerrado(p.status)).length;
+  const registros = lanzamientos.reduce((n, l) => n + l.registros, 0);
+  const activos = lanzamientos.filter((l) => l.status === "activo").length;
 
   return (
     <>
@@ -73,7 +75,37 @@ export default async function PortalCliente({ params }: { params: Promise<{ org:
         }
       />
 
-      <div className="flex flex-col gap-14">
+      <div className="flex flex-col gap-12 sm:gap-14">
+        <SeccionPortal titulo="Resumen">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+            <MetricaPortal
+              etiqueta="Registros"
+              valor={registros.toLocaleString("es-AR")}
+              detalle={lanzamientos.length === 1 ? "En tu lanzamiento" : `En ${lanzamientos.length} lanzamientos`}
+              icono={<UserMultiple4 />}
+            />
+            <MetricaPortal
+              etiqueta={activos === 1 ? "Lanzamiento activo" : "Lanzamientos activos"}
+              valor={String(activos)}
+              detalle={`De ${lanzamientos.length} en total`}
+              icono={<Rocket1 />}
+            />
+            <MetricaPortal
+              etiqueta={abiertos === 1 ? "Pedido abierto" : "Pedidos abiertos"}
+              valor={String(abiertos)}
+              detalle={abiertos === 0 ? "Todo al día" : "Lo estamos resolviendo"}
+              icono={<Message1 />}
+            />
+            <MetricaPortal
+              etiqueta="Esperan tu aprobación"
+              valor={String(porAprobar)}
+              detalle={porAprobar === 0 ? "Nada pendiente" : "Revisalos en Pedidos"}
+              icono={<CheckCircle1 />}
+              destacada={porAprobar > 0}
+            />
+          </div>
+        </SeccionPortal>
+
         {porAprobar > 0 && (
           <Link
             href={`/portal/${ctx.slug}/pedidos`}
