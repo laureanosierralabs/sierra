@@ -34,7 +34,7 @@ export interface NavSection {
  * como sección propia con sus páginas a la vista (es donde se trabaja todos
  * los días). Wonder Digital solo la ven los members.
  */
-const UNIDADES_OWNER: Unidad[] = ["synous-ai"];
+const UNIDADES_OWNER: Unidad[] = ["synous-ai", "aura-studio"];
 
 /** Secciones de una unidad según rol: las `owner` no las ve un Builder. */
 function seccionesDe(unidad: Unidad, esOwner: boolean) {

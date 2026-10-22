@@ -9,6 +9,7 @@ export const UNIDADES = [
   "landing-pages",
   "marca-personal",
   "synous-ai",
+  "aura-studio",
   "wonder-digital",
 ] as const;
 
@@ -74,6 +75,12 @@ export const DEFINICIONES: Record<Unidad, DefinicionUnidad> = {
     slug: "synous-ai",
     nombre: "Synous AI",
     href: "https://admin.synousai.com/",
+    externa: true,
+  },
+  "aura-studio": {
+    slug: "aura-studio",
+    nombre: "Aura Studio",
+    href: "https://www.aurastudio.com.ar/admin",
     externa: true,
   },
   "wonder-digital": {
