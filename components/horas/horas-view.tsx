@@ -75,7 +75,7 @@ export function HorasView({ entradas, esOwner, userId, personas, truncado, clien
       crearColumnasHoras({
         verPersona,
         nombreCliente,
-        puedeTocar: (e) => esOwner || e.user_id === userId,
+        puedeTocar: (e) => esOwner || (e.user_id === userId && !e.team_payment_id),
         onEditar: (e) => setFormulario({ entrada: e }),
         onBorrar: setABorrar,
       }),
@@ -84,6 +84,7 @@ export function HorasView({ entradas, esOwner, userId, personas, truncado, clien
 
   const total = totalMinutos(entradas);
   const dias = new Set(entradas.map((e) => e.work_date)).size;
+  const sinPagar = totalMinutos(entradas.filter((e) => !e.team_payment_id));
   const mesActual = hoy.slice(0, 7);
   const meses = useMemo(() => {
     const lista = Array.from({ length: 12 }, (_, i) => correrMes(mesActual, -i));
@@ -191,13 +192,14 @@ export function HorasView({ entradas, esOwner, userId, personas, truncado, clien
             </Button>
           </div>
 
-          <dl className="grid grid-cols-3 divide-x divide-card-border">
+          <dl className="grid grid-cols-2 gap-y-3 sm:grid-cols-4 sm:divide-x sm:divide-card-border">
             {[
               { titulo: "Total", valor: duracionTexto(total) },
               { titulo: "Días trabajados", valor: String(dias) },
               { titulo: "Promedio por día", valor: dias > 0 ? duracionTexto(Math.round(total / dias)) : "—" },
+              { titulo: "Sin pagar", valor: sinPagar > 0 ? duracionTexto(sinPagar) : "—" },
             ].map((s) => (
-              <div key={s.titulo} className="px-4 first:pl-0 lg:px-6 lg:last:pr-0">
+              <div key={s.titulo} className="sm:px-4 sm:first:pl-0 lg:px-6 lg:last:pr-0">
                 <dt className="text-xs text-text-tertiary">{s.titulo}</dt>
                 <dd className="mt-0.5 text-lg font-semibold tabular-nums text-text-primary">{s.valor}</dd>
               </div>

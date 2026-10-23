@@ -30,7 +30,7 @@ interface Opciones {
   onBorrar: (e: EntradaHora) => void;
 }
 
-/** Fecha, persona (solo vista de equipo), horario, duración, trabajo, cliente y acciones. */
+/** Fecha, persona (solo vista de equipo), horario, duración, trabajo, cliente, estado de pago y acciones. */
 export function crearColumnasHoras({ verPersona, nombreCliente, puedeTocar, onEditar, onBorrar }: Opciones): ColumnDef<EntradaHora>[] {
   const columnas: ColumnDef<EntradaHora>[] = [
     {
@@ -111,6 +111,21 @@ export function crearColumnasHoras({ verPersona, nombreCliente, puedeTocar, onEd
           SIN_DATO
         );
       },
+    },
+    {
+      id: "estado",
+      header: "Estado",
+      accessorFn: (e) => (e.team_payment_id ? "Pagado" : "Pendiente"),
+      cell: ({ row }) =>
+        row.original.team_payment_id ? (
+          <Badge color="success" size="sm" className="whitespace-nowrap rounded-md">
+            Pagado
+          </Badge>
+        ) : (
+          <Badge color="gray" size="sm" className="whitespace-nowrap rounded-md">
+            Pendiente
+          </Badge>
+        ),
     },
     {
       id: "acciones",

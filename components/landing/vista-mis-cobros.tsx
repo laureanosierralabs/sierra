@@ -21,6 +21,7 @@ import {
   type Filtros,
 } from "@/lib/landing/mis-cobros-vista";
 import { codigoAcuerdo, fechaCorta, formatearMonto } from "@/lib/landing/tipos";
+import { duracionTexto } from "@/lib/horas/tipos";
 
 /** Pagos que se ven de entrada; el resto, al desplegar. */
 const PAGOS_VISIBLES = 3;
@@ -95,14 +96,29 @@ function TarjetaAcuerdo({ acuerdo: a }: { acuerdo: MiAcuerdo }) {
           <>
             <ul className="flex flex-col gap-1.5">
               {visibles.map((p) => (
-                <li key={p.id} className="flex items-center justify-between gap-3 text-sm">
-                  <span className="tabular-nums text-text-secondary">
-                    {fechaCorta(p.paid_on)}
-                    {p.method ? <span className="text-text-tertiary"> · {p.method}</span> : null}
+                <li key={p.id} className="flex flex-col gap-0.5 text-sm">
+                  <span className="flex items-center justify-between gap-3">
+                    <span className="tabular-nums text-text-secondary">
+                      {fechaCorta(p.paid_on)}
+                      {p.method ? <span className="text-text-tertiary"> · {p.method}</span> : null}
+                    </span>
+                    <span className="font-medium tabular-nums text-text-primary">
+                      {formatearMonto(p.amount, a.currency)}
+                    </span>
                   </span>
-                  <span className="font-medium tabular-nums text-text-primary">
-                    {formatearMonto(p.amount, a.currency)}
-                  </span>
+                  {p.horas && (
+                    <Link
+                      href={`/landing-pages/horas?mes=${p.horas.desde.slice(0, 7)}`}
+                      className="inline-flex items-center gap-1 self-start text-xs text-text-tertiary hover:text-primary-500 [&>svg]:size-3.5"
+                    >
+                      <ClockThree />
+                      {duracionTexto(p.horas.minutos)} cargadas
+                      {p.horas.desde === p.horas.hasta
+                        ? ` el ${fechaCorta(p.horas.desde)}`
+                        : ` del ${fechaCorta(p.horas.desde)} al ${fechaCorta(p.horas.hasta)}`}
+                      {" · ver horas"}
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>

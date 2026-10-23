@@ -44,7 +44,7 @@ export async function horasVisibles(filtro: FiltroHoras): Promise<VistaHoras | n
 
   let consulta = db
     .from("time_entries")
-    .select("id, user_id, user_name, client_id, work_date, start_time, end_time, minutes, notes")
+    .select("id, user_id, user_name, client_id, work_date, start_time, end_time, minutes, notes, team_payment_id")
     .order("work_date", { ascending: false })
     .order("start_time", { ascending: false })
     .limit(TOPE);

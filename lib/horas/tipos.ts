@@ -17,6 +17,8 @@ export interface EntradaHora {
   end_time: string;
   minutes: number;
   notes: string;
+  /** Pago al equipo (team_payments) que cubrió esta carga; null = pendiente. */
+  team_payment_id: string | null;
 }
 
 export const MAX_NOTAS = 2000;
@@ -37,15 +39,25 @@ export function fechaValida(valor: string): string | null {
   return Number.isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== v ? null : v;
 }
 
-/** Minutos entre dos horas del mismo día; null si el fin no es posterior al inicio. */
+/** Tope por carga: un horario tipeado al revés no se convierte en 20 horas. */
+export const MAX_MINUTOS_CARGA = 16 * 60;
+
+/**
+ * Minutos entre dos horas. Si el fin es menor que el inicio, termina al día
+ * siguiente (23:20 → 05:50 = 390). Null si son iguales o si pasa el tope.
+ * Misma cuenta que la columna generada `minutes` de time_entries.
+ */
 export function minutosEntre(inicio: string, fin: string): number | null {
   const a = horaValida(inicio);
   const b = horaValida(fin);
   if (!a || !b) return null;
   const min = (h: string) => Number(h.slice(0, 2)) * 60 + Number(h.slice(3, 5));
-  const diff = min(b) - min(a);
-  return diff > 0 ? diff : null;
+  const diff = (min(b) - min(a) + 1440) % 1440;
+  return diff > 0 && diff <= MAX_MINUTOS_CARGA ? diff : null;
 }
+
+/** El horario termina al día siguiente (cruza la medianoche). */
+export const cruzaMedianoche = (inicio: string, fin: string) => fin < inicio;
 
 /** Horas con dos decimales y coma, como la planilla: 90 → "1,50". */
 export function horasTexto(minutos: number): string {

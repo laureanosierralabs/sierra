@@ -23,10 +23,18 @@ async function exigirEquipo() {
 
 const texto = (fd: FormData, campo: string) => String(fd.get(campo) ?? "").trim();
 
-/** La fila existe y quien la toca es su dueño o el owner. */
+/**
+ * La fila existe y quien la toca es su dueño o el owner. Una carga ya pagada
+ * solo la toca el owner: cambiarla cambiaría lo que se pagó.
+ */
 async function puedeTocar(id: string, userId: string, esOwner: boolean): Promise<boolean> {
-  const { data } = await supabaseAdmin().from("time_entries").select("user_id").eq("id", id).maybeSingle();
-  return !!data && (esOwner || data.user_id === userId);
+  const { data } = await supabaseAdmin()
+    .from("time_entries")
+    .select("user_id, team_payment_id")
+    .eq("id", id)
+    .maybeSingle();
+  if (!data) return false;
+  return esOwner || (data.user_id === userId && !data.team_payment_id);
 }
 
 export async function guardarHora(fd: FormData): Promise<Resultado> {
@@ -41,7 +49,7 @@ export async function guardarHora(fd: FormData): Promise<Resultado> {
 
   if (!fecha) return { error: "Falta el día" };
   if (!inicio || !fin) return { error: "Faltan la hora de comienzo o la de finalización" };
-  if (minutosEntre(inicio, fin) === null) return { error: "La hora de finalización tiene que ser posterior a la de comienzo" };
+  if (minutosEntre(inicio, fin) === null) return { error: "Revisá el horario: una carga no puede durar más de 16 horas ni empezar y terminar a la misma hora" };
   if (!notas) return { error: "Contá qué trabajaste" };
   if (notas.length > MAX_NOTAS) return { error: `El comentario no puede pasar de ${MAX_NOTAS} caracteres` };
 
@@ -63,8 +71,8 @@ export async function guardarHora(fd: FormData): Promise<Resultado> {
   if (id) {
     if (!(await puedeTocar(id, userId, esOwner))) return { error: "No podés editar esta carga" };
     let cambio = db.from("time_entries").update(campos).eq("id", id);
-    // Además del chequeo previo: el equipo solo puede modificar sus filas.
-    if (!esOwner) cambio = cambio.eq("user_id", userId);
+    // Además del chequeo previo: el equipo solo modifica sus filas sin pagar.
+    if (!esOwner) cambio = cambio.eq("user_id", userId).is("team_payment_id", null);
     const { error } = await cambio;
     if (error) return { error: "No se pudo guardar: probá de nuevo" };
   } else {
@@ -84,7 +92,7 @@ export async function borrarHora(id: string): Promise<Resultado> {
   const { userId, esOwner } = await exigirEquipo();
   if (!(await puedeTocar(id, userId, esOwner))) return { error: "No podés borrar esta carga" };
   let borrado = supabaseAdmin().from("time_entries").delete().eq("id", id);
-  if (!esOwner) borrado = borrado.eq("user_id", userId);
+  if (!esOwner) borrado = borrado.eq("user_id", userId).is("team_payment_id", null);
   const { error } = await borrado;
   if (error) return { error: "No se pudo borrar: probá de nuevo" };
   revalidatePath("/landing-pages/horas");

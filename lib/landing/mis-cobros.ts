@@ -18,6 +18,8 @@ export interface PagoRecibido {
   amount: number;
   paid_on: string;
   method: string | null;
+  /** Horas que cubrió este pago (Horas → pagadas); null si no viene de horas cargadas. */
+  horas: { minutos: number; desde: string; hasta: string } | null;
 }
 
 export interface MiAcuerdo {
@@ -38,8 +40,23 @@ type Fila = Omit<MiAcuerdo, "proyectos" | "pagos" | "total_amount" | "amount_pai
   total_amount: number | string | null;
   amount_paid: number | string;
   agreement_projects: { projects: { id: string; name: string } | { id: string; name: string }[] | null }[] | null;
-  team_payments: (Omit<PagoRecibido, "amount"> & { amount: number | string })[] | null;
+  team_payments:
+    | (Omit<PagoRecibido, "amount" | "horas"> & {
+        amount: number | string;
+        time_entries: { minutes: number | string; work_date: string }[] | null;
+      })[]
+    | null;
 };
+
+function horasDelPago(filas: { minutes: number | string; work_date: string }[] | null): PagoRecibido["horas"] {
+  if (!filas || filas.length === 0) return null;
+  const dias = filas.map((f) => f.work_date).sort();
+  return {
+    minutos: filas.reduce((t, f) => t + Number(f.minutes), 0),
+    desde: dias[0],
+    hasta: dias[dias.length - 1],
+  };
+}
 
 /** Acuerdos de la persona logueada, del más nuevo al más viejo. */
 export async function misAcuerdos(): Promise<MiAcuerdo[]> {
@@ -49,7 +66,7 @@ export async function misAcuerdos(): Promise<MiAcuerdo[]> {
   const { data, error } = await supabaseAdmin()
     .from("team_agreements")
     .select(
-      "id, numero, title, total_amount, currency, amount_paid, payment_status, payment_terms, agreed_on, agreement_projects(projects(id, name)), team_payments(id, amount, paid_on, method)",
+      "id, numero, title, total_amount, currency, amount_paid, payment_status, payment_terms, agreed_on, agreement_projects(projects(id, name)), team_payments(id, amount, paid_on, method, time_entries(minutes, work_date))",
     )
     .eq("member_user_id", userId)
     .order("numero", { ascending: false });
@@ -70,7 +87,7 @@ export async function misAcuerdos(): Promise<MiAcuerdo[]> {
       .map((v) => (Array.isArray(v.projects) ? v.projects[0] : v.projects))
       .filter((p): p is { id: string; name: string } => Boolean(p)),
     pagos: (f.team_payments ?? [])
-      .map((p) => ({ ...p, amount: Number(p.amount) }))
+      .map(({ time_entries, ...p }) => ({ ...p, amount: Number(p.amount), horas: horasDelPago(time_entries) }))
       .sort((a, b) => b.paid_on.localeCompare(a.paid_on)),
   }));
 }

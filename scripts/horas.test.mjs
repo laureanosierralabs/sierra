@@ -30,11 +30,15 @@ const entrada = (extra = {}) => ({
   ...extra,
 });
 
-test("minutos entre dos horas; el fin tiene que ser posterior", () => {
+test("minutos entre dos horas, cruzando la medianoche con tope de 16 h", () => {
   assert.equal(minutosEntre("14:00", "16:00"), 120);
   assert.equal(minutosEntre("19:00", "20:30"), 90);
   assert.equal(minutosEntre("09:15:00", "10:00:00"), 45);
   assert.equal(minutosEntre("16:00", "16:00"), null);
+  // 23:20 → 05:50 termina al día siguiente: 6,5 h (carga real de Bruno).
+  assert.equal(minutosEntre("23:20", "05:50"), 390);
+  assert.equal(minutosEntre("00:40", "01:10"), 30);
+  // Al revés por error daría 20 h: pasa el tope.
   assert.equal(minutosEntre("20:00", "16:00"), null);
   assert.equal(minutosEntre("25:00", "26:00"), null);
 });
@@ -97,7 +101,9 @@ test("el equipo solo lee y toca sus horas; el dueño de una fila sale de la sesi
   for (const f of acciones.split("export async function ").slice(1)) {
     assert.match(f.slice(f.indexOf("{\n") + 1).trimStart(), /^const \{ userId, esOwner \} = await exigirEquipo\(\);/);
   }
-  assert.match(acciones, /esOwner \|\| data\.user_id === userId/);
+  // Una carga pagada solo la toca el owner.
+  assert.match(acciones, /esOwner \|\| \(data\.user_id === userId && !data\.team_payment_id\)/);
+  assert.match(acciones, /\.eq\("user_id", userId\)\.is\("team_payment_id", null\)/);
   const sql = leer("../supabase/migrations/20261105000000_time_entries.sql");
   assert.match(sql, /check \(end_time > start_time\)/);
   assert.match(sql, /revoke all on table time_entries from public, anon, authenticated/);

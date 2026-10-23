@@ -6,7 +6,7 @@ import { FormSelectField } from "@/components/common/form/form-fields";
 import { DialogoForm, Input, Textarea } from "@/components/landing/dialogo-form";
 import { SIN_OPCION } from "@/components/landing/proyecto-esquema";
 import { guardarHora } from "@/app/landing-pages/horas-acciones";
-import { duracionTexto, MAX_NOTAS, minutosEntre, type EntradaHora } from "@/lib/horas/tipos";
+import { cruzaMedianoche, duracionTexto, MAX_NOTAS, minutosEntre, type EntradaHora } from "@/lib/horas/tipos";
 
 function Campo({ etiqueta, children }: { etiqueta: string; children: React.ReactNode }) {
   return (
@@ -92,9 +92,10 @@ function Campos({
           minutos !== null ? (
             <span className="text-text-secondary">
               Duración: <span className="font-semibold text-text-primary tabular-nums">{duracionTexto(minutos)}</span>
+              {cruzaMedianoche(inicio, fin) && <span className="text-text-tertiary"> · termina al día siguiente</span>}
             </span>
           ) : (
-            <span className="text-error-500">La finalización tiene que ser posterior al comienzo</span>
+            <span className="text-error-500">Revisá el horario: más de 16 horas o empieza y termina igual</span>
           )
         ) : (
           <span className="text-text-tertiary">La duración se calcula sola</span>
