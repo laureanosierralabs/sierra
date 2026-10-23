@@ -18,7 +18,9 @@ type Contexto = { params: Promise<{ token: string }> };
  *   POST /w/<token>  (e=...)   → igual que el GET con email
  *
  * El link se pega en el correo de MailerLite o GoHighLevel con la variable del
- * email de cada contacto. Registrar el ingreso nunca bloquea la entrada: si
+ * email de cada contacto. En el correo va con el dominio del cliente
+ * (<landing>/vivo/<token>): la landing lo reenvía acá, y por eso el formulario
+ * se envía a su propia URL y no a /w/. Registrar el ingreso nunca bloquea la entrada: si
  * la base falla, igual se redirige.
  */
 export async function GET(req: Request, { params }: Contexto) {
@@ -150,7 +152,7 @@ function pagina(titulo: string, detalle: string, estado = 200) {
 function formulario(token: string, aviso: string | null) {
   return documento(`<h1>Entrá al webinar</h1>
 <p>Escribí el email con el que te registraste para entrar.</p>
-<form method="post" action="/w/${escapar(token)}">
+<form method="post">
 <label for="e">Tu email</label>
 <input id="e" name="e" type="email" inputmode="email" autocomplete="email" required autofocus placeholder="vos@ejemplo.com">
 ${aviso ? `<p class="aviso" role="alert">${escapar(aviso)}</p>` : ""}

@@ -10,6 +10,10 @@
  *   NEXT_PUBLIC_SIERRA_SITE_KEY   clave pública del proyecto
  *   SIERRA_INGEST_SECRET          secreto de firma (nunca con NEXT_PUBLIC_)
  *
+ * Link personal del webinar con el dominio del cliente: sumar en next.config
+ * el rewrite { source: "/vivo/:token", destination: `${NEXT_PUBLIC_SIERRA_URL}/w/:token` }.
+ * El panel arma el link como https://<dominio de la landing>/vivo/<token>.
+ *
  * Nunca lanza: si el panel no responde, el formulario o el pago siguen
  * funcionando igual. Llamar DESPUÉS de guardar el dato donde corresponda
  * (MailerLite, GoHighLevel, Stripe…), nunca en su lugar.

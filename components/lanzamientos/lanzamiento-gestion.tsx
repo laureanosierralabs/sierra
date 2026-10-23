@@ -1039,7 +1039,17 @@ function LinkPersonal({ etiqueta, valor }: { etiqueta: string; valor: string }) 
  * queda registrado como "se conectó al webinar" y pasa al Zoom. Solo en el
  * panel del owner: el portal del cliente no arma links.
  */
-export function WebinarConfig({ launchId, url, token }: { launchId: string; url: string | null; token: string }) {
+export function WebinarConfig({
+  launchId,
+  url,
+  token,
+  dominio,
+}: {
+  launchId: string;
+  url: string | null;
+  token: string;
+  dominio: string | null;
+}) {
   const form = useZodForm({ action: guardarWebinar, successMessage: "Link del webinar guardado" });
   // El origen se lee en el navegador: así sirve igual en local, preview y producción.
   const origen = useSyncExternalStore(
@@ -1047,7 +1057,10 @@ export function WebinarConfig({ launchId, url, token }: { launchId: string; url:
     () => window.location.origin,
     () => "",
   );
-  const base = `${origen || "https://…"}/w/${token}`;
+  // Con landing conectada, el contacto ve el dominio del cliente: la landing
+  // reenvía /vivo/<token> al panel. Sin landing, queda el link del panel.
+  const hostLanding = dominio?.replace(/^https?:\/\//i, "").replace(/\/+$/, "") || null;
+  const base = hostLanding ? `https://${hostLanding}/vivo/${token}` : `${origen || "https://…"}/w/${token}`;
 
   return (
     <div className="flex flex-col gap-4 px-4 py-4">

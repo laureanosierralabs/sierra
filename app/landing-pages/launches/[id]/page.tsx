@@ -85,6 +85,7 @@ export default async function LanzamientoDetalle({
           lista.map(async (s) => ({
             id: s.id,
             name: s.name,
+            domain: s.domain,
             rutas: (await rutasDeSitio(clientId, s.id)).map((r) => r.path),
           })),
         ),
@@ -100,6 +101,12 @@ export default async function LanzamientoDetalle({
   if (!detalle || !conexion) notFound();
 
   const { lanzamiento, paginas } = detalle;
+  // El link personal del webinar sale con el dominio del cliente: su landing
+  // reenvía /vivo/<token> al panel.
+  const dominioLanding =
+    paginas
+      .map((p) => (p.site_id ? sitios.find((s) => s.id === p.site_id)?.domain : null))
+      .find((d): d is string => !!d) ?? null;
   const proyectosDelCliente = proyectos
     .filter((p) => p.client_id === clientId)
     .map((p) => ({ id: p.id, name: p.name }));
@@ -310,7 +317,7 @@ export default async function LanzamientoDetalle({
 
           {webinar && (
             <SeccionCard titulo="Webinar">
-              <WebinarConfig launchId={lanzamiento.id} url={webinar.url} token={webinar.token} />
+              <WebinarConfig launchId={lanzamiento.id} url={webinar.url} token={webinar.token} dominio={dominioLanding} />
             </SeccionCard>
           )}
 
