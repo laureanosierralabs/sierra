@@ -31,6 +31,10 @@ const COLUMNAS_REGISTRO =
 
 export interface LanzamientoConTotal extends Lanzamiento {
   registros: number;
+  /** Compras medidas en sus landings (por proyecto conectado). */
+  ventas: number;
+  /** Todas sus landings son de venta: se mide en ventas, no en registros. */
+  deVenta: boolean;
 }
 
 /**
@@ -68,59 +72,89 @@ export async function lanzamientosDeCliente(clientId: string): Promise<Lanzamien
     return { ...l, registros: launch_registrations?.[0]?.count ?? 0 };
   });
 
-  // Las landings de un proyecto conectado guardan sus registros por sitio y
-  // ruta, no en launch_registrations: se suman igual que en el detalle.
-  const extra = await registrosDeSitios(clientId, lanzamientos);
-  return lanzamientos.map((l) => ({ ...l, registros: l.registros + (extra.get(l.id) ?? 0) }));
+  // Las landings de un proyecto conectado guardan sus registros y compras por
+  // sitio y ruta, no en launch_registrations: se suman igual que en el detalle.
+  const extra = await totalesDeSitios(clientId, lanzamientos);
+  return lanzamientos.map((l) => {
+    const t = extra.get(l.id);
+    return {
+      ...l,
+      registros: l.registros + (t?.registros ?? 0),
+      ventas: t?.ventas ?? 0,
+      deVenta: t?.deVenta ?? false,
+    };
+  });
+}
+
+interface TotalesDeSitio {
+  registros: number;
+  ventas: number;
+  deVenta: boolean;
 }
 
 /**
- * Registros (no compras) que llegaron por proyecto conectado, por
- * lanzamiento: mismas rutas y mismo período que lee `lanzamientoDeCliente`.
- * Si falla, el total muestra solo lo propio en vez de romper la lista.
+ * Por lanzamiento: registros (no compras) y compras que llegaron por proyecto
+ * conectado, con las mismas rutas y el mismo período que lee
+ * `lanzamientoDeCliente`, y si es un lanzamiento de venta. Si falla, la lista
+ * muestra solo lo propio en vez de romperse.
  */
-async function registrosDeSitios(clientId: string, lanzamientos: Lanzamiento[]): Promise<Map<string, number>> {
-  const totales = new Map<string, number>();
+async function totalesDeSitios(clientId: string, lanzamientos: Lanzamiento[]): Promise<Map<string, TotalesDeSitio>> {
+  const totales = new Map<string, TotalesDeSitio>();
   if (lanzamientos.length === 0) return totales;
   const db = supabaseAdmin();
   const { data: paginas, error } = await db
     .from("launch_pages")
-    .select("launch_id, site_id, path")
-    .eq("client_id", clientId)
-    .not("site_id", "is", null)
-    .not("path", "is", null);
+    .select("launch_id, site_id, path, kind")
+    .eq("client_id", clientId);
   if (error) {
-    console.error("[lanzamientos] no se pudieron leer las landings conectadas:", error.message);
+    console.error("[lanzamientos] no se pudieron leer las landings:", error.message);
     return totales;
   }
 
+  const contar = async (siteId: string, rutas: string[], desde: string, hasta: string, compras: boolean) => {
+    let consulta = db
+      .from("site_conversions")
+      .select("id", { count: "exact", head: true })
+      .eq("client_id", clientId)
+      .eq("site_id", siteId)
+      .in("path", rutas)
+      .gte("occurred_at", `${desde}T00:00:00-03:00`)
+      .lte("occurred_at", `${hasta}T23:59:59.999-03:00`);
+    consulta = compras
+      ? consulta.eq("kind", "purchase")
+      : consulta.neq("kind", "purchase").not("email", "is", null).neq("email", "");
+    const { count, error: errConteo } = await consulta;
+    if (errConteo) {
+      console.error("[lanzamientos] no se pudieron contar las conversiones del proyecto:", errConteo.message);
+      return 0;
+    }
+    return count ?? 0;
+  };
+
   await Promise.all(
     lanzamientos.map(async (l) => {
+      const propias = (paginas ?? []).filter((p) => p.launch_id === l.id);
+      const t: TotalesDeSitio = {
+        registros: 0,
+        ventas: 0,
+        deVenta: propias.length > 0 && propias.every((p) => p.kind === "venta"),
+      };
       const porSitio = new Map<string, string[]>();
-      for (const p of paginas ?? []) {
-        if (p.launch_id !== l.id) continue;
+      for (const p of propias) {
+        if (!p.site_id || !p.path) continue;
         porSitio.set(p.site_id as string, [...(porSitio.get(p.site_id as string) ?? []), p.path as string]);
       }
       const desde = l.starts_on ?? diaDe(l.created_at);
       const hasta = l.ends_on ?? diaDe(new Date());
       for (const [siteId, rutas] of porSitio) {
-        const { count, error: errConteo } = await db
-          .from("site_conversions")
-          .select("id", { count: "exact", head: true })
-          .eq("client_id", clientId)
-          .eq("site_id", siteId)
-          .in("path", rutas)
-          .neq("kind", "purchase")
-          .not("email", "is", null)
-          .neq("email", "")
-          .gte("occurred_at", `${desde}T00:00:00-03:00`)
-          .lte("occurred_at", `${hasta}T23:59:59.999-03:00`);
-        if (errConteo) {
-          console.error("[lanzamientos] no se pudieron contar los registros del proyecto:", errConteo.message);
-          continue;
-        }
-        totales.set(l.id, (totales.get(l.id) ?? 0) + (count ?? 0));
+        const [registros, ventas] = await Promise.all([
+          contar(siteId, rutas, desde, hasta, false),
+          contar(siteId, rutas, desde, hasta, true),
+        ]);
+        t.registros += registros;
+        t.ventas += ventas;
       }
+      totales.set(l.id, t);
     }),
   );
   return totales;

@@ -10,7 +10,10 @@ import { LABEL_ESTADO_LANZAMIENTO } from "@/lib/lanzamientos/tipos";
 function TarjetaLanzamiento({ l }: { l: LanzamientoConTotal }) {
   const imagen = l.banner_url ?? l.cover_url;
   const fechas = l.starts_on ? `${fechaCorta(l.starts_on)}${l.ends_on ? ` → ${fechaCorta(l.ends_on)}` : ""}` : null;
-  const avance = l.goal_registrations ? Math.min(100, Math.round((l.registros / l.goal_registrations) * 100)) : null;
+  // Un lanzamiento de venta se mide en ventas; uno de registro, en registros.
+  const avance =
+    !l.deVenta && l.goal_registrations ? Math.min(100, Math.round((l.registros / l.goal_registrations) * 100)) : null;
+  const cifra = l.deVenta ? l.ventas : l.registros;
 
   return (
     <Link href={`/landing-pages/launches/${l.id}`} className="group outline-none">
@@ -40,12 +43,14 @@ function TarjetaLanzamiento({ l }: { l: LanzamientoConTotal }) {
           <div className="mt-auto">
             <div className="flex items-baseline justify-between gap-2">
               <span className="text-xl font-semibold text-text-primary tabular-nums">
-                {l.registros.toLocaleString("es-AR")}
+                {cifra.toLocaleString("es-AR")}
               </span>
               <span className="text-xs text-text-tertiary">
                 {avance !== null
                   ? `${avance}% de ${l.goal_registrations?.toLocaleString("es-AR")}`
-                  : "registros"}
+                  : l.deVenta
+                    ? "ventas medidas"
+                    : "registros"}
               </span>
             </div>
             {avance !== null && (

@@ -67,7 +67,11 @@ export default async function PortalCliente({ params }: { params: Promise<{ org:
                   estado={LABEL_ESTADO_LANZAMIENTO[l.status]}
                   activo={l.status === "activo"}
                   fechas={l.starts_on ? `${fechaCorta(l.starts_on)}${l.ends_on ? ` → ${fechaCorta(l.ends_on)}` : ""}` : null}
-                  detalle={`${l.registros.toLocaleString("es-AR")} registros`}
+                  detalle={
+                    l.deVenta
+                      ? `${l.ventas.toLocaleString("es-AR")} ventas medidas`
+                      : `${l.registros.toLocaleString("es-AR")} registros`
+                  }
                 />
               ))}
             </div>
