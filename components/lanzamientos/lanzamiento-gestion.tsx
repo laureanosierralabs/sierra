@@ -33,7 +33,9 @@ import {
   conectarMailerlite,
   desconectarMailerlite,
   guardarConclusiones,
+  guardarReporteDiario,
   guardarWebinar,
+  enviarPruebaReporte,
   importarLista,
   importarRegistros,
   guardarLanzamiento,
@@ -1079,6 +1081,76 @@ export function WebinarConfig({ launchId, url, token }: { launchId: string; url:
           &quot;se conectó al webinar&quot; y pasa al Zoom. Si abre el link sin email, se lo pedimos.
         </p>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Reporte diario por mail al cliente: prendido/apagado y a quién va. Lo manda
+ * un cron todos los días a las 9 (hora de Argentina) mientras el lanzamiento
+ * está activo; al terminar, un resumen final. "Enviarme una prueba" manda el
+ * de hoy al mail del owner logueado, sin contar como enviado.
+ */
+export function ReporteDiarioConfig({
+  launchId,
+  activo,
+  destinatarios,
+  resendListo,
+  finalEnviado,
+}: {
+  launchId: string;
+  activo: boolean;
+  destinatarios: string[];
+  resendListo: boolean;
+  finalEnviado: string | null;
+}) {
+  const form = useZodForm({ action: guardarReporteDiario, successMessage: null });
+  const prueba = useZodForm({ action: enviarPruebaReporte, successMessage: null });
+
+  return (
+    <div className="flex flex-col gap-4 px-4 py-4">
+      {!resendListo && (
+        <p className="rounded-lg border border-card-border bg-base-50 px-3 py-2 text-sm text-text-secondary">
+          Resend no está configurado en este entorno: el reporte no se va a enviar hasta que estén RESEND_API_KEY y
+          RESEND_FROM.
+        </p>
+      )}
+      <form onSubmit={form.onSubmit} className="flex flex-col gap-3">
+        <input type="hidden" name="launch_id" value={launchId} />
+        <Checkbox name="daily_report" defaultSelected={activo} className="w-fit">
+          <span className="text-sm font-medium text-text-primary">Mandar el reporte diario al cliente</span>
+        </Checkbox>
+        <label className="flex flex-col gap-1.5">
+          <span className="text-sm font-medium text-input-label-text">Emails que lo reciben</span>
+          <TextArea
+            name="report_recipients"
+            rows={3}
+            defaultValue={destinatarios.join("\n")}
+            placeholder={"cliente@ejemplo.com\nsocio@ejemplo.com"}
+            className="w-full"
+          />
+          <span className="text-xs text-text-tertiary">
+            Uno por línea o separados por coma (máximo 10). Se envía todos los días a las 9 (hora de Argentina) mientras
+            el lanzamiento está activo; al terminar, un resumen final.
+            {finalEnviado ? " El resumen final ya se envió." : ""}
+          </span>
+        </label>
+        <FormError message={form.formError} />
+        <Button type="submit" className="self-end" isDisabled={form.pending}>
+          {form.pending ? "Guardando…" : "Guardar"}
+        </Button>
+      </form>
+
+      <form onSubmit={prueba.onSubmit} className="flex flex-col gap-2 border-t border-card-border pt-4">
+        <input type="hidden" name="launch_id" value={launchId} />
+        <p className="text-xs text-text-tertiary">
+          Te manda el reporte de hoy a tu mail para ver cómo le llega al cliente. No cuenta como enviado.
+        </p>
+        <FormError message={prueba.formError} />
+        <Button type="submit" appearance="outline" className="self-start" isDisabled={prueba.pending || !resendListo}>
+          {prueba.pending ? "Enviando…" : "Enviarme una prueba"}
+        </Button>
+      </form>
     </div>
   );
 }

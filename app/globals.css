@@ -5,13 +5,6 @@
 @import "./css/theme.css";
 @import "./css/calendars.css";
 
-/* class strategy: the forms base reset would restyle the app's existing native
-   inputs/checkboxes. TailGrids primitives style themselves and do not need it. */
-@plugin "@tailwindcss/forms" {
-  strategy: class;
-}
-@plugin "tailwind-scrollbar";
-
 /* ─────────────────────────────────────────────
    Tema claro (default). Neutros con sesgo mínimo
    al azul para que no lean como gris de sistema.
