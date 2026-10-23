@@ -14,6 +14,10 @@
  * el rewrite { source: "/vivo/:token", destination: `${NEXT_PUBLIC_SIERRA_URL}/w/:token` }.
  * El panel arma el link como https://<dominio de la landing>/vivo/<token>.
  *
+ * Compras por links de pago de Stripe: el webhook recibe la ruta y los UTM en
+ * `session.client_reference_id` (los pone <SierraTracking /> al hacer clic);
+ * se leen con atribucionDeReferencia().
+ *
  * Nunca lanza: si el panel no responde, el formulario o el pago siguen
  * funcionando igual. Llamar DESPUÉS de guardar el dato donde corresponda
  * (MailerLite, GoHighLevel, Stripe…), nunca en su lugar.
@@ -97,6 +101,25 @@ export function registrarCompra(
   datos: DatosBase & { amount: number; currency: string },
 ): Promise<void> {
   return enviar("purchase", datos);
+}
+
+/**
+ * Ruta y UTM que <SierraTracking /> empaquetó en el `client_reference_id` de
+ * un link de pago de Stripe. Null si no vino o no es una referencia del kit.
+ */
+export function atribucionDeReferencia(ref: string | null | undefined): Atribucion | null {
+  if (!ref || !/^[A-Za-z0-9_-]{1,200}$/.test(ref)) return null;
+  try {
+    const datos = JSON.parse(Buffer.from(ref, "base64url").toString("utf8")) as Record<string, unknown>;
+    if (!datos || typeof datos.p !== "string" || !datos.p.startsWith("/")) return null;
+    const texto = (v: unknown) => (typeof v === "string" && v ? v.slice(0, 120) : null);
+    return {
+      path: datos.p.slice(0, 200),
+      utm: { utm_source: texto(datos.s), utm_campaign: texto(datos.c), utm_content: texto(datos.a) },
+    };
+  } catch {
+    return null;
+  }
 }
 
 /**
