@@ -2,18 +2,25 @@
 
 import { useState } from "react";
 import { ClockThree } from "@tailgrids/icons";
-import { DialogoForm, Input, Select, Textarea } from "@/components/landing/dialogo-form";
+import { FormSelectField } from "@/components/common/form/form-fields";
+import { DialogoForm, Input, Textarea } from "@/components/landing/dialogo-form";
+import { SIN_OPCION } from "@/components/landing/proyecto-esquema";
 import { guardarHora } from "@/app/landing-pages/horas-acciones";
 import { duracionTexto, MAX_NOTAS, minutosEntre, type EntradaHora } from "@/lib/horas/tipos";
 
-function Campo({ etiqueta, children, ayuda }: { etiqueta: string; children: React.ReactNode; ayuda?: string }) {
+function Campo({ etiqueta, children }: { etiqueta: string; children: React.ReactNode }) {
   return (
     <label className="flex flex-col gap-1.5">
       <span className="text-sm font-medium text-input-label-text">{etiqueta}</span>
       {children}
-      {ayuda && <span className="text-xs text-text-tertiary">{ayuda}</span>}
     </label>
   );
+}
+
+/** "Sin cliente" viaja como cadena vacía, igual que en el resto de los formularios. */
+function guardar(fd: FormData) {
+  if (fd.get("client_id") === SIN_OPCION) fd.set("client_id", "");
+  return guardarHora(fd);
 }
 
 /**
@@ -36,7 +43,7 @@ export function HoraForm({
   return (
     <DialogoForm
       titulo={entrada ? "Editar horas" : "Cargar horas"}
-      action={guardarHora}
+      action={guardar}
       abiertoExterno={abierto}
       onCerrar={onCerrar}
     >
@@ -105,16 +112,12 @@ function Campos({
         />
       </Campo>
 
-      <Campo etiqueta="Cliente" ayuda="Opcional: sirve para filtrar las horas de un trabajo.">
-        <Select name="client_id" defaultValue={entrada?.client_id ?? ""}>
-          <option value="">Sin cliente</option>
-          {clientes.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </Select>
-      </Campo>
+      <FormSelectField
+        name="client_id"
+        label="Cliente (opcional)"
+        defaultValue={entrada?.client_id ?? SIN_OPCION}
+        options={[{ value: SIN_OPCION, label: "Sin cliente" }, ...clientes.map((c) => ({ value: c.id, label: c.name }))]}
+      />
     </>
   );
 }
