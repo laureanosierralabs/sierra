@@ -4,7 +4,10 @@ import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { auth } from "@clerk/nextjs/server";
-import { accesoActual } from "@/lib/landing/auth";
+import { accesoActual, usuarioActual } from "@/lib/landing/auth";
+import { enviarEmail, resendConfigurado } from "@/lib/email/resend";
+import { correoDeReporte } from "@/lib/lanzamientos/reporte-diario-datos";
+import { leerDestinatarios } from "@/lib/lanzamientos/reporte-diario";
 import { cifrar, hayClave } from "@/lib/landing/cifrado";
 import { supabaseAdmin } from "@/lib/landing/supabase";
 import {
@@ -642,6 +645,59 @@ export async function guardarWebinar(fd: FormData): Promise<Resultado | { aviso:
 
   revalidar(data.client_id as string, launchId);
   return { aviso: url ? "Link del webinar guardado" : "Link del webinar quitado" };
+}
+
+/**
+ * Reporte diario por mail al cliente: prendido/apagado y a quién va. Si está
+ * prendido tiene que haber al menos un destinatario. Los datos del envío
+ * (último día, final enviado) los maneja el cron, no se tocan acá.
+ */
+export async function guardarReporteDiario(fd: FormData): Promise<Resultado | { aviso: string }> {
+  await exigirOwner();
+
+  const launchId = texto(fd, "launch_id");
+  if (!launchId) return { error: "Falta el lanzamiento" };
+  const activo = fd.get("daily_report") !== null;
+  const leidos = leerDestinatarios(texto(fd, "report_recipients"));
+  if ("error" in leidos) return { error: leidos.error };
+  if (activo && leidos.emails.length === 0) return { error: "Agregá al menos un email para prender el reporte" };
+
+  const { data, error } = await supabaseAdmin()
+    .from("launches")
+    .update({ daily_report: activo, report_recipients: leidos.emails, updated_at: new Date().toISOString() })
+    .eq("id", launchId)
+    .select("client_id")
+    .maybeSingle();
+  if (error) return { error: "No se pudo guardar el reporte diario" };
+  if (!data) return { error: "El lanzamiento no existe" };
+
+  revalidar(data.client_id as string, launchId);
+  return { aviso: activo ? "Reporte diario guardado" : "Reporte diario apagado" };
+}
+
+/**
+ * Manda el reporte diario de hoy al email del owner que está logueado, para
+ * ver cómo le llega al cliente. No toca `last_daily_report_on`.
+ */
+export async function enviarPruebaReporte(fd: FormData): Promise<Resultado | { aviso: string }> {
+  await exigirOwner();
+
+  const launchId = texto(fd, "launch_id");
+  if (!launchId) return { error: "Falta el lanzamiento" };
+  if (!resendConfigurado()) return { error: "Resend no está configurado: no se pueden mandar mails" };
+
+  const usuario = await usuarioActual();
+  const email = usuario?.primaryEmailAddress?.emailAddress ?? usuario?.emailAddresses[0]?.emailAddress;
+  if (!email) return { error: "Tu usuario no tiene un email para mandarte la prueba" };
+
+  const { data } = await supabaseAdmin().from("launches").select("client_id").eq("id", launchId).maybeSingle();
+  if (!data) return { error: "El lanzamiento no existe" };
+
+  const correo = await correoDeReporte(data.client_id as string, launchId, "diario");
+  if (!correo) return { error: "El lanzamiento no existe" };
+  const r = await enviarEmail({ to: email, ...correo, subject: `[Prueba] ${correo.subject}` });
+  if (!r.ok) return { error: `No se pudo mandar la prueba: ${r.error}` };
+  return { aviso: `Prueba enviada a ${email}` };
 }
 
 /**

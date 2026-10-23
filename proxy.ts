@@ -29,6 +29,8 @@ const esPublica = createRouteMatcher([
   "/w/(.*)",
   // Conversiones de proyectos conectados: las protege la firma del kit.
   "/api/ingest",
+  // Crons de Vercel (reportes por mail): los protege CRON_SECRET en el header.
+  "/api/cron/(.*)",
 ]);
 
 /**
