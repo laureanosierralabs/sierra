@@ -143,8 +143,10 @@ test("la migración, el endpoint y el link del webinar cumplen el contrato", () 
   assert.match(api, /huella\("evento-ip"/);
   assert.doesNotMatch(api, /status:\s*5\d\d/);
 
-  // El ingreso al webinar se anota solo si no es un previsualizador de correo.
+  // El ingreso al webinar se anota solo si no es un previsualizador de correo
+  // y si el lanzamiento no pasó el tope diario (el link circula en mails masivos).
   const w = leer("../app/w/[token]/route.ts");
-  assert.match(w, /if \(!esBot\(req\.headers\.get\("user-agent"\)\)\)/);
+  assert.match(w, /!esBot\(req\.headers\.get\("user-agent"\)\)/);
+  assert.match(w, /MAX_INGRESOS_POR_DIA/);
   assert.match(w, /status: 302/);
 });
