@@ -6,6 +6,8 @@ import { headers } from "next/headers";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { slugify } from "@/lib/escritura";
 import { accesoActual } from "@/lib/landing/auth";
+import { invitacionPortalEmail } from "@/lib/email/invitacion-portal";
+import { enviarEmail, resendConfigurado } from "@/lib/email/resend";
 import { supabaseAdmin } from "@/lib/landing/supabase";
 import { esUsuarioCliente } from "@/lib/unidades";
 
@@ -170,12 +172,45 @@ export async function invitarAlPortal(fd: FormData): Promise<Resultado | { aviso
       // para clientes (con la marca y el texto del portal), no a la de Clerk.
       const h = await headers();
       const host = h.get("x-forwarded-host") ?? h.get("host");
-      await clerk.invitations.createInvitation({
+      const propio = resendConfigurado();
+      const invitacion = await clerk.invitations.createInvitation({
         emailAddress: email,
         publicMetadata: { role: "client", portalOrgId: orgId },
         ignoreExisting: true,
+        // Con Resend configurado el mail sale de Sierra Labs, no de Clerk.
+        ...(propio ? { notify: false } : {}),
         ...(host ? { redirectUrl: `https://${host}/sign-up?para=cliente` } : {}),
       });
+
+      if (propio) {
+        // Sin mail la invitación quedaría pendiente sin que nadie la reciba:
+        // se revoca ante cualquier fallo para poder reintentar limpio.
+        const deshacer = () => clerk.invitations.revokeInvitation(invitacion.id).catch(() => undefined);
+        if (!invitacion.url) {
+          await deshacer();
+          return { error: "Clerk no devolvió el link de la invitación" };
+        }
+        const { data: cliente } = await supabaseAdmin()
+          .from("clients")
+          .select("name")
+          .eq("id", clientId)
+          .maybeSingle();
+        const { subject, html, text } = invitacionPortalEmail(
+          (cliente?.name as string | undefined) ?? "tu marca",
+          invitacion.url,
+        );
+        const envio = await enviarEmail({ to: email, subject, html, text });
+        if (!envio.ok) {
+          await deshacer();
+          return {
+            error: `No se pudo enviar el mail (${envio.error}). La invitación no se creó: probá de nuevo.`,
+          };
+        }
+        revalidarCliente(clientId);
+        return {
+          aviso: `Invitación enviada a ${email}. Le llegó un mail de Sierra Labs (puede caer en spam).`,
+        };
+      }
     }
 
     revalidarCliente(clientId);
