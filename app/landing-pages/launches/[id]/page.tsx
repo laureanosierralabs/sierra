@@ -22,6 +22,7 @@ import {
   WebinarConfig,
 } from "@/components/lanzamientos/lanzamiento-gestion";
 import { PanelLanzamiento } from "@/components/lanzamientos/panel-lanzamiento";
+import { CopiarResumen } from "@/components/lanzamientos/copiar-resumen";
 import { ReporteFinal } from "@/components/lanzamientos/reporte-final";
 import { VerificarLandings } from "@/components/lanzamientos/verificar-landings";
 import { ImagenPortal } from "@/components/landing/imagen-portal";
@@ -163,6 +164,7 @@ export default async function LanzamientoDetalle({
           .join(" · ")}
         accion={
           <span className="flex items-center gap-3">
+            {paginas.length > 0 && <CopiarResumen launchId={lanzamiento.id} />}
             {slugPortal && (
               <a
                 href={`/portal/${slugPortal}/lanzamientos/${lanzamiento.id}`}

@@ -112,7 +112,7 @@ export function totales(d: DatosReporte): Totales {
   };
 }
 
-function dinero(i: { moneda: string; total: number }): string {
+export function dinero(i: { moneda: string; total: number }): string {
   try {
     return new Intl.NumberFormat("es-AR", { style: "currency", currency: i.moneda, maximumFractionDigits: 0 }).format(
       i.total,

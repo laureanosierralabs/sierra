@@ -23,6 +23,8 @@ import {
 import { rutasDeSitio } from "@/lib/sitios/datos";
 import { landingDesdeProyecto, normalizarRuta } from "@/lib/sitios/tipos";
 import { planificarLandings } from "@/lib/lanzamientos/plan-landings";
+import { clienteDeLanzamiento, lanzamientoDeCliente } from "@/lib/lanzamientos/datos";
+import { resumenCopiable } from "@/lib/lanzamientos/resumen-copiable";
 import { registroValido, TOPE_IMPORTACION } from "@/lib/lanzamientos/importar";
 import { normalizarEmail, normalizarTelefono, TOPE_MIEMBROS } from "@/lib/lanzamientos/listas";
 
@@ -1052,4 +1054,17 @@ export async function conectarMailerlite(
   } catch (e) {
     return { error: `No se pudo hablar con MailerLite: ${e instanceof Error ? e.message : "error de red"}` };
   }
+}
+
+/**
+ * Resumen de métricas en texto, calculado en el momento del clic: es lo que se
+ * le pasa al operador cuando pide los números.
+ */
+export async function resumenParaCopiar(launchId: string): Promise<{ error: string } | { texto: string }> {
+  await exigirOwner();
+  const clientId = await clienteDeLanzamiento(launchId);
+  if (!clientId) return { error: "El lanzamiento no existe" };
+  const detalle = await lanzamientoDeCliente(clientId, launchId);
+  if (!detalle) return { error: "El lanzamiento no existe" };
+  return { texto: resumenCopiable(detalle, diaDe(new Date())) };
 }
