@@ -91,7 +91,7 @@ export function HeroPortal({
           <h1
             className={cn(
               DISPLAY,
-              "text-center text-[clamp(2.25rem,8vw,6.5rem)] leading-[0.95] text-balance break-words",
+              "text-center text-[clamp(1.75rem,5vw,4rem)] leading-[1] text-balance break-words",
               imagen ? "text-white" : "text-[#2e2e30]",
             )}
           >
