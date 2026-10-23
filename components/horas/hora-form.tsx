@@ -1,49 +1,99 @@
 "use client";
 
-import { Pencil1 } from "@tailgrids/icons";
-import { BorrarBoton } from "@/components/landing/borrar-boton";
+import { useState } from "react";
+import { ClockThree } from "@tailgrids/icons";
 import { DialogoForm, Input, Select, Textarea } from "@/components/landing/dialogo-form";
-import { borrarHora, guardarHora } from "@/app/landing-pages/horas-acciones";
-import { MAX_NOTAS, type EntradaHora } from "@/lib/horas/tipos";
+import { guardarHora } from "@/app/landing-pages/horas-acciones";
+import { duracionTexto, MAX_NOTAS, minutosEntre, type EntradaHora } from "@/lib/horas/tipos";
 
-function Campo({ etiqueta, children }: { etiqueta: string; children: React.ReactNode }) {
+function Campo({ etiqueta, children, ayuda }: { etiqueta: string; children: React.ReactNode; ayuda?: string }) {
   return (
     <label className="flex flex-col gap-1.5">
       <span className="text-sm font-medium text-input-label-text">{etiqueta}</span>
       {children}
+      {ayuda && <span className="text-xs text-text-tertiary">{ayuda}</span>}
     </label>
   );
 }
 
-/** Alta o edición de una carga de horas. Las horas trabajadas se calculan solas. */
+/**
+ * Alta o edición de una carga. Se abre desde afuera (botón del encabezado o
+ * menú de la fila). La duración se calcula a la vista mientras se escribe.
+ */
 export function HoraForm({
+  abierto,
+  onCerrar,
   entrada,
   hoy,
   clientes,
 }: {
-  entrada?: EntradaHora;
+  abierto: boolean;
+  onCerrar: () => void;
+  entrada: EntradaHora | null;
   hoy: string;
   clientes: { id: string; name: string }[];
 }) {
   return (
     <DialogoForm
       titulo={entrada ? "Editar horas" : "Cargar horas"}
-      etiquetaAbrir={entrada ? "Editar horas" : "Cargar horas"}
       action={guardarHora}
-      disparador={entrada ? <Pencil1 /> : undefined}
+      abiertoExterno={abierto}
+      onCerrar={onCerrar}
     >
+      {/* key: al cambiar de carga se reinician los campos. */}
+      <Campos key={entrada?.id ?? "nueva"} entrada={entrada} hoy={hoy} clientes={clientes} />
+    </DialogoForm>
+  );
+}
+
+function Campos({
+  entrada,
+  hoy,
+  clientes,
+}: {
+  entrada: EntradaHora | null;
+  hoy: string;
+  clientes: { id: string; name: string }[];
+}) {
+  const [inicio, setInicio] = useState(entrada?.start_time ?? "");
+  const [fin, setFin] = useState(entrada?.end_time ?? "");
+  const minutos = inicio && fin ? minutosEntre(inicio, fin) : null;
+
+  return (
+    <>
       {entrada && <input type="hidden" name="id" value={entrada.id} />}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Campo etiqueta="Día">
-          <Input name="work_date" type="date" required defaultValue={entrada?.work_date ?? hoy} />
-        </Campo>
+
+      <Campo etiqueta="Día">
+        <Input name="work_date" type="date" required defaultValue={entrada?.work_date ?? hoy} />
+      </Campo>
+
+      <div className="grid grid-cols-2 gap-4">
         <Campo etiqueta="Comienzo">
-          <Input name="start_time" type="time" required defaultValue={entrada?.start_time ?? ""} />
+          <Input name="start_time" type="time" required value={inicio} onChange={(e) => setInicio(e.target.value)} />
         </Campo>
         <Campo etiqueta="Finalización">
-          <Input name="end_time" type="time" required defaultValue={entrada?.end_time ?? ""} />
+          <Input name="end_time" type="time" required value={fin} onChange={(e) => setFin(e.target.value)} />
         </Campo>
       </div>
+
+      <div
+        aria-live="polite"
+        className="flex items-center gap-2 rounded-lg border border-card-border bg-background-gray-secondary px-3 py-2 text-sm [&>svg]:size-4"
+      >
+        <ClockThree className="text-text-tertiary" />
+        {inicio && fin ? (
+          minutos !== null ? (
+            <span className="text-text-secondary">
+              Duración: <span className="font-semibold text-text-primary tabular-nums">{duracionTexto(minutos)}</span>
+            </span>
+          ) : (
+            <span className="text-error-500">La finalización tiene que ser posterior al comienzo</span>
+          )
+        ) : (
+          <span className="text-text-tertiary">La duración se calcula sola</span>
+        )}
+      </div>
+
       <Campo etiqueta="Qué trabajaste">
         <Textarea
           name="notes"
@@ -54,7 +104,8 @@ export function HoraForm({
           placeholder="Ej.: Desarrollo de la landing de Shopping Fest"
         />
       </Campo>
-      <Campo etiqueta="Cliente (opcional)">
+
+      <Campo etiqueta="Cliente" ayuda="Opcional: sirve para filtrar las horas de un trabajo.">
         <Select name="client_id" defaultValue={entrada?.client_id ?? ""}>
           <option value="">Sin cliente</option>
           {clientes.map((c) => (
@@ -64,23 +115,6 @@ export function HoraForm({
           ))}
         </Select>
       </Campo>
-    </DialogoForm>
-  );
-}
-
-export function AccionesHora({
-  entrada,
-  hoy,
-  clientes,
-}: {
-  entrada: EntradaHora;
-  hoy: string;
-  clientes: { id: string; name: string }[];
-}) {
-  return (
-    <span className="flex items-center justify-end gap-3">
-      <HoraForm entrada={entrada} hoy={hoy} clientes={clientes} />
-      <BorrarBoton etiqueta="Borrar carga" onConfirmar={() => borrarHora(entrada.id)} />
-    </span>
+    </>
   );
 }

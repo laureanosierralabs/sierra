@@ -71,6 +71,27 @@ export function mesDe(hoy: string): { desde: string; hasta: string } {
   return { desde: `${a}-${mm}-01`, hasta: `${a}-${mm}-${String(ultimo).padStart(2, "0")}` };
 }
 
+const MESES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+
+/** "AAAA-MM" válido, o null. */
+export function mesValido(valor: string): string | null {
+  const m = /^(\d{4})-(0[1-9]|1[0-2])$/.exec(valor.trim());
+  return m ? `${m[1]}-${m[2]}` : null;
+}
+
+/** Mes corrido `delta` meses ("AAAA-MM"). */
+export function correrMes(mes: string, delta: number): string {
+  const [a, m] = mes.split("-").map(Number);
+  const indice = a * 12 + (m - 1) + delta;
+  return `${Math.floor(indice / 12)}-${String((indice % 12) + 1).padStart(2, "0")}`;
+}
+
+/** "2026-10" → "Octubre 2026". */
+export function etiquetaMes(mes: string): string {
+  const [a, m] = mes.split("-");
+  return `${MESES[Number(m) - 1] ?? m} ${a}`;
+}
+
 const diaPlanilla = (fecha: string) => `${fecha.slice(8, 10)}/${fecha.slice(5, 7)}/${fecha.slice(0, 4)}`;
 
 export const COLUMNAS_PLANILLA = [
