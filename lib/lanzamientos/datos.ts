@@ -55,6 +55,9 @@ export async function lanzamientosDeCliente(clientId: string): Promise<Lanzamien
     .from("launches")
     .select(`${COLUMNAS_LANZAMIENTO}, launch_registrations(count)`)
     .eq("client_id", clientId)
+    // Por fecha del lanzamiento: el más reciente primero. Sin fecha de inicio
+    // (todavía en preparación) va arriba; a igual fecha, el último creado.
+    .order("starts_on", { ascending: false, nullsFirst: true })
     .order("created_at", { ascending: false });
 
   if (error) throw new Error("No se pudieron leer los lanzamientos");
