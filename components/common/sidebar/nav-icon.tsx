@@ -2,6 +2,7 @@ import Image from "next/image";
 import {
   Buildings11,
   CheckCircle1,
+  ClockThree,
   Comment1,
   DashboardSquare1,
   FileText,
@@ -37,6 +38,7 @@ const ICONOS = {
   ChartLine: TrendUp2,
   Inbox: Comment1,
   Rocket: Rocket1,
+  Clock: ClockThree,
 } as const;
 
 /** Unidades con logo propio en vez de ícono. */
