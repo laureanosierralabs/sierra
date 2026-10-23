@@ -14,6 +14,7 @@ import { BarChartCard } from "@/components/common/charts/bar-chart-card";
 import { CHART_COLORS } from "@/components/common/charts/chart-theme";
 import { KpiCard } from "@/components/common/kpi-card";
 import { FiltroSelect } from "@/components/landing/filtro-select";
+import { DespuesDelRegistro } from "@/components/lanzamientos/despues-del-registro";
 import { ExportarRegistros } from "@/components/lanzamientos/exportar-registros";
 import { RegistrosTabla } from "@/components/lanzamientos/registros-tabla";
 import { Card } from "@/components/tailgrids/core/card";
@@ -168,6 +169,17 @@ export function PanelLanzamiento({ detalle }: { detalle: DetalleLanzamiento }) {
           todoElLanzamiento={rango !== null}
         />
       )}
+
+      <DespuesDelRegistro
+        despues={detalle.despues}
+        registros={vista.registros}
+        paginas={paginas}
+        paginasFiltradas={vista.paginas}
+        rango={rango}
+        compras={vista.compras.length}
+        lanzamiento={lanzamiento.name}
+        landing={seleccion?.name ?? null}
+      />
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-5">
         <div className="xl:col-span-3">
@@ -529,7 +541,7 @@ function Embudo({
   return (
     <Card className="overflow-hidden p-0">
       <CabeceraCard
-        titulo="Después del registro"
+        titulo="Embudo con listas cargadas"
         detalle={
           (todas
             ? "De los registrados, cuántos siguieron cada paso (cruzado por email o teléfono)"

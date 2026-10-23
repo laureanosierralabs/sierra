@@ -619,6 +619,32 @@ export async function guardarConclusiones(fd: FormData): Promise<Resultado | { a
 }
 
 /**
+ * Link del webinar (Zoom o stream) al que manda el link personal
+ * /w/<token>?e=<email>. Vacío = todavía no hay: el link personal avisa que no
+ * está disponible.
+ */
+export async function guardarWebinar(fd: FormData): Promise<Resultado | { aviso: string }> {
+  await exigirOwner();
+
+  const launchId = texto(fd, "launch_id");
+  if (!launchId) return { error: "Falta el lanzamiento" };
+  const url = enlace(fd, "webinar_url");
+  if (url === undefined) return { error: "El link del webinar tiene que empezar con http:// o https://" };
+
+  const { data, error } = await supabaseAdmin()
+    .from("launches")
+    .update({ webinar_url: url, updated_at: new Date().toISOString() })
+    .eq("id", launchId)
+    .select("client_id")
+    .maybeSingle();
+  if (error) return { error: "No se pudo guardar el link del webinar" };
+  if (!data) return { error: "El lanzamiento no existe" };
+
+  revalidar(data.client_id as string, launchId);
+  return { aviso: url ? "Link del webinar guardado" : "Link del webinar quitado" };
+}
+
+/**
  * Sube una lista para cruzar con los registros (asistentes de Zoom, grupo de
  * WhatsApp, compradores). Una lista con el mismo nombre se reemplaza: así se
  * actualiza sin duplicar. Solo se guardan email y teléfono normalizados.

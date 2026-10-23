@@ -14,6 +14,8 @@ import {
 import { conversionesDeRutas, referrersDeRutas, visitasDeRutas } from "@/lib/sitios/datos";
 import { cruzarListas, type ListaCruzada, type Miembro } from "@/lib/lanzamientos/listas";
 import { validarEntregables } from "@/lib/portal/entrega";
+import type { DatosDespues } from "@/lib/lanzamientos/despues";
+import { eventosDeLanzamiento } from "@/lib/lanzamientos/despues-datos";
 
 /**
  * Lecturas de lanzamientos. Toda función recibe el `clientId` y filtra por
@@ -192,6 +194,8 @@ export interface DetalleLanzamiento {
   truncado: boolean;
   /** Listas cruzadas con los registros (asistentes, grupo, compradores): solo ids. */
   listas: ListaCruzada[];
+  /** Clics a WhatsApp y al checkout e ingresos al webinar; null si no se pudieron leer. */
+  despues: DatosDespues | null;
 }
 
 /* PostgREST devuelve de a 1000 filas: se pagina hasta un tope razonable. */
@@ -362,6 +366,13 @@ export async function lanzamientoDeCliente(
       return [];
     });
 
+  // Clics y webinar: si las tablas todavía no existen (migración sin aplicar)
+  // o falla la lectura, el panel se ve igual sin "Después del registro".
+  const despues = await eventosDeLanzamiento(clientId, id, [...porSitio.keys()], desde, hasta).catch((e) => {
+    console.error("[lanzamientos] no se pudieron leer los eventos de después del registro:", e);
+    return null;
+  });
+
   return {
     lanzamiento: l,
     paginas: listaPaginas,
@@ -371,6 +382,7 @@ export async function lanzamientoDeCliente(
     compras,
     truncado,
     listas,
+    despues,
   };
 }
 

@@ -18,6 +18,7 @@ import {
   LanzamientoForm,
   ListasCargadas,
   PaginaLanzamientoForm,
+  WebinarConfig,
 } from "@/components/lanzamientos/lanzamiento-gestion";
 import { PanelLanzamiento } from "@/components/lanzamientos/panel-lanzamiento";
 import { VerificarLandings } from "@/components/lanzamientos/verificar-landings";
@@ -40,6 +41,7 @@ import { EstadoSelect } from "@/components/landing/estado-select";
 import { EmptyState } from "@/components/common/empty-state";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { rutasDeSitio, sitiosDeCliente } from "@/lib/sitios/datos";
+import { webinarDeLanzamiento } from "@/lib/lanzamientos/despues-datos";
 
 export const dynamic = "force-dynamic";
 // "Verificar landings" (server action de esta página) pide varias URLs ajenas.
@@ -66,7 +68,7 @@ export default async function LanzamientoDetalle({
   const clientId = await clienteDeLanzamiento(id);
   if (!clientId) notFound();
 
-  const [detalle, conexion, cliente, proyectos, portal, sitios, estadoPortal, accesos] = await Promise.all([
+  const [detalle, conexion, cliente, proyectos, portal, sitios, estadoPortal, accesos, webinar] = await Promise.all([
     lanzamientoDeCliente(clientId, id),
     conexionDeLanzamiento(clientId, id),
     obtenerCliente(clientId),
@@ -86,6 +88,7 @@ export default async function LanzamientoDetalle({
     // Para "Listo para compartir": si Clerk no responde, el portal no se evalúa (no se marca como falta).
     estadoPortalCliente(clientId).catch(() => undefined),
     listarRecursosCliente(clientId).catch(() => []),
+    webinarDeLanzamiento(clientId, id).catch(() => null),
   ]);
   const nombreSitio = new Map(sitios.map((s) => [s.id, s.name]));
   if (!detalle || !conexion) notFound();
@@ -298,6 +301,12 @@ export default async function LanzamientoDetalle({
             )}
             <ConclusionesForm launchId={lanzamiento.id} valor={lanzamiento.closing_notes} />
           </SeccionCard>
+
+          {webinar && (
+            <SeccionCard titulo="Webinar">
+              <WebinarConfig launchId={lanzamiento.id} url={webinar.url} token={webinar.token} />
+            </SeccionCard>
+          )}
 
           <SeccionCard titulo="Fuentes de datos">
             <div className="flex flex-wrap items-start justify-between gap-4 px-4 py-4">

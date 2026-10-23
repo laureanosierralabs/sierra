@@ -13,7 +13,7 @@ import {
   csvRegistros,
 } from "@/lib/lanzamientos/vista";
 
-function descargar(contenido: string, nombre: string) {
+export function descargar(contenido: string, nombre: string) {
   const url = URL.createObjectURL(new Blob([contenido], { type: "text/csv;charset=utf-8" }));
   const a = document.createElement("a");
   a.href = url;

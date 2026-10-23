@@ -22,6 +22,11 @@ const esPublica = createRouteMatcher([
   "/api/webhooks/(.*)",
   // Conteo de visitas: lo llama el script de las landings (otros dominios).
   "/api/t",
+  // Clics de después del registro (WhatsApp, checkout): también desde las landings.
+  "/api/e",
+  // Link personal del webinar: lo abre quien recibió el correo, sin sesión.
+  // Lo protege el token del lanzamiento.
+  "/w/(.*)",
   // Conversiones de proyectos conectados: las protege la firma del kit.
   "/api/ingest",
 ]);
