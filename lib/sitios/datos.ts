@@ -74,6 +74,33 @@ export async function visitasDeRutas(
   return ((data ?? []) as VisitaDeRuta[]).map((v) => ({ ...v, visitors: Number(v.visitors) }));
 }
 
+export interface ReferrerDeRuta {
+  path: string;
+  day: string;
+  referrer_host: string | null;
+  visitors: number;
+}
+
+/** Visitantes sin utm_source por ruta, día y dominio de origen, en un período. */
+export async function referrersDeRutas(
+  clientId: string,
+  siteId: string,
+  rutas: string[],
+  desde: string,
+  hasta: string,
+): Promise<ReferrerDeRuta[]> {
+  if (rutas.length === 0) return [];
+  const { data, error } = await supabaseAdmin().rpc("site_referrer_stats", {
+    p_client: clientId,
+    p_site: siteId,
+    p_paths: rutas,
+    p_from: desde,
+    p_to: hasta,
+  });
+  if (error) throw new Error("No se pudieron leer los orígenes de las visitas del proyecto");
+  return ((data ?? []) as ReferrerDeRuta[]).map((v) => ({ ...v, visitors: Number(v.visitors) }));
+}
+
 const LOTE = 1000;
 const TOPE = 20_000;
 

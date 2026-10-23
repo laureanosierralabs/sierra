@@ -9,8 +9,9 @@ import {
   type PaginaLanzamiento,
   type Registro,
   type VisitaAgregada,
+  type VisitaReferrer,
 } from "@/lib/lanzamientos/tipos";
-import { conversionesDeRutas, visitasDeRutas } from "@/lib/sitios/datos";
+import { conversionesDeRutas, referrersDeRutas, visitasDeRutas } from "@/lib/sitios/datos";
 import { cruzarListas, type ListaCruzada, type Miembro } from "@/lib/lanzamientos/listas";
 import { validarEntregables } from "@/lib/portal/entrega";
 
@@ -183,6 +184,8 @@ export interface DetalleLanzamiento {
   registros: Registro[];
   /** Visitantes únicos por landing, día y fuente (ya agregados en la base). */
   visitas: VisitaAgregada[];
+  /** Visitantes sin utm_source por landing, día y dominio de origen. */
+  referrers: VisitaReferrer[];
   /** Compras confirmadas de las landings de proyectos conectados. */
   compras: Compra[];
   /** `true` si hay más registros que el tope leído (los totales serían parciales). */
@@ -247,6 +250,17 @@ export async function lanzamientoDeCliente(
   // visitantes y conversión, pero los registros se siguen viendo.
   if (errVisitas) console.error("[lanzamientos] no se pudieron leer las visitas:", errVisitas.message);
 
+  // Origen de las visitas sin UTM: otro agregado aparte. Si la función todavía
+  // no existe en la base (migración sin aplicar) o falla, esa sección no se ve.
+  const { data: refs, error: errRefs } = await db.rpc("launch_referrer_stats", {
+    p_client: clientId,
+    p_launch: id,
+  });
+  if (errRefs) console.error("[lanzamientos] no se pudieron leer los orígenes de las visitas:", errRefs.message);
+  const referrers: VisitaReferrer[] = errRefs
+    ? []
+    : ((refs ?? []) as VisitaReferrer[]).map((v) => ({ ...v, visitors: Number(v.visitors) }));
+
   const l = lanzamiento as unknown as Lanzamiento;
   // Los entregables se revalidan al leer: un dato raro nunca rompe el portal.
   const listaPaginas = ((paginas ?? []) as unknown as PaginaLanzamiento[]).map((p) => ({
@@ -278,6 +292,14 @@ export async function lanzamientoDeCliente(
         visitasDeRutas(clientId, siteId, rutas, desde, hasta),
         conversionesDeRutas(clientId, siteId, rutas, desde, hasta),
       ]);
+      const refsSitio = await referrersDeRutas(clientId, siteId, rutas, desde, hasta).catch((e) => {
+        console.error("[lanzamientos] no se pudieron leer los orígenes de las visitas del proyecto:", e);
+        return [];
+      });
+      for (const v of refsSitio) {
+        const pageId = paginaPorRuta.get(v.path);
+        if (pageId) referrers.push({ page_id: pageId, day: v.day, referrer_host: v.referrer_host, visitors: v.visitors });
+      }
       for (const v of vis) {
         const pageId = paginaPorRuta.get(v.path);
         if (pageId) visitasTotales.push({ page_id: pageId, day: v.day, utm_source: v.utm_source, visitors: v.visitors });
@@ -345,6 +367,7 @@ export async function lanzamientoDeCliente(
     paginas: listaPaginas,
     registros,
     visitas: visitasTotales,
+    referrers,
     compras,
     truncado,
     listas,

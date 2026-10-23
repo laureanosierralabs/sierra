@@ -3,13 +3,21 @@
  * landing y exportar los registros con las columnas elegidas. Pura: la usan
  * el panel interno y el portal, en el navegador.
  */
-import type { Compra, PaginaLanzamiento, Registro, VisitaAgregada } from "@/lib/lanzamientos/tipos";
+import type {
+  Compra,
+  PaginaLanzamiento,
+  Registro,
+  VisitaAgregada,
+  VisitaReferrer,
+} from "@/lib/lanzamientos/tipos";
 
 export interface DatosVista {
   paginas: PaginaLanzamiento[];
   registros: Registro[];
   visitas: VisitaAgregada[];
   compras: Compra[];
+  /** Visitas sin UTM por origen; opcional: quien no las lee no las pasa. */
+  referrers?: VisitaReferrer[];
 }
 
 /** Todo lo del lanzamiento, o solo lo de una landing (null = todas). */
@@ -20,6 +28,7 @@ export function filtrarPorLanding(datos: DatosVista, pageId: string | null): Dat
     registros: datos.registros.filter((r) => r.page_id === pageId),
     visitas: datos.visitas.filter((v) => v.page_id === pageId),
     compras: datos.compras.filter((c) => c.page_id === pageId),
+    ...(datos.referrers ? { referrers: datos.referrers.filter((v) => v.page_id === pageId) } : {}),
   };
 }
 
@@ -75,6 +84,7 @@ export function filtrarPorPeriodo<T extends DatosVista>(datos: T, rango: Rango |
     ...datos,
     registros: datos.registros.filter((r) => dentro(diaBA(r.registered_at))),
     visitas: datos.visitas.filter((v) => dentro(v.day)),
+    ...(datos.referrers ? { referrers: datos.referrers.filter((v) => dentro(v.day)) } : {}),
     // Una venta sin fecha conocida solo cuenta en el lanzamiento entero.
     compras: datos.compras.filter((c) => c.occurred_at !== null && dentro(diaBA(c.occurred_at))),
   };

@@ -254,6 +254,14 @@ export interface VisitaAgregada {
   visitors: number;
 }
 
+/** Visitantes únicos sin utm_source de una landing en un día, por dominio de origen. */
+export interface VisitaReferrer {
+  page_id: string;
+  day: string;
+  referrer_host: string | null;
+  visitors: number;
+}
+
 export interface ResumenVisitas {
   /** Suma de visitantes únicos diarios: quien vuelve otro día cuenta de nuevo. */
   total: number;

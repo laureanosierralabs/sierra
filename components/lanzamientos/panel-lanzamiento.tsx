@@ -18,6 +18,7 @@ import { ExportarRegistros } from "@/components/lanzamientos/exportar-registros"
 import { RegistrosTabla } from "@/components/lanzamientos/registros-tabla";
 import { Card } from "@/components/tailgrids/core/card";
 import type { DetalleLanzamiento } from "@/lib/lanzamientos/datos";
+import { rankingUtm, resumirOrigenes, type RankingUtm } from "@/lib/lanzamientos/origen";
 import {
   compararVariantes,
   conversion,
@@ -208,6 +209,10 @@ export function PanelLanzamiento({ detalle }: { detalle: DetalleLanzamiento }) {
       </div>
 
       {hayVisitas && <PorFuente trafico={trafico} registros={vista.registros} />}
+
+      <PorCampana registros={vista.registros} />
+
+      <SinUtmPorOrigen referrers={vista.referrers ?? []} />
 
       <RegistrosTabla
         registros={vista.registros}
@@ -642,6 +647,87 @@ function PorFuente({
           utm_medium, utm_campaign y utm_content para que el script los complete.
         </p>
       )}
+    </Card>
+  );
+}
+
+/** Cada fila de un ranking: valor tal cual llegó (suele ser un id de Meta), cantidad y parte del total. */
+function ListaRanking({ ranking, sinValor }: { ranking: RankingUtm; sinValor: string }) {
+  return (
+    <ul className="divide-y divide-card-border">
+      {ranking.filas.map((f) => (
+        <li key={f.valor ?? "sin-valor"} className="flex items-center justify-between gap-4 px-5 py-3">
+          <span
+            title={f.valor ?? undefined}
+            className={
+              f.valor === null
+                ? "min-w-0 truncate text-sm text-text-tertiary"
+                : "min-w-0 truncate font-mono text-xs font-medium text-text-primary"
+            }
+          >
+            {f.valor ?? sinValor}
+          </span>
+          <span className="flex shrink-0 items-center gap-5 text-sm tabular-nums">
+            <span className="text-text-secondary">{numero(f.registros)} registros</span>
+            <span className="w-14 text-right font-semibold text-text-primary">{porcentaje(f.porcentaje)}</span>
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** Registros por campaña y por anuncio (utm_campaign / utm_content), top 10 de cada una. */
+function PorCampana({ registros }: { registros: DetalleLanzamiento["registros"] }) {
+  const campanas = rankingUtm(registros, "utm_campaign");
+  const anuncios = rankingUtm(registros, "utm_content");
+  if (!campanas.hayValor && !anuncios.hayValor) return null;
+
+  return (
+    <Card className="overflow-hidden p-0">
+      <CabeceraCard
+        titulo="Por campaña y anuncio"
+        detalle="Registros según el utm_campaign y el utm_content (el anuncio de Meta). Suelen ser ids de Meta."
+      />
+      <div className="grid grid-cols-1 divide-y divide-card-border lg:grid-cols-2 lg:divide-x lg:divide-y-0">
+        <div className="min-w-0">
+          <p className="border-b border-card-border px-5 py-2 text-xs font-medium uppercase tracking-wide text-text-tertiary">
+            Campaña
+          </p>
+          <ListaRanking ranking={campanas} sinValor="Sin campaña" />
+        </div>
+        <div className="min-w-0">
+          <p className="border-b border-card-border px-5 py-2 text-xs font-medium uppercase tracking-wide text-text-tertiary">
+            Anuncio
+          </p>
+          <ListaRanking ranking={anuncios} sinValor="Sin anuncio" />
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+/** De dónde llegan las visitas que no traen utm_source, según su referrer. */
+function SinUtmPorOrigen({ referrers }: { referrers: NonNullable<DetalleLanzamiento["referrers"]> }) {
+  const origenes = resumirOrigenes(referrers);
+  if (origenes.length === 0) return null;
+
+  return (
+    <Card className="overflow-hidden p-0">
+      <CabeceraCard
+        titulo="Tráfico sin UTM, por origen"
+        detalle="Visitas sin utm_source agrupadas por el sitio desde el que llegaron"
+      />
+      <ul className="divide-y divide-card-border">
+        {origenes.map((o) => (
+          <li key={o.origen} className="flex items-center justify-between gap-4 px-5 py-3">
+            <span className="min-w-0 truncate text-sm font-medium text-text-primary">{o.origen}</span>
+            <span className="shrink-0 text-sm tabular-nums text-text-secondary">
+              {numero(o.visitantes)} visitantes
+            </span>
+          </li>
+        ))}
+      </ul>
     </Card>
   );
 }
