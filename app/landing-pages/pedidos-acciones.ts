@@ -1,6 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
+import { avisarPedidoResuelto } from "@/lib/pedidos/avisos";
 import { accesoActual, usuarioActual } from "@/lib/landing/auth";
 import { supabaseAdmin } from "@/lib/landing/supabase";
 import {
@@ -106,6 +108,10 @@ export async function cambiarEstadoPedido(id: string, estado: EstadoPedido): Pro
     .select("id");
   if (error) return { error: "No se pudo cambiar el estado" };
   if (!data?.length) return { error: "Alguien lo cambió recién: recargá la página" };
+
+  // Solo la transición hacia "resuelta" avisa al cliente (el update de arriba
+  // ya garantiza que antes estaba en otro estado). Después de responder y sin bloquear.
+  if (estado === "resuelta") after(() => avisarPedidoResuelto(id));
 
   await revalidar(p.client_id, id);
   return { aviso: "Estado actualizado" };

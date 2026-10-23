@@ -1,6 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
+import { avisarPedidoNuevo } from "@/lib/pedidos/avisos";
 import { nombreDe, usuarioActual } from "@/lib/landing/auth";
 import { supabaseAdmin } from "@/lib/landing/supabase";
 import { contextoPortal, type ContextoPortal } from "@/lib/portal/contexto";
@@ -83,15 +85,23 @@ export async function crearPedidoPortal(fd: FormData): Promise<Resultado> {
     if (!data) return { error: "Ese lanzamiento no existe" };
   }
 
-  const { error } = await db.from("client_requests").insert({
-    ...pedido,
-    client_id: ctx.clientId,
-    launch_id: launchId,
-    created_by: userId,
-    created_by_name: nombre,
-    from_client: true,
-  });
+  const { data: creado, error } = await db
+    .from("client_requests")
+    .insert({
+      ...pedido,
+      client_id: ctx.clientId,
+      launch_id: launchId,
+      created_by: userId,
+      created_by_name: nombre,
+      from_client: true,
+    })
+    .select("id")
+    .single();
   if (error) return { error: "No se pudo enviar el pedido" };
+
+  // Aviso por mail al equipo, después de responder: nunca frena ni rompe el pedido.
+  const nuevoId = creado?.id as string | undefined;
+  if (nuevoId) after(() => avisarPedidoNuevo(nuevoId));
 
   revalidar(ctx.slug);
   return { aviso: "Pedido enviado: te avisamos por acá cuando lo tomemos" };
