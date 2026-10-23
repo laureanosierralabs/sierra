@@ -12,7 +12,7 @@ import { escaparHtml } from "@/lib/email/invitacion-portal";
 
 export type TipoReporte = "diario" | "final";
 
-type DatosReporte = Pick<DetalleLanzamiento, "paginas" | "registros" | "visitas" | "referrers" | "compras" | "despues">;
+export type DatosReporte = Pick<DetalleLanzamiento, "paginas" | "registros" | "visitas" | "referrers" | "compras" | "despues">;
 
 export interface EntradaReporte {
   tipo: TipoReporte;
@@ -25,6 +25,8 @@ export interface EntradaReporte {
   urlPanel: string | null;
   /** Botón al reporte de cierre (final). Null si el cliente no tiene portal. */
   urlReporte: string | null;
+  /** Análisis redactado y aprobado por el owner (solo el final). Texto plano con párrafos. */
+  analisis?: string | null;
 }
 
 /** Dirección pública de la app, sin barra final. Vacío si no hay con qué armarla. */
@@ -69,7 +71,7 @@ const restarDia = (dia: string) => {
 /** AAAA-MM-DD → DD/MM/AAAA. */
 const fechaLegible = (dia: string) => dia.split("-").reverse().join("/");
 
-interface Totales {
+export interface Totales {
   visitantes: number;
   registros: number;
   /** Registros sobre visitantes de las landings de registro con visitas medidas. */
@@ -79,7 +81,7 @@ interface Totales {
   precioLista: boolean;
 }
 
-function totales(d: DatosReporte): Totales {
+export function totales(d: DatosReporte): Totales {
   const trafico = resumirVisitas(d.visitas);
   const porPagina = new Map<string, number>();
   for (const r of d.registros) if (r.page_id) porPagina.set(r.page_id, (porPagina.get(r.page_id) ?? 0) + 1);
@@ -212,6 +214,29 @@ function seccion(titulo: string, cuerpo: string): string {
 </td></tr>`;
 }
 
+/** Títulos de las secciones del análisis: se resaltan si van solos en su línea. */
+const TITULOS_ANALISIS = /^(qué funcionó|qué no funcionó|qué mejorar para el próximo lanzamiento)\s*:?$/i;
+
+/** Texto plano del análisis → bloques de párrafos (separados por línea en blanco), todo escapado. */
+export function analisisHtml(texto: string): string {
+  return texto
+    .replace(/\r\n/g, "\n")
+    .split(/\n{2,}/)
+    .map((bloque) => bloque.trim())
+    .filter(Boolean)
+    .map((bloque) =>
+      bloque
+        .split("\n")
+        .map((linea) => {
+          const l = escaparHtml(linea.trim());
+          return TITULOS_ANALISIS.test(linea.trim()) ? `<strong style="color:#ffffff;">${l}</strong>` : l;
+        })
+        .join("<br>"),
+    )
+    .map((b) => `<p style="margin:0 0 12px;${FUENTE}font-size:14px;line-height:22px;color:#d4d4d4;">${b}</p>`)
+    .join("");
+}
+
 export function reporteLanzamientoEmail(e: EntradaReporte): { subject: string; html: string; text: string } {
   const nombre = e.nombre.replace(/[\r\n]+/g, " ").trim() || "Tu lanzamiento";
   const final = e.tipo === "final";
@@ -289,6 +314,14 @@ export function reporteLanzamientoEmail(e: EntradaReporte): { subject: string; h
       : []),
   ].join("\n");
 
+  const analisis = final ? e.analisis?.trim() || null : null;
+  const bloqueAnalisis = analisis
+    ? `<tr><td style="padding:24px 32px 0;">
+<div style="${FUENTE}font-size:12px;letter-spacing:1.2px;text-transform:uppercase;color:#a3a3a3;padding-bottom:8px;">Análisis del lanzamiento</div>
+${analisisHtml(analisis)}
+</td></tr>`
+    : "";
+
   const url = final ? e.urlReporte : e.urlPanel;
   const textoBoton = final ? "Ver el reporte de cierre" : "Ver el panel completo";
   const u = url ? escaparHtml(url) : "";
@@ -314,6 +347,7 @@ export function reporteLanzamientoEmail(e: EntradaReporte): { subject: string; h
 <tr><td style="padding:8px 32px 0;${FUENTE}font-size:24px;line-height:30px;font-weight:700;color:#ffffff;">${escaparHtml(titulo)}</td></tr>
 <tr><td style="padding:12px 32px 0;${FUENTE}font-size:15px;line-height:24px;color:#d4d4d4;">${escaparHtml(intro)}</td></tr>
 ${bloques}
+${bloqueAnalisis}
 ${boton}
 <tr><td style="padding:28px 32px 32px;${FUENTE}font-size:12px;line-height:18px;color:#737373;">Los visitantes son únicos por día: quien vuelve otro día cuenta de nuevo.${acumulado.precioLista ? " Los ingresos se calculan con el precio de lista, sin cupones ni reembolsos." : ""}</td></tr>
 </table>
@@ -338,6 +372,7 @@ ${boton}
     lineas.push("", "DESPUÉS DEL REGISTRO");
     for (const p of pasosPosteriores) lineas.push(`- ${p.etiqueta}: ${p.valor}`);
   }
+  if (analisis) lineas.push("", "ANÁLISIS DEL LANZAMIENTO", analisis);
   if (url) lineas.push("", `${textoBoton}:`, url);
   const text = lineas.join("\n");
 

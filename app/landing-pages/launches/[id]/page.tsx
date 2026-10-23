@@ -22,6 +22,7 @@ import {
   WebinarConfig,
 } from "@/components/lanzamientos/lanzamiento-gestion";
 import { PanelLanzamiento } from "@/components/lanzamientos/panel-lanzamiento";
+import { ReporteFinal } from "@/components/lanzamientos/reporte-final";
 import { VerificarLandings } from "@/components/lanzamientos/verificar-landings";
 import { ImagenPortal } from "@/components/landing/imagen-portal";
 import { accesoActual } from "@/lib/landing/auth";
@@ -47,8 +48,9 @@ import { ajustesDeReporte } from "@/lib/lanzamientos/reporte-diario-datos";
 import { resendConfigurado } from "@/lib/email/resend";
 
 export const dynamic = "force-dynamic";
-// "Verificar landings" (server action de esta página) pide varias URLs ajenas.
-export const maxDuration = 60;
+// "Verificar landings" y "Generar borrador con IA" (server actions de esta página)
+// pueden tardar: piden varias URLs ajenas / esperan a la IA.
+export const maxDuration = 300;
 
 /**
  * Un lanzamiento, para el owner. Dos pestañas con propósito distinto:
@@ -320,6 +322,19 @@ export default async function LanzamientoDetalle({
                 destinatarios={reporteMail.destinatarios}
                 resendListo={resendConfigurado()}
                 finalEnviado={reporteMail.finalEnviado}
+              />
+            </SeccionCard>
+          )}
+
+          {reporteMail && (
+            <SeccionCard titulo="Reporte final">
+              <ReporteFinal
+                launchId={lanzamiento.id}
+                borrador={reporteMail.borradorFinal}
+                borradorAt={reporteMail.borradorFinalAt}
+                finalEnviado={reporteMail.finalEnviado}
+                cantidadDestinatarios={reporteMail.destinatarios.length}
+                resendListo={resendConfigurado()}
               />
             </SeccionCard>
           )}

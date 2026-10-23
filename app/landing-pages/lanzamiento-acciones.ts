@@ -6,6 +6,7 @@ import { headers } from "next/headers";
 import { auth } from "@clerk/nextjs/server";
 import { accesoActual, usuarioActual } from "@/lib/landing/auth";
 import { enviarEmail, resendConfigurado } from "@/lib/email/resend";
+import { borradorDeAnalisis } from "@/lib/lanzamientos/borrador-final";
 import { correoDeReporte } from "@/lib/lanzamientos/reporte-diario-datos";
 import { leerDestinatarios } from "@/lib/lanzamientos/reporte-diario";
 import { cifrar, hayClave } from "@/lib/landing/cifrado";
@@ -698,6 +699,146 @@ export async function enviarPruebaReporte(fd: FormData): Promise<Resultado | { a
   const r = await enviarEmail({ to: email, ...correo, subject: `[Prueba] ${correo.subject}` });
   if (!r.ok) return { error: `No se pudo mandar la prueba: ${r.error}` };
   return { aviso: `Prueba enviada a ${email}` };
+}
+
+/** Tope del análisis final: es el mismo campo que las conclusiones del reporte de cierre. */
+const MAX_ANALISIS = 10_000;
+
+/**
+ * Le pide a la IA un borrador del análisis final y lo guarda (pisa el anterior).
+ * Se puede usar en cualquier momento, no solo al terminar el lanzamiento.
+ */
+export async function generarBorradorFinal(fd: FormData): Promise<Resultado | { aviso: string; borrador: string }> {
+  await exigirOwner();
+
+  const launchId = texto(fd, "launch_id");
+  if (!launchId) return { error: "Falta el lanzamiento" };
+  const db = supabaseAdmin();
+  const { data: lanzamiento } = await db
+    .from("launches")
+    .select("client_id, final_report_sent_at")
+    .eq("id", launchId)
+    .maybeSingle();
+  if (!lanzamiento) return { error: "El lanzamiento no existe" };
+  // Ya enviado: el texto es el que vio el cliente, no se reemplaza.
+  if (lanzamiento.final_report_sent_at) return { error: "El reporte final ya se envió al cliente" };
+  const clientId = lanzamiento.client_id as string;
+
+  const r = await borradorDeAnalisis(clientId, launchId);
+  if (!r.ok) return { error: `No se pudo generar el borrador: ${r.error}` };
+  const borrador = r.texto.slice(0, MAX_ANALISIS);
+
+  const { error } = await db
+    .from("launches")
+    .update({ final_draft: borrador, final_draft_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+    .eq("id", launchId)
+    .is("final_report_sent_at", null);
+  if (error) return { error: "El borrador se generó pero no se pudo guardar: probá de nuevo" };
+
+  revalidar(clientId, launchId);
+  return { aviso: "Borrador generado: revisalo y editalo antes de aprobarlo", borrador };
+}
+
+/** Guarda el texto editado del reporte final (todavía no se manda ni lo ve el cliente). */
+export async function guardarBorradorFinal(fd: FormData): Promise<Resultado | { aviso: string }> {
+  await exigirOwner();
+
+  const launchId = texto(fd, "launch_id");
+  const borrador = texto(fd, "final_draft");
+  if (!launchId) return { error: "Falta el lanzamiento" };
+  if (borrador.length > MAX_ANALISIS) return { error: `El texto es muy largo (máximo ${MAX_ANALISIS.toLocaleString("es-AR")} caracteres)` };
+
+  const { data, error } = await supabaseAdmin()
+    .from("launches")
+    .update({ final_draft: borrador || null, updated_at: new Date().toISOString() })
+    .eq("id", launchId)
+    // Ya enviado: el texto es el que vio el cliente, no se edita.
+    .is("final_report_sent_at", null)
+    .select("client_id")
+    .maybeSingle();
+  if (error) return { error: "No se pudo guardar el borrador" };
+  if (!data) return { error: "El reporte final ya se envió o el lanzamiento no existe" };
+
+  revalidar(data.client_id as string, launchId);
+  return { aviso: "Borrador guardado" };
+}
+
+/**
+ * Aprueba el reporte final: el texto pasa a las conclusiones del reporte de
+ * cierre (lo ve el cliente en el portal) y se manda por mail, con los números,
+ * a los destinatarios del reporte. Una sola vez: `final_report_sent_at` se
+ * reserva antes de enviar y se devuelve si no salió ningún mail.
+ */
+export async function aprobarYEnviarFinal(fd: FormData): Promise<Resultado | { aviso: string }> {
+  await exigirOwner();
+
+  const launchId = texto(fd, "launch_id");
+  const analisis = texto(fd, "final_draft");
+  if (!launchId) return { error: "Falta el lanzamiento" };
+  if (!analisis) return { error: "Escribí o generá el análisis antes de aprobarlo" };
+  if (analisis.length > MAX_ANALISIS) return { error: `El texto es muy largo (máximo ${MAX_ANALISIS.toLocaleString("es-AR")} caracteres)` };
+  if (!resendConfigurado()) return { error: "Resend no está configurado: no se pueden mandar mails" };
+
+  const db = supabaseAdmin();
+  const { data: lanzamiento } = await db
+    .from("launches")
+    .select("client_id, report_recipients, final_report_sent_at, closing_notes")
+    .eq("id", launchId)
+    .maybeSingle();
+  if (!lanzamiento) return { error: "El lanzamiento no existe" };
+  const clientId = lanzamiento.client_id as string;
+  const notasPrevias = (lanzamiento.closing_notes as string | null) ?? null;
+  const destinatarios = (lanzamiento.report_recipients as string[] | null) ?? [];
+  if (destinatarios.length === 0) return { error: "Agregá al menos un email en el reporte diario para poder enviarlo" };
+  if (lanzamiento.final_report_sent_at) return { error: "El reporte final ya se envió al cliente" };
+
+  const ahora = new Date().toISOString();
+  const { data: reservado } = await db
+    .from("launches")
+    .update({ final_draft: analisis, closing_notes: analisis, final_report_sent_at: ahora, updated_at: ahora })
+    .eq("id", launchId)
+    .is("final_report_sent_at", null)
+    .select("id")
+    .maybeSingle();
+  if (!reservado) return { error: "El reporte final ya se envió al cliente" };
+
+  // Si no salió ningún mail, el portal vuelve a mostrar las conclusiones de
+  // antes: el cliente no puede ver un análisis que nunca se le envió.
+  const devolverReserva = () =>
+    db.from("launches").update({ final_report_sent_at: null, closing_notes: notasPrevias }).eq("id", launchId);
+
+  try {
+    const correo = await correoDeReporte(clientId, launchId, "final", analisis);
+    if (!correo) {
+      await devolverReserva();
+      return { error: "El lanzamiento no existe" };
+    }
+    let enviados = 0;
+    let ultimoError = "";
+    for (const to of destinatarios) {
+      const r = await enviarEmail({ to, ...correo });
+      if (r.ok) enviados++;
+      else {
+        ultimoError = r.error;
+        console.error(`[lanzamientos] no salió el reporte final de ${launchId}:`, r.error);
+      }
+    }
+    if (enviados === 0) {
+      await devolverReserva();
+      return { error: `No salió ningún mail: ${ultimoError || "error desconocido"}` };
+    }
+    revalidar(clientId, launchId);
+    return {
+      aviso:
+        enviados === destinatarios.length
+          ? `Reporte final enviado a ${enviados} ${enviados === 1 ? "contacto" : "contactos"}`
+          : `Reporte final enviado a ${enviados} de ${destinatarios.length}: revisá los logs`,
+    };
+  } catch (e) {
+    console.error(`[lanzamientos] falló el reporte final de ${launchId}:`, e);
+    await devolverReserva();
+    return { error: "No se pudo enviar el reporte final: probá de nuevo" };
+  }
 }
 
 /**

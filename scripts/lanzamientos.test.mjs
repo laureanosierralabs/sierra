@@ -117,7 +117,7 @@ test("las lecturas de lanzamientos siempre filtran por cliente y no exponen secr
 
   const acciones = leer("../app/landing-pages/lanzamiento-acciones.ts");
   const exportadas = acciones.split("export async function ").slice(1);
-  assert.equal(exportadas.length, 16);
+  assert.equal(exportadas.length, 19);
   for (const f of exportadas) {
     assert.match(f.slice(f.indexOf("{\n") + 1).trimStart(), /^await exigirOwner\(\);/, f.slice(0, 30));
   }

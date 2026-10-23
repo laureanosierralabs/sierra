@@ -1131,7 +1131,7 @@ export function ReporteDiarioConfig({
           />
           <span className="text-xs text-text-tertiary">
             Uno por línea o separados por coma (máximo 10). Se envía todos los días a las 9 (hora de Argentina) mientras
-            el lanzamiento está activo; al terminar, un resumen final.
+            el lanzamiento está activo. Al terminar, el resumen final no sale solo: lo revisás y aprobás en &quot;Reporte final&quot;.
             {finalEnviado ? " El resumen final ya se envió." : ""}
           </span>
         </label>

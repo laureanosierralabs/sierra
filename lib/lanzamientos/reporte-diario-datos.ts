@@ -18,13 +18,16 @@ export interface AjustesReporte {
   destinatarios: string[];
   ultimoDiario: string | null;
   finalEnviado: string | null;
+  /** Borrador del análisis final (lo genera la IA o lo escribe el owner). */
+  borradorFinal: string | null;
+  borradorFinalAt: string | null;
 }
 
 /** Null si el lanzamiento no existe o la migración todavía no está aplicada. */
 export async function ajustesDeReporte(clientId: string, id: string): Promise<AjustesReporte | null> {
   const { data, error } = await supabaseAdmin()
     .from("launches")
-    .select("daily_report, report_recipients, last_daily_report_on, final_report_sent_at")
+    .select("daily_report, report_recipients, last_daily_report_on, final_report_sent_at, final_draft, final_draft_at")
     .eq("client_id", clientId)
     .eq("id", id)
     .maybeSingle();
@@ -38,14 +41,29 @@ export async function ajustesDeReporte(clientId: string, id: string): Promise<Aj
     destinatarios: (data.report_recipients as string[] | null) ?? [],
     ultimoDiario: (data.last_daily_report_on as string | null) ?? null,
     finalEnviado: (data.final_report_sent_at as string | null) ?? null,
+    borradorFinal: (data.final_draft as string | null) ?? null,
+    borradorFinalAt: (data.final_draft_at as string | null) ?? null,
   };
 }
 
 /** Hoy en AAAA-MM-DD, hora de Buenos Aires. */
 export const hoyBuenosAires = () => diaDe(new Date());
 
+/** Dirección pública de la app (sin barra final); vacío si no hay con qué armarla. */
+export const urlBaseDeApp = () =>
+  urlBaseApp({
+    APP_URL: process.env.APP_URL,
+    VERCEL_PROJECT_PRODUCTION_URL: process.env.VERCEL_PROJECT_PRODUCTION_URL,
+  });
+
 /** Arma el mail (diario o final) con los datos actuales del lanzamiento. Null si no existe. */
-export async function correoDeReporte(clientId: string, id: string, tipo: TipoReporte) {
+export async function correoDeReporte(
+  clientId: string,
+  id: string,
+  tipo: TipoReporte,
+  /** Análisis aprobado por el owner (solo el final). */
+  analisis?: string | null,
+) {
   const detalle = await lanzamientoDeCliente(clientId, id);
   if (!detalle) return null;
 
@@ -68,5 +86,6 @@ export async function correoDeReporte(clientId: string, id: string, tipo: TipoRe
     hoy: hoyBuenosAires(),
     urlPanel,
     urlReporte: urlPanel ? `${urlPanel}/reporte` : null,
+    analisis,
   });
 }
