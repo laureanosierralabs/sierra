@@ -99,7 +99,12 @@ export function ReporteCierre({
             <Cifra label="Conversión a venta" valor={porcentaje(r.conversionVenta)} detalle="Ventas sobre visitantes" />
             <Cifra label="Registros que compraron" valor={porcentaje(r.registrosQueCompraron)} />
             {r.ingresos.map((i) => (
-              <Cifra key={i.moneda} label={`Ingresos (${i.moneda})`} valor={i.total.toLocaleString("es-AR", { maximumFractionDigits: 2 })} />
+              <Cifra
+                key={i.moneda}
+                label={`Ingresos (${i.moneda})`}
+                valor={i.total.toLocaleString("es-AR", { maximumFractionDigits: 2 })}
+                detalle={r.ingresosPrecioLista ? "Según precio de lista (sin cupones ni reembolsos)" : undefined}
+              />
             ))}
           </div>
         )}

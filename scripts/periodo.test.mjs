@@ -40,3 +40,18 @@ test("filtrarPorPeriodo: registros, visitas y ventas del rango; el día de un re
   assert.deepEqual(semana.registros.map((r) => r.id), ["1", "2"]);
   assert.equal(filtrarPorPeriodo(datos, null), datos);
 });
+
+test("filtrarPorPeriodo: una venta sin fecha solo cuenta sin rango", () => {
+  const datos = {
+    paginas: [],
+    registros: [],
+    visitas: [],
+    compras: [
+      { id: "con", occurred_at: "2026-10-15T15:00:00Z" },
+      { id: "sin", occurred_at: null, list_price: true },
+    ],
+  };
+  assert.deepEqual(filtrarPorPeriodo(datos, rangoDePeriodo("ayer", AHORA)).compras.map((c) => c.id), ["con"]);
+  assert.deepEqual(filtrarPorPeriodo(datos, rangoDePeriodo("hoy", AHORA)).compras, []);
+  assert.equal(filtrarPorPeriodo(datos, null).compras.length, 2);
+});

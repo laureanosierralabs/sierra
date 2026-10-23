@@ -70,7 +70,10 @@ export interface Compra {
   page_id: string | null;
   amount: number | null;
   currency: string | null;
-  occurred_at: string;
+  /** Null = se sabe que compró, no cuándo (venta importada). */
+  occurred_at: string | null;
+  /** El monto es el precio de lista (venta importada), no lo realmente cobrado. */
+  list_price?: boolean;
 }
 
 export interface Registro {

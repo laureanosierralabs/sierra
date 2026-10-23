@@ -51,9 +51,15 @@ function ingresosPorMoneda(compras: Pick<Compra, "amount" | "currency">[]) {
   return [...total.entries()];
 }
 
+const AVISO_PRECIO_LISTA = "Según precio de lista (sin cupones ni reembolsos)";
+
+/** Alguna venta importada trae el precio de lista, no lo realmente cobrado. */
+const hayPrecioDeLista = (compras: Pick<Compra, "list_price">[]) => compras.some((c) => c.list_price);
+
 function ventasPorDia(compras: Pick<Compra, "occurred_at">[]) {
   const dias = new Map<string, number>();
   for (const c of compras) {
+    if (c.occurred_at === null) continue;
     const dia = diaDe(c.occurred_at);
     dias.set(dia, (dias.get(dia) ?? 0) + 1);
   }
@@ -165,14 +171,22 @@ export function PanelLanzamiento({ detalle }: { detalle: DetalleLanzamiento }) {
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-5">
         <div className="xl:col-span-3">
           {esVenta ? (
+            <>
             <BarChartCard
               title="Ventas por día"
               data={ventasPorDia(vista.compras).map(([dia, n]) => ({ dia: corta(dia), ventas: n }))}
               xKey="dia"
               series={[{ key: "ventas", name: "Ventas", color: CHART_COLORS.net }]}
-              isEmpty={vista.compras.length === 0}
+              isEmpty={!vista.compras.some((c) => c.occurred_at)}
               emptyMessage={rango ? "Ninguna venta medida en este período." : "Todavía no entró ninguna venta medida."}
             />
+            {vista.compras.some((c) => c.occurred_at === null) && (
+              <p className="mt-2 text-xs text-text-tertiary">
+                {numero(vista.compras.filter((c) => c.occurred_at === null).length)} ventas sin fecha conocida no
+                aparecen en el gráfico.
+              </p>
+            )}
+            </>
           ) : (
             <BarChartCard
               title="Registros por día"
@@ -293,6 +307,7 @@ function ResumenLanzamiento({ detalle, rango }: { detalle: DetalleLanzamiento; r
             <div key={moneda}>
               <p className="text-sm font-medium text-text-tertiary">Ingresos ({moneda})</p>
               <p className="text-xl font-semibold text-text-primary tabular-nums">{monto(total)}</p>
+              {hayPrecioDeLista(compras) && <p className="text-xs text-text-tertiary">{AVISO_PRECIO_LISTA}</p>}
             </div>
           ))}
           <div>
@@ -352,7 +367,13 @@ function ResumenLanding({
         <KpiCard
           label="Ingresos"
           value={ingresos.length === 1 ? `${ingresos[0][0]} ${monto(ingresos[0][1])}` : ingresos.length ? "Varias monedas" : "—"}
-          hint={ingresos.length > 1 ? ingresos.map(([m, t]) => `${m} ${monto(t)}`).join(" · ") : "De las ventas medidas"}
+          hint={
+            hayPrecioDeLista(compras)
+              ? AVISO_PRECIO_LISTA
+              : ingresos.length > 1
+                ? ingresos.map(([m, t]) => `${m} ${monto(t)}`).join(" · ")
+                : "De las ventas medidas"
+          }
           icon={<Wallet2 />}
           tone="violet"
         />

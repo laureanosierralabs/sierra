@@ -75,7 +75,8 @@ export function filtrarPorPeriodo<T extends DatosVista>(datos: T, rango: Rango |
     ...datos,
     registros: datos.registros.filter((r) => dentro(diaBA(r.registered_at))),
     visitas: datos.visitas.filter((v) => dentro(v.day)),
-    compras: datos.compras.filter((c) => dentro(diaBA(c.occurred_at))),
+    // Una venta sin fecha conocida solo cuenta en el lanzamiento entero.
+    compras: datos.compras.filter((c) => c.occurred_at !== null && dentro(diaBA(c.occurred_at))),
   };
 }
 

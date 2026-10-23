@@ -37,6 +37,8 @@ export interface Reporte {
   ventas: number;
   /** Ingresos por moneda (no se suman monedas distintas). */
   ingresos: { moneda: string; total: number }[];
+  /** Algún monto es precio de lista (ventas importadas), no lo realmente cobrado. */
+  ingresosPrecioLista: boolean;
   /** Registros sobre visitantes de las landings de registro con visitas medidas. */
   conversionRegistro: number | null;
   /** Ventas sobre visitantes de las landings de venta con visitas medidas. */
@@ -141,6 +143,7 @@ export function armarReporte(detalle: DetalleLanzamiento, pedidos: Pedido[]): Re
     registros: resumen.total,
     ventas: compras.length,
     ingresos: [...ingresos.entries()].map(([moneda, total]) => ({ moneda, total })),
+    ingresosPrecioLista: compras.some((c) => c.list_price),
     conversionRegistro: tasa("registro"),
     conversionVenta: tasa("venta"),
     registrosQueCompraron: compras.length > 0 ? conversion(compras.length, resumen.total) : null,

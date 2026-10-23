@@ -104,11 +104,27 @@ async function totalesDeSitios(clientId: string, lanzamientos: Lanzamiento[]): P
   const db = supabaseAdmin();
   const { data: paginas, error } = await db
     .from("launch_pages")
-    .select("launch_id, site_id, path, kind")
+    .select("id, launch_id, site_id, path, kind")
     .eq("client_id", clientId);
   if (error) {
     console.error("[lanzamientos] no se pudieron leer las landings:", error.message);
     return totales;
+  }
+
+  // Ventas importadas (GoHighLevel): cuelgan de la landing, no de las fechas
+  // del lanzamiento. Un solo conteo agrupado en JS; si falla, cuentan 0.
+  const importadasPorLanding = new Map<string, number>();
+  const { data: importadas, error: errImportadas } = await db
+    .from("launch_sale_imports")
+    .select("page_id")
+    .eq("client_id", clientId);
+  if (errImportadas) {
+    console.error("[lanzamientos] no se pudieron contar las ventas importadas:", errImportadas.message);
+  } else {
+    for (const i of importadas ?? []) {
+      const pid = i.page_id as string;
+      importadasPorLanding.set(pid, (importadasPorLanding.get(pid) ?? 0) + 1);
+    }
   }
 
   const contar = async (siteId: string, rutas: string[], desde: string, hasta: string, compras: boolean) => {
@@ -139,6 +155,7 @@ async function totalesDeSitios(clientId: string, lanzamientos: Lanzamiento[]): P
         ventas: 0,
         deVenta: propias.length > 0 && propias.every((p) => p.kind === "venta"),
       };
+      for (const p of propias) t.ventas += importadasPorLanding.get(p.id as string) ?? 0;
       const porSitio = new Map<string, string[]>();
       for (const p of propias) {
         if (!p.site_id || !p.path) continue;
@@ -290,6 +307,30 @@ export async function lanzamientoDeCliente(
     }
   }
   registros.sort((a, b) => b.registered_at.localeCompare(a.registered_at));
+
+  // Ventas importadas de otra herramienta: ya pertenecen a la landing, así que
+  // no se recortan por las fechas del lanzamiento. Si fallan, el panel sigue.
+  if (listaPaginas.length > 0) {
+    const { data: importadas, error: errImportadas } = await db
+      .from("launch_sale_imports")
+      .select("id, page_id, amount, currency, occurred_at, list_price")
+      .eq("client_id", clientId)
+      .in("page_id", listaPaginas.map((p) => p.id));
+    if (errImportadas) {
+      console.error("[lanzamientos] no se pudieron leer las ventas importadas:", errImportadas.message);
+    } else {
+      for (const i of importadas ?? []) {
+        compras.push({
+          id: i.id as string,
+          page_id: i.page_id as string,
+          amount: i.amount === null ? null : Number(i.amount),
+          currency: i.currency as string | null,
+          occurred_at: i.occurred_at as string | null,
+          list_price: Boolean(i.list_price),
+        });
+      }
+    }
+  }
 
   // Si las listas fallan, el panel se ve igual sin el embudo.
   const listas = await listasDeLanzamiento(clientId, id)
