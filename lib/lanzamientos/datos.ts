@@ -58,12 +58,69 @@ export async function lanzamientosDeCliente(clientId: string): Promise<Lanzamien
     .order("created_at", { ascending: false });
 
   if (error) throw new Error("No se pudieron leer los lanzamientos");
-  return (data ?? []).map((fila) => {
+  const lanzamientos = (data ?? []).map((fila) => {
     const { launch_registrations, ...l } = fila as unknown as Lanzamiento & {
       launch_registrations: { count: number }[] | null;
     };
     return { ...l, registros: launch_registrations?.[0]?.count ?? 0 };
   });
+
+  // Las landings de un proyecto conectado guardan sus registros por sitio y
+  // ruta, no en launch_registrations: se suman igual que en el detalle.
+  const extra = await registrosDeSitios(clientId, lanzamientos);
+  return lanzamientos.map((l) => ({ ...l, registros: l.registros + (extra.get(l.id) ?? 0) }));
+}
+
+/**
+ * Registros (no compras) que llegaron por proyecto conectado, por
+ * lanzamiento: mismas rutas y mismo período que lee `lanzamientoDeCliente`.
+ * Si falla, el total muestra solo lo propio en vez de romper la lista.
+ */
+async function registrosDeSitios(clientId: string, lanzamientos: Lanzamiento[]): Promise<Map<string, number>> {
+  const totales = new Map<string, number>();
+  if (lanzamientos.length === 0) return totales;
+  const db = supabaseAdmin();
+  const { data: paginas, error } = await db
+    .from("launch_pages")
+    .select("launch_id, site_id, path")
+    .eq("client_id", clientId)
+    .not("site_id", "is", null)
+    .not("path", "is", null);
+  if (error) {
+    console.error("[lanzamientos] no se pudieron leer las landings conectadas:", error.message);
+    return totales;
+  }
+
+  await Promise.all(
+    lanzamientos.map(async (l) => {
+      const porSitio = new Map<string, string[]>();
+      for (const p of paginas ?? []) {
+        if (p.launch_id !== l.id) continue;
+        porSitio.set(p.site_id as string, [...(porSitio.get(p.site_id as string) ?? []), p.path as string]);
+      }
+      const desde = l.starts_on ?? diaDe(l.created_at);
+      const hasta = l.ends_on ?? diaDe(new Date());
+      for (const [siteId, rutas] of porSitio) {
+        const { count, error: errConteo } = await db
+          .from("site_conversions")
+          .select("id", { count: "exact", head: true })
+          .eq("client_id", clientId)
+          .eq("site_id", siteId)
+          .in("path", rutas)
+          .neq("kind", "purchase")
+          .not("email", "is", null)
+          .neq("email", "")
+          .gte("occurred_at", `${desde}T00:00:00-03:00`)
+          .lte("occurred_at", `${hasta}T23:59:59.999-03:00`);
+        if (errConteo) {
+          console.error("[lanzamientos] no se pudieron contar los registros del proyecto:", errConteo.message);
+          continue;
+        }
+        totales.set(l.id, (totales.get(l.id) ?? 0) + (count ?? 0));
+      }
+    }),
+  );
+  return totales;
 }
 
 export interface DetalleLanzamiento {

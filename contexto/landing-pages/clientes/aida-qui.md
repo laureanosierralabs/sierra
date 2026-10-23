@@ -5,7 +5,7 @@ unidad: landing-pages
 estado: stand-by
 contacto:
 canal:
-actualizado: 2026-10-11
+actualizado: 2026-10-22
 ---
 
 # AIDA QUI
@@ -47,6 +47,19 @@ También usa funnel de lead magnet.
 | Qué | Dónde |
 | --- | --- |
 | Drive | https://drive.google.com/drive/folders/1B6kjpBDI2bQK4w2XPAklcT56yRobr1VP |
-| Carpeta local | `d:\Laureano\Desktop\Landing Pages\Clientes\Aida Qui` |
+| Carpeta local | `d:\Laureano\Desktop\1. Landing Pages\Clientes\Aida Qui` |
+| Repo landings | `Aida Qui\Landings` · github.com/AidaQui/registro-aidaqui |
+| Vercel | team `aida-qui`, proyecto `registro-aidaqui` (cuenta propia de Aida) |
+| Supabase de Aida | `AidaQui's Project` (landing.aidaqui@gmail.com) |
 
 ## Notas
+- 2026-10-22 — Los lanzamientos del panel se ordenan por embudo, no por mes:
+  Masterclass (jun), Activación (venta low ticket, v1–v3), Webinar/Registro
+  (V1–V3), Lista de espera (evergreen) y Diagnóstico (lead magnet). Las fechas
+  salen de la actividad real (registros/tráfico), porque Aida prueba
+  estrategias sin calendario fijo.
+- Datos por landing: registros con origen en la Supabase de Aida (`registros`,
+  columna `variante`); visitas en Vercel Web Analytics desde 07/09; Sierra
+  manda registros y visitas al panel desde 15/10. El Pixel de Meta solo mide
+  PageView. Clarity no está instalado. La inversión en anuncios la tienen los
+  traffickers (pedido acceso de solo lectura).
