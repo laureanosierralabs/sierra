@@ -166,7 +166,16 @@ test("el cron exige el secreto, es público en el proxy y está agendado", () =>
   assert.match(ruta, /status: 401/);
   assert.match(leer("../proxy.ts"), /"\/api\/cron\/\(\.\*\)"/);
   const vercel = JSON.parse(leer("../vercel.json"));
-  assert.deepEqual(vercel.crons, [{ path: "/api/cron/reportes", schedule: "0 12 * * *" }]);
+  // El reporte sale a las 9 (ART); la sincronización de GHL corre una hora
+  // antes, para que el reporte ya traiga las ventas del día.
+  assert.deepEqual(
+    vercel.crons.find((c) => c.path === "/api/cron/reportes"),
+    { path: "/api/cron/reportes", schedule: "0 12 * * *" },
+  );
+  assert.deepEqual(
+    vercel.crons.find((c) => c.path === "/api/cron/ghl"),
+    { path: "/api/cron/ghl", schedule: "0 11 * * *" },
+  );
 });
 
 test("las columnas del reporte no salen en las lecturas del portal", () => {

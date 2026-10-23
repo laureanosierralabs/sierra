@@ -6,6 +6,8 @@ import { PortalCliente } from "@/components/landing/portal-cliente";
 import { LanzamientosCliente } from "@/components/lanzamientos/lanzamientos-cliente";
 import { lanzamientosDeCliente } from "@/lib/lanzamientos/datos";
 import { ProyectosConectados } from "@/components/sitios/proyectos-conectados";
+import { IntegracionGhl } from "@/components/integraciones/integracion-ghl";
+import { integracionGhlDeCliente } from "@/lib/integraciones/datos";
 import { rutasDeSitio, sitiosDeCliente } from "@/lib/sitios/datos";
 import {
   ArrowLeft,
@@ -55,6 +57,8 @@ import { EmptyState } from "@/components/common/empty-state";
 import { MigasDetalle } from "@/components/common/migas-detalle";
 
 export const dynamic = "force-dynamic";
+// "Sincronizar ahora" (GoHighLevel) corre desde esta página hasta ~50 s.
+export const maxDuration = 60;
 
 const VISTAS = [
   "resumen",
@@ -112,7 +116,7 @@ export default async function ClienteDetalle({
   // Lo comercial es del owner: a un member ni se le cargan las cotizaciones.
   const { esOwner } = await accesoActual();
 
-  const [cliente, cotizaciones, proyectos, accesos, notas, portal, lanzamientos, conectados, todos, pedidos] = await Promise.all([
+  const [cliente, cotizaciones, proyectos, accesos, notas, portal, lanzamientos, conectados, todos, pedidos, ghl] = await Promise.all([
     obtenerCliente(id),
     esOwner ? listarCotizaciones() : Promise.resolve([]),
     listarProyectos(),
@@ -144,6 +148,13 @@ export default async function ClienteDetalle({
       console.error("[clientes] no se pudieron leer los pedidos:", e);
       return [];
     }),
+    // Integración GoHighLevel (solo owner). Si falla, esa tarjeta no aparece.
+    esOwner
+      ? integracionGhlDeCliente(id).catch((e) => {
+          console.error("[clientes] no se pudo leer la integración GHL:", e);
+          return null;
+        })
+      : Promise.resolve(null),
   ]);
 
   if (!cliente) notFound();
@@ -420,6 +431,8 @@ export default async function ClienteDetalle({
           </SeccionCard>
 
           {esOwner && conectados && <ProyectosConectados clientId={cliente.id} proyectos={conectados} />}
+
+          {esOwner && ghl && <IntegracionGhl clientId={cliente.id} integracion={ghl.integracion} landings={ghl.landings} />}
         </div>
       )}
 
