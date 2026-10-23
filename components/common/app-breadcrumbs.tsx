@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { usePathname } from "next/navigation";
 import { ROUTE_LABELS } from "@/components/common/sidebar/data";
 import { Breadcrumbs } from "@/components/tailgrids/core/breadcrumbs";
+import { useMigasDetalle } from "@/components/common/migas-detalle";
 
 const STATIC_LABELS: Record<string, string> = { nuevo: "Nuevo" };
 
@@ -64,7 +65,12 @@ function crumbsFor(pathname: string, conInicio: boolean): Crumb[] {
 
 export function AppBreadcrumbs({ esOwner }: { esOwner: boolean }) {
   const pathname = usePathname();
-  const items = useMemo(() => crumbsFor(pathname, esOwner), [pathname, esOwner]);
+  const detalle = useMigasDetalle(pathname);
+  const items = useMemo(() => {
+    const base = crumbsFor(pathname, esOwner);
+    // La página dio nombres reales: reemplazan al último tramo genérico.
+    return detalle && base.length > 0 ? [...base.slice(0, -1), ...detalle] : base;
+  }, [pathname, esOwner, detalle]);
 
   if (items.length === 0) return null;
 

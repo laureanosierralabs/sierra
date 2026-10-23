@@ -52,6 +52,7 @@ import { PestanasUrl } from "@/components/common/pestanas-url";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Card } from "@/components/tailgrids/core/card";
 import { EmptyState } from "@/components/common/empty-state";
+import { MigasDetalle } from "@/components/common/migas-detalle";
 
 export const dynamic = "force-dynamic";
 
@@ -199,6 +200,7 @@ export default async function ClienteDetalle({
 
   return (
     <>
+      <MigasDetalle tramos={[{ href: `/landing-pages/clients/${id}`, label: cliente.name }]} />
       <Link
         href="/landing-pages/clients"
         className="mb-4 inline-flex items-center gap-1.5 text-sm text-text-tertiary transition-colors hover:text-text-primary"

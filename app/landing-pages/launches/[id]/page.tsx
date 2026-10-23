@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, ExpandArrowTopRightSquare1 } from "@tailgrids/icons";
 import { SeccionCard } from "@/components/landing/seccion-card";
+import { MigasDetalle } from "@/components/common/migas-detalle";
 import { PageHeader } from "@/components/landing/ui";
 import {
   BorrarLanzamiento,
@@ -120,6 +121,12 @@ export default async function LanzamientoDetalle({
 
   return (
     <>
+      <MigasDetalle
+        tramos={[
+          { href: `/landing-pages/clients/${clientId}`, label: cliente?.name ?? "Cliente" },
+          { href: `/landing-pages/launches/${id}`, label: "Lanzamiento" },
+        ]}
+      />
       <Link
         href={`/landing-pages/clients/${clientId}`}
         className="mb-4 inline-flex items-center gap-1.5 text-sm text-text-tertiary transition-colors hover:text-text-primary"
