@@ -102,3 +102,24 @@ export function avisoMetaEmail(e: {
     text,
   };
 }
+
+/** Al cliente y al owner: se llenó un grupo de WhatsApp y quedan pocos libres. */
+export function avisoPocosGruposEmail(e: { nombre: string; libres: number; url: string | null }): CorreoAviso {
+  const nombre = limpiar(e.nombre) || "Tu lanzamiento";
+  const subject =
+    e.libres === 0
+      ? `⚠️ ${nombre}: no quedan grupos de WhatsApp libres`
+      : `${nombre}: queda ${e.libres === 1 ? "1 grupo" : `${e.libres} grupos`} de WhatsApp libre${e.libres === 1 ? "" : "s"}`;
+  const parrafos = [
+    e.libres === 0
+      ? "Se llenó el último grupo de WhatsApp cargado. Hasta que cargues uno nuevo, la gente que se registra va a ese último grupo."
+      : "Se llenó un grupo de WhatsApp y el link ya manda al siguiente.",
+    "Creá los grupos nuevos y pegá sus links en el lanzamiento: el link de la landing y de los mails no cambia, empieza a mandar a los nuevos solo.",
+  ];
+  const text = [subject, "", ...parrafos, ...(e.url ? ["", "Cargar grupos:", e.url] : [])].join("\n");
+  return {
+    subject,
+    html: marco(nombre, e.libres === 0 ? "No quedan grupos libres" : "Quedan pocos grupos libres", parrafos, e.url ? { texto: "Cargar grupos", url: e.url } : null),
+    text,
+  };
+}

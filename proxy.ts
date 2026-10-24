@@ -27,6 +27,9 @@ const esPublica = createRouteMatcher([
   // Link personal del webinar: lo abre quien recibió el correo, sin sesión.
   // Lo protege el token del lanzamiento.
   "/w/(.*)",
+  // Link fijo del grupo de WhatsApp: lo abre quien se registró, sin sesión.
+  // Lo protege el token del lanzamiento.
+  "/g/(.*)",
   // Conversiones de proyectos conectados: las protege la firma del kit.
   "/api/ingest",
   // Crons de Vercel (reportes por mail): los protege CRON_SECRET en el header.

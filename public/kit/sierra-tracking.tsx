@@ -24,6 +24,10 @@
  * (el servidor lo lee con atribucionDeReferencia()). También lo hace con los
  * links de PixelBridge (/go?c=…): le suma la referencia al link de Stripe que
  * lleva dentro de su configuración, porque PixelBridge no reenvía nada solo.
+ *
+ * Los links al grupo fijo del lanzamiento (/grupo/<token>, que la landing
+ * reenvía al panel) cuentan como clic al grupo de WhatsApp, y llevan el correo
+ * de quien se registró: así vuelve siempre a su mismo grupo.
  */
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
@@ -158,6 +162,24 @@ function referenciaCompra(path: string, utm: Utm): string | null {
   return null;
 }
 
+/** Link al grupo fijo del lanzamiento en esta misma landing (/grupo/<token>). */
+function esLinkDeGrupo(url: URL): boolean {
+  return url.origin === window.location.origin && url.pathname.startsWith("/grupo/");
+}
+
+/** Le suma al link del grupo el correo de quien se registró, si no lo trae. */
+function etiquetarGrupo(origen: EventTarget | null): void {
+  if (!(origen instanceof Element)) return;
+  const enlace = origen.closest("a[href]") as HTMLAnchorElement | null;
+  if (!enlace) return;
+  const url = new URL(enlace.href, window.location.href);
+  if (!esLinkDeGrupo(url) || url.searchParams.has("e")) return;
+  const persona = personaGuardada();
+  if (!persona) return;
+  url.searchParams.set("e", persona.e);
+  enlace.href = url.toString();
+}
+
 /** Suma la referencia a un link de Stripe; false si no es de Stripe o ya trae una. */
 function conReferencia(url: URL, ref: string): boolean {
   if (url.hostname.toLowerCase() !== "buy.stripe.com" || url.searchParams.has("client_reference_id")) return false;
@@ -209,7 +231,7 @@ function clasificarClic(origen: EventTarget | null): { tipo: TipoEvento; destino
       const url = new URL(enlace.href, window.location.href);
       host = url.hostname.toLowerCase();
       if (!tipo) {
-        if (host === "chat.whatsapp.com") tipo = "whatsapp_click";
+        if (host === "chat.whatsapp.com" || esLinkDeGrupo(url)) tipo = "whatsapp_click";
         else if (esCheckout(host, url.pathname)) tipo = "checkout_click";
       }
     } catch {
@@ -233,8 +255,9 @@ export function SierraTracking() {
       if (evento.type === "auxclick" && evento.button !== 1) return;
       try {
         etiquetarPagoStripe(evento.target);
+        etiquetarGrupo(evento.target);
       } catch {
-        /* sin referencia, el pago funciona igual */
+        /* sin etiqueta, el link funciona igual */
       }
       try {
         const clasificado = clasificarClic(evento.target);

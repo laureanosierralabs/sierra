@@ -11,6 +11,9 @@ import { fechaCorta } from "@/lib/landing/tipos";
 import { LABEL_ESTADO_LANZAMIENTO } from "@/lib/lanzamientos/tipos";
 import { contextoPortal } from "@/lib/portal/contexto";
 import { accesosPortal, lanzamientoPortal } from "@/lib/portal/datos";
+import { GruposWhatsapp } from "@/components/lanzamientos/grupos-whatsapp";
+import { gruposDeLanzamiento } from "@/lib/lanzamientos/grupos-datos";
+import { sitiosDeCliente } from "@/lib/sitios/datos";
 import { cn } from "@/utils/cn";
 
 export const dynamic = "force-dynamic";
@@ -66,10 +69,20 @@ export default async function PortalLanzamiento({
   const vista: Vista = vistaCruda === "entrega" ? "entrega" : "resultados";
 
   // Accesos y videos son extras: si fallan, el lanzamiento se ve igual.
-  const [accesos, videos] =
+  const [accesos, videos, grupos, sitios] =
     vista === "entrega"
-      ? await Promise.all([accesosPortal(ctx).catch(() => []), listarVideosSoporte().catch(() => [])])
-      : [[], []];
+      ? await Promise.all([
+          accesosPortal(ctx).catch(() => []),
+          listarVideosSoporte().catch(() => []),
+          gruposDeLanzamiento(ctx.clientId, lanzamiento.id).catch(() => null),
+          sitiosDeCliente(ctx.clientId).catch(() => []),
+        ])
+      : [[], [], null, []];
+  // El link fijo del grupo sale con el dominio de la landing del cliente.
+  const dominio =
+    paginas
+      .map((p) => (p.site_id ? sitios.find((s) => s.id === p.site_id)?.domain : null))
+      .find((d): d is string => !!d) ?? null;
   const fechas = lanzamiento.starts_on
     ? `${fechaCorta(lanzamiento.starts_on)}${lanzamiento.ends_on ? ` → ${fechaCorta(lanzamiento.ends_on)}` : ""}`
     : null;
@@ -114,6 +127,18 @@ export default async function PortalLanzamiento({
         </SeccionPortal>
       ) : (
         <div className="flex flex-col gap-12 sm:gap-16">
+          {grupos && (
+            <SeccionPortal titulo="Grupos de WhatsApp">
+              <GruposWhatsapp
+                modo={{ tipo: "portal", slug: ctx.slug }}
+                launchId={lanzamiento.id}
+                token={grupos.token}
+                dominio={dominio}
+                grupos={grupos.grupos}
+              />
+            </SeccionPortal>
+          )}
+
           {paginas.length === 0 ? (
             <p className="rounded-2xl border border-dashed border-white/15 px-5 py-8 text-center text-sm text-white/60">
               Las páginas de este lanzamiento van a aparecer acá.

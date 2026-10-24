@@ -45,6 +45,8 @@ import { EmptyState } from "@/components/common/empty-state";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { rutasDeSitio, sitiosDeCliente } from "@/lib/sitios/datos";
 import { webinarDeLanzamiento } from "@/lib/lanzamientos/despues-datos";
+import { gruposDeLanzamiento } from "@/lib/lanzamientos/grupos-datos";
+import { GruposWhatsapp } from "@/components/lanzamientos/grupos-whatsapp";
 import { ajustesDeReporte } from "@/lib/lanzamientos/reporte-diario-datos";
 import { resendConfigurado } from "@/lib/email/resend";
 
@@ -74,7 +76,7 @@ export default async function LanzamientoDetalle({
   const clientId = await clienteDeLanzamiento(id);
   if (!clientId) notFound();
 
-  const [detalle, conexion, cliente, proyectos, portal, sitios, estadoPortal, accesos, webinar, reporteMail] = await Promise.all([
+  const [detalle, conexion, cliente, proyectos, portal, sitios, estadoPortal, accesos, webinar, reporteMail, grupos] = await Promise.all([
     lanzamientoDeCliente(clientId, id),
     conexionDeLanzamiento(clientId, id),
     obtenerCliente(clientId),
@@ -97,6 +99,7 @@ export default async function LanzamientoDetalle({
     listarRecursosCliente(clientId).catch(() => []),
     webinarDeLanzamiento(clientId, id).catch(() => null),
     ajustesDeReporte(clientId, id).catch(() => null),
+    gruposDeLanzamiento(clientId, id).catch(() => null),
   ]);
   const nombreSitio = new Map(sitios.map((s) => [s.id, s.name]));
   if (!detalle || !conexion) notFound();
@@ -316,6 +319,18 @@ export default async function LanzamientoDetalle({
             )}
             <ConclusionesForm launchId={lanzamiento.id} valor={lanzamiento.closing_notes} />
           </SeccionCard>
+
+          {grupos && (
+            <SeccionCard titulo="Grupos de WhatsApp">
+              <GruposWhatsapp
+                modo={{ tipo: "panel" }}
+                launchId={lanzamiento.id}
+                token={grupos.token}
+                dominio={dominioLanding}
+                grupos={grupos.grupos}
+              />
+            </SeccionCard>
+          )}
 
           {webinar && (
             <SeccionCard titulo="Webinar">
