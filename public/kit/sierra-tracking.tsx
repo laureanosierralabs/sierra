@@ -21,7 +21,9 @@
  * A los links de pago de Stripe (buy.stripe.com) les agrega, al hacer clic,
  * `client_reference_id` con la ruta y los UTM: es lo único que Stripe le pasa
  * al webhook, y así la compra llega al panel con su landing y su anuncio
- * (el servidor lo lee con atribucionDeReferencia()).
+ * (el servidor lo lee con atribucionDeReferencia()). También lo hace con los
+ * links de PixelBridge (/go?c=…): le suma la referencia al link de Stripe que
+ * lleva dentro de su configuración, porque PixelBridge no reenvía nada solo.
  */
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
@@ -156,17 +158,41 @@ function referenciaCompra(path: string, utm: Utm): string | null {
   return null;
 }
 
-/** Etiqueta un link de pago de Stripe antes de que el navegador lo siga. */
+/** Suma la referencia a un link de Stripe; false si no es de Stripe o ya trae una. */
+function conReferencia(url: URL, ref: string): boolean {
+  if (url.hostname.toLowerCase() !== "buy.stripe.com" || url.searchParams.has("client_reference_id")) return false;
+  url.searchParams.set("client_reference_id", ref);
+  return true;
+}
+
+/** Etiqueta un link de pago (de Stripe o vía PixelBridge) antes de que el navegador lo siga. */
 function etiquetarPagoStripe(origen: EventTarget | null): void {
   if (!(origen instanceof Element)) return;
   const enlace = origen.closest("a[href]") as HTMLAnchorElement | null;
   if (!enlace) return;
   const url = new URL(enlace.href, window.location.href);
-  // Si el link ya trae su propia referencia, no se pisa.
-  if (url.hostname.toLowerCase() !== "buy.stripe.com" || url.searchParams.has("client_reference_id")) return;
+  const host = url.hostname.toLowerCase();
+  const esStripe = host === "buy.stripe.com";
+  const esPixelBridge = host === "pixelbridge-theta.vercel.app" && url.pathname === "/go" && url.searchParams.has("c");
+  if (!esStripe && !esPixelBridge) return;
   const ref = referenciaCompra(window.location.pathname, leerUtm());
   if (!ref) return;
-  url.searchParams.set("client_reference_id", ref);
+
+  if (esStripe) {
+    if (conReferencia(url, ref)) enlace.href = url.toString();
+    return;
+  }
+  // PixelBridge: la configuración viaja en `c` (JSON UTF-8 en base64); el link
+  // de Stripe va adentro, en `s`.
+  const bytes = Uint8Array.from(atob(url.searchParams.get("c") ?? ""), (ch) => ch.charCodeAt(0));
+  const config = JSON.parse(new TextDecoder().decode(bytes)) as { s?: unknown };
+  if (typeof config.s !== "string") return;
+  const stripe = new URL(config.s);
+  if (!conReferencia(stripe, ref)) return;
+  config.s = stripe.toString();
+  let binario = "";
+  for (const byte of new TextEncoder().encode(JSON.stringify(config))) binario += String.fromCharCode(byte);
+  url.searchParams.set("c", btoa(binario));
   enlace.href = url.toString();
 }
 
