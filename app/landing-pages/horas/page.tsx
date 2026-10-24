@@ -40,6 +40,7 @@ export default async function Horas({
       userId={vista.userId}
       personas={vista.personas}
       truncado={vista.truncado}
+      tarifas={vista.tarifas}
       clientes={clientes}
       mes={mes}
       hoy={hoy}

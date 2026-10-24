@@ -99,12 +99,39 @@ test("el equipo solo lee y toca sus horas; el dueño de una fila sale de la sesi
   assert.match(acciones, /user_id: userId,/);
   assert.doesNotMatch(acciones, /texto\(fd, "user_id"\)/);
   for (const f of acciones.split("export async function ").slice(1)) {
-    assert.match(f.slice(f.indexOf("{\n") + 1).trimStart(), /^const \{ userId, esOwner \} = await exigirEquipo\(\);/);
+    assert.match(f.slice(f.indexOf("{\n") + 1).trimStart(), /^const \{ (userId, )?esOwner \} = await exigirEquipo\(\);/);
   }
+  // Pagar es solo del owner, y deshace todo si algo falla a mitad de camino.
+  const pagar = acciones.slice(acciones.indexOf("export async function pagarHoras"));
+  assert.match(pagar, /if \(!esOwner\) return \{ error: "Solo el owner puede pagar horas" \};/);
+  assert.match(pagar, /if \(personas\.size !== 1\)/);
+  assert.match(pagar, /\.is\("team_payment_id", null\)/);
+  assert.equal((pagar.match(/await deshacer\(\);/g) ?? []).length, 2);
   // Una carga pagada solo la toca el owner.
   assert.match(acciones, /esOwner \|\| \(data\.user_id === userId && !data\.team_payment_id\)/);
   assert.match(acciones, /\.eq\("user_id", userId\)\.is\("team_payment_id", null\)/);
   const sql = leer("../supabase/migrations/20261105000000_time_entries.sql");
   assert.match(sql, /check \(end_time > start_time\)/);
   assert.match(sql, /revoke all on table time_entries from public, anon, authenticated/);
+});
+
+test("la tarifa propuesta sale del último pago de horas de cada persona", async () => {
+  const { ultimasTarifas, tituloPagoHoras, detallePagoHoras } = await import("../lib/horas/tipos.ts");
+  const fila = (user_id, pago, minutes, amount, paid_on, currency = "USD") => ({ user_id, team_payment_id: pago, minutes, amount, paid_on, currency });
+  const t = ultimasTarifas([
+    // Bruno: dos pagos; el último (10 h por USD 100) manda.
+    fila("bruno", "p4", 360, 100, "2026-10-05"),
+    fila("bruno", "p4", 240, 100, "2026-10-05"),
+    fila("bruno", "p1", 60, 8, "2026-09-01"),
+    fila("cielo", "p9", 90, 30, "2026-10-10", "ARS"),
+  ]);
+  assert.deepEqual(t.bruno, { tarifa: 10, moneda: "USD" });
+  assert.deepEqual(t.cielo, { tarifa: 20, moneda: "ARS" });
+  assert.equal(t.nadie, undefined);
+
+  assert.equal(tituloPagoHoras(["2026-10-21", "2026-10-03"]), "Horas · Octubre 2026");
+  assert.equal(tituloPagoHoras(["2026-09-28", "2026-10-03"]), "Horas · 28/09 al 03/10/2026");
+  assert.equal(detallePagoHoras(600, 10, "USD"), "10 h × USD 10");
+  assert.equal(detallePagoHoras(690, 10, "USD"), "11,5 h × USD 10");
+  assert.equal(detallePagoHoras(90, null, "USD"), "1,5 h");
 });

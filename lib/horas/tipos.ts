@@ -156,3 +156,52 @@ export function csvPlanilla(entradas: EntradaHora[], conPersona: boolean): strin
   const filas = filasPlanilla(orden).map((f, i) => (conPersona ? [orden[i].user_name, ...f] : f));
   return `﻿${[encabezado, ...filas].map((f) => f.map(celda).join(",")).join("\r\n")}\r\n`;
 }
+
+/* ───────────── Pago de horas ───────────── */
+
+export interface HoraPagada {
+  user_id: string;
+  minutes: number;
+  team_payment_id: string;
+  amount: number;
+  paid_on: string;
+  currency: string;
+}
+
+/**
+ * Tarifa por hora del último pago de horas de cada persona (monto del pago
+ * sobre las horas que cubrió). Sale de pagos reales: sin pagos, no hay tarifa.
+ */
+export function ultimasTarifas(filas: HoraPagada[]): Record<string, { tarifa: number; moneda: string }> {
+  const pagos = new Map<string, { user_id: string; minutos: number; amount: number; paid_on: string; currency: string }>();
+  for (const f of filas) {
+    const p = pagos.get(f.team_payment_id);
+    if (p) p.minutos += f.minutes;
+    else pagos.set(f.team_payment_id, { user_id: f.user_id, minutos: f.minutes, amount: f.amount, paid_on: f.paid_on, currency: f.currency });
+  }
+  const ultimo = new Map<string, { minutos: number; amount: number; paid_on: string; currency: string }>();
+  for (const p of pagos.values()) {
+    const previo = ultimo.get(p.user_id);
+    if (p.minutos > 0 && (!previo || p.paid_on > previo.paid_on)) ultimo.set(p.user_id, p);
+  }
+  return Object.fromEntries(
+    [...ultimo.entries()].map(([user, p]) => [user, { tarifa: Math.round((p.amount / (p.minutos / 60)) * 100) / 100, moneda: p.currency }]),
+  );
+}
+
+/** "Horas · Octubre 2026", o el rango si las cargas cruzan de mes. */
+export function tituloPagoHoras(fechas: string[]): string {
+  const orden = [...fechas].sort();
+  const primera = orden[0];
+  const ultima = orden[orden.length - 1];
+  if (!primera) return "Horas";
+  if (primera.slice(0, 7) === ultima.slice(0, 7)) return `Horas · ${etiquetaMes(primera.slice(0, 7))}`;
+  const corta = (f: string) => `${f.slice(8, 10)}/${f.slice(5, 7)}`;
+  return `Horas · ${corta(primera)} al ${corta(ultima)}/${ultima.slice(0, 4)}`;
+}
+
+/** "10 h × USD 10": el detalle que queda en el acuerdo, como los que se cargaban a mano. */
+export function detallePagoHoras(minutos: number, tarifa: number | null, moneda: string): string {
+  const horas = String(Math.round((minutos / 60) * 100) / 100).replace(".", ",");
+  return tarifa ? `${horas} h × ${moneda} ${String(tarifa).replace(".", ",")}` : `${horas} h`;
+}

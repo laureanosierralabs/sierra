@@ -36,6 +36,7 @@ import {
 } from "@/lib/horas/tipos";
 import { HoraForm } from "./hora-form";
 import { crearColumnasHoras } from "./horas-columnas";
+import { PagarHoras } from "./pagar-horas";
 
 const TODOS = "__todos__";
 
@@ -50,13 +51,16 @@ interface Props {
   mes: string;
   hoy: string;
   filtros: { persona: string | null; cliente: string | null };
+  /** Solo para el owner: tarifa del último pago de horas de cada persona. */
+  tarifas: Record<string, { tarifa: number; moneda: string }>;
 }
 
-export function HorasView({ entradas, esOwner, userId, personas, truncado, clientes, mes, hoy, filtros }: Props) {
+export function HorasView({ entradas, esOwner, userId, personas, truncado, clientes, mes, hoy, filtros, tarifas }: Props) {
   const router = useRouter();
   const ruta = usePathname();
   const [formulario, setFormulario] = useState<{ entrada: EntradaHora | null } | null>(null);
   const [aBorrar, setABorrar] = useState<EntradaHora | null>(null);
+  const [aPagar, setAPagar] = useState<{ entradas: EntradaHora[]; limpiar: () => void } | null>(null);
 
   /** URL con los filtros actuales y los cambios pedidos (null = quitar). */
   const href = (cambios: Record<string, string | null>) => {
@@ -223,6 +227,27 @@ export function HorasView({ entradas, esOwner, userId, personas, truncado, clien
           paginate
           pageSize={20}
           initialSorting={[{ id: "fecha", desc: true }]}
+          selectionActions={
+            esOwner
+              ? (ids, limpiar) => {
+                  const elegidas = entradas.filter((e) => ids.includes(e.id));
+                  const pagadas = elegidas.some((e) => e.team_payment_id);
+                  const variasPersonas = new Set(elegidas.map((e) => e.user_id)).size > 1;
+                  if (pagadas || variasPersonas) {
+                    return (
+                      <span className="text-sm text-text-secondary">
+                        {pagadas ? "Para pagar, elegí solo horas pendientes" : "Para pagar, elegí horas de una sola persona"}
+                      </span>
+                    );
+                  }
+                  return (
+                    <Button size="sm" onPress={() => setAPagar({ entradas: elegidas, limpiar })}>
+                      Pagar {duracionTexto(totalMinutos(elegidas))}
+                    </Button>
+                  );
+                }
+              : undefined
+          }
           toolbarActions={
             <>
               {esOwner && personas.length > 0 && (
@@ -288,6 +313,19 @@ export function HorasView({ entradas, esOwner, userId, personas, truncado, clien
           }
         />
       </div>
+
+      {esOwner && (
+        <PagarHoras
+          abierto={aPagar !== null}
+          onCerrar={() => {
+            aPagar?.limpiar();
+            setAPagar(null);
+          }}
+          entradas={aPagar?.entradas ?? []}
+          hoy={hoy}
+          tarifa={aPagar ? (tarifas[aPagar.entradas[0]?.user_id ?? ""] ?? null) : null}
+        />
+      )}
 
       <HoraForm
         abierto={formulario !== null}
