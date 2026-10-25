@@ -157,7 +157,7 @@ export function ResultadosPortal({
 
       {detalle.despues && detalle.despues.webinar.length > 0 && (
         <SeccionPortal titulo="Webinar">
-          <IngresosWebinar registros={detalle.registros} webinar={detalle.despues.webinar} lanzamiento={lanzamiento.name} />
+          <IngresosWebinar registros={detalle.registros} webinar={detalle.despues.webinar} lanzamiento={lanzamiento.name} paginas={paginas} />
         </SeccionPortal>
       )}
 

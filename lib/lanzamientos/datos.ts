@@ -196,6 +196,12 @@ export interface DetalleLanzamiento {
   listas: ListaCruzada[];
   /** Clics a WhatsApp y al checkout e ingresos al webinar; null si no se pudieron leer. */
   despues: DatosDespues | null;
+  /**
+   * Personas que el link fijo mandó a los grupos de WhatsApp, sumando todos
+   * los grupos (incluye los cargados como llenos antes de empezar a medir).
+   * Es del lanzamiento entero; null si no hay grupos o no se pudo leer.
+   */
+  enGrupos?: number | null;
 }
 
 /* PostgREST devuelve de a 1000 filas: se pagina hasta un tope razonable. */
@@ -373,6 +379,15 @@ export async function lanzamientoDeCliente(
     return null;
   });
 
+  // Total de los grupos de WhatsApp: si falla, el embudo usa solo los clics medidos.
+  const { data: grupos, error: errGrupos } = await db
+    .from("launch_whatsapp_groups")
+    .select("joins")
+    .eq("client_id", clientId)
+    .eq("launch_id", id);
+  if (errGrupos) console.error("[lanzamientos] no se pudieron leer los grupos:", errGrupos.message);
+  const enGrupos = grupos && grupos.length > 0 ? grupos.reduce((t, g) => t + ((g.joins as number) ?? 0), 0) : null;
+
   return {
     lanzamiento: l,
     paginas: listaPaginas,
@@ -383,6 +398,7 @@ export async function lanzamientoDeCliente(
     truncado,
     listas,
     despues,
+    enGrupos,
   };
 }
 

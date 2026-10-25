@@ -121,6 +121,8 @@ export interface PasoEmbudo {
   cantidad: number;
   /** Porcentaje contra el paso anterior; null en el primero o si no se puede medir. */
   porcentaje: number | null;
+  /** De dónde sale el número, si no es el cruce con los registros. */
+  nota?: string;
 }
 
 export interface FuenteTrafico {
@@ -329,7 +331,18 @@ export function calcularResultados(
   const crudos: Omit<PasoEmbudo, "porcentaje">[] = [];
   if (visitantesEmbudo > 0) crudos.push({ id: "visitantes", etiqueta: "Visitantes", cantidad: visitantesEmbudo });
   if (vista.registros.length > 0) crudos.push({ id: "registros", etiqueta: "Registros", cantidad: vista.registros.length });
-  if (hayWhatsapp && whatsapp) {
+  // Los grupos suman a todos los que mandó el link fijo, también los de grupos
+  // que se llenaron antes de medir con email. Es un total del lanzamiento
+  // entero: solo reemplaza al cruce sin filtros de período ni de landing.
+  const enGrupos = periodo === "todo" && !landing ? (detalle.enGrupos ?? 0) : 0;
+  if (enGrupos > (hayWhatsapp && whatsapp ? whatsapp.cruzan : 0)) {
+    crudos.push({
+      id: "whatsapp",
+      etiqueta: "Entraron al grupo de WhatsApp",
+      cantidad: enGrupos,
+      nota: "Según los grupos: incluye los que se llenaron antes de empezar a medir.",
+    });
+  } else if (hayWhatsapp && whatsapp) {
     crudos.push({ id: "whatsapp", etiqueta: "Entraron al grupo de WhatsApp", cantidad: whatsapp.cruzan });
   }
   if (hayWebinar && webinar) {

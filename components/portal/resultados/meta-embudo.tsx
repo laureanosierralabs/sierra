@@ -93,6 +93,7 @@ export function TarjetaEmbudo({ r }: { r: ResultadosVista }) {
                   style={{ width: `${Math.max((p.cantidad / maximo) * 100, 1.5)}%`, opacity: 1 - i * 0.12 }}
                 />
               </div>
+              {p.nota && <p className="mt-1.5 text-xs text-white/45">{p.nota}</p>}
             </li>
           ))}
         </ol>

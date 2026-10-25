@@ -252,3 +252,23 @@ test("el prompt omite lo que no tiene datos y avisa lo parcial", () => {
   assert.match(prompt, /sin visitas medidas/);
   assert.match(prompt, /totales son parciales/);
 });
+
+test("embudo: el total de los grupos reemplaza al cruce de clics solo si es mayor y sin filtros", async () => {
+  const { calcularResultados } = await import("../lib/lanzamientos/resultados.ts");
+  const base = {
+    lanzamiento: { id: "l1", client_id: "c1", name: "L", status: "activo", starts_on: "2026-10-01", ends_on: "2026-10-31", goal_registrations: null, closing_notes: null, cover_url: null, banner_url: null, created_at: "2026-10-01T00:00:00Z" },
+    paginas: [{ id: "p1", name: "R", kind: "registro", position: 0 }],
+    registros: [1, 2, 3].map((i) => ({ id: String(i), page_id: "p1", email: `p${i}@x.com`, name: null, phone: null, utm_source: null, utm_medium: null, utm_campaign: null, utm_content: null, registered_at: "2026-10-20T10:00:00Z", extra: null })),
+    visitas: [{ page_id: "p1", day: "2026-10-20", utm_source: null, visitors: 10 }],
+    referrers: [], compras: [], truncado: false, listas: [],
+    despues: { eventos: [{ site_id: "s", kind: "whatsapp_click", path: "/g", email: "p1@x.com", target: null, day: "2026-10-20" }], webinar: [] },
+    enGrupos: 900,
+  };
+  const ahora = new Date("2026-10-25T12:00:00Z");
+  const todo = calcularResultados(base, { periodo: "todo", landingId: null, ahora });
+  const paso = todo.embudo.find((p) => p.id === "whatsapp");
+  assert.equal(paso.cantidad, 900);
+  assert.ok(paso.nota);
+  const conLanding = calcularResultados(base, { periodo: "todo", landingId: "p1", ahora });
+  assert.equal(conLanding.embudo.find((p) => p.id === "whatsapp").cantidad, 1);
+});

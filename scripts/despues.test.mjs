@@ -193,3 +193,13 @@ test("la lista de ingresos al webinar está en el panel interno y en el portal",
   assert.match(leer("../components/portal/resultados/resultados-portal.tsx"), /<IngresosWebinar registros=\{detalle\.registros\}/);
   assert.match(leer("../lib/lanzamientos/despues-datos.ts"), /select\("email, day, occurred_at"\)/);
 });
+
+test("ingresosWebinar también devuelve a los registrados que no entraron (una vez por email)", async () => {
+  const { ingresosWebinar } = await import("../lib/lanzamientos/despues.ts");
+  const reg = (id, email, fecha) => ({ id, page_id: "p1", email, name: id, phone: null, utm_source: null, utm_medium: null, utm_campaign: null, utm_content: null, registered_at: fecha, extra: null });
+  const r = ingresosWebinar(
+    [reg("a1", "ana@x.com", "2026-10-20T10:00:00Z"), reg("b2", "Bob@x.com", "2026-10-21T10:00:00Z"), reg("b1", "bob@x.com", "2026-10-19T10:00:00Z")],
+    [{ email: "ana@x.com", day: "2026-10-25" }],
+  );
+  assert.deepEqual(r.noEntraron.map((x) => x.id), ["b1"]);
+});

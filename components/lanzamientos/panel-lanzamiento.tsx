@@ -183,7 +183,7 @@ export function PanelLanzamiento({ detalle }: { detalle: DetalleLanzamiento }) {
       />
 
       {detalle.despues && detalle.despues.webinar.length > 0 && (
-        <IngresosWebinar registros={detalle.registros} webinar={detalle.despues.webinar} lanzamiento={lanzamiento.name} />
+        <IngresosWebinar registros={detalle.registros} webinar={detalle.despues.webinar} lanzamiento={lanzamiento.name} paginas={paginas} />
       )}
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-5">

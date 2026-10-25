@@ -145,6 +145,8 @@ export interface IngresosWebinar {
   nuevas: number;
   /** Del ingreso más reciente al más viejo. */
   filas: IngresoWebinar[];
+  /** Registrados (uno por email, su primer registro) que no entraron al webinar. */
+  noEntraron: Registro[];
 }
 
 /**
@@ -153,8 +155,9 @@ export interface IngresosWebinar {
  * nueva, así no se pierde nadie que entró con el link.
  */
 export function ingresosWebinar(registros: Registro[], webinar: EventoWebinar[]): IngresosWebinar {
+  // Del más antiguo al más nuevo: queda el primer registro de cada persona.
   const registro = new Map<string, Registro>();
-  for (const r of registros) {
+  for (const r of [...registros].sort((a, b) => a.registered_at.localeCompare(b.registered_at))) {
     const email = normalizarEmail(r.email);
     if (email && !registro.has(email)) registro.set(email, r);
   }
@@ -186,7 +189,8 @@ export function ingresosWebinar(registros: Registro[], webinar: EventoWebinar[])
   filas.sort((a, b) => b.primerIngreso.localeCompare(a.primerIngreso));
 
   const registradas = filas.filter((f) => f.registrada).length;
-  return { personas: filas.length, registradas, nuevas: filas.length - registradas, filas };
+  const noEntraron = [...registro].filter(([email]) => !porEmail.has(email)).map(([, r]) => r);
+  return { personas: filas.length, registradas, nuevas: filas.length - registradas, filas, noEntraron };
 }
 
 /* ───────────── Clics al checkout ───────────── */
