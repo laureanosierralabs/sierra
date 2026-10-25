@@ -3,6 +3,7 @@ import { Geist } from "next/font/google";
 import Image from "next/image";
 import Link from "next/link";
 import { UserProfileButton } from "@/components/common/header/user-profile";
+import { FooterMarca } from "@/components/portal/footer-marca";
 import { EtiquetaPortal } from "@/components/portal/portal-ui";
 import { portalesDisponibles } from "@/lib/portal/contexto";
 import "./portal.css";
@@ -62,11 +63,7 @@ export default async function PortalLayout({ children }: { children: React.React
         </div>
       </header>
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 pt-28 pb-20 sm:px-6 print:max-w-none print:p-0">{children}</main>
-      <footer className="pb-10 text-center text-xs leading-relaxed font-medium text-white/60 print:hidden">
-        Todos los derechos reservados
-        <br />
-        synx build {new Date().getFullYear()}®
-      </footer>
+      <FooterMarca />
     </div>
   );
 }
