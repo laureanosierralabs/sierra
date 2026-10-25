@@ -201,6 +201,42 @@ h1, h2, h3 {
   text-wrap: balance;
 }
 
+/* Skeleton de la marca: base neutra (se adapta al tema porque mezcla el
+   color del texto) y un brillo apenas azul que la cruza. */
+.skeleton-marca {
+  position: relative;
+  overflow: hidden;
+  background-color: color-mix(in srgb, var(--text) 7%, transparent);
+}
+
+.skeleton-marca::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    100deg,
+    transparent 20%,
+    rgb(80 115 255 / 0.12) 45%,
+    rgb(0 0 255 / 0.08) 55%,
+    transparent 80%
+  );
+  animation: skeleton-brillo 1.8s ease-in-out infinite;
+}
+
+@keyframes skeleton-brillo {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-marca::after {
+    animation: none;
+    opacity: 0;
+  }
+}
+
 /* Logos según el tema del panel: el oscuro sobre fondo claro y el claro sobre
    fondo oscuro. El tema lo pone next-themes en data-theme, así que se resuelve
    acá y no con `dark:` (que sigue a la preferencia del sistema). */

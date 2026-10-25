@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { DISPLAY, ENLACE, EtiquetaPortal } from "@/components/portal/portal-ui";
+import { ImagenProgresiva } from "@/components/common/imagen-progresiva";
 import { accesoActual } from "@/lib/landing/auth";
 import { portalesDisponibles } from "@/lib/portal/contexto";
 import { cn } from "@/utils/cn";
@@ -56,8 +57,7 @@ export default async function PortalInicio() {
               >
                 {p.portada ? (
                   <>
-                    {/* eslint-disable-next-line @next/next/no-img-element -- imagen subida al bucket público de portadas */}
-                    <img src={p.portada} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                    <ImagenProgresiva src={p.portada} className="absolute inset-0 h-full w-full object-cover" />
                     <span aria-hidden="true" className="absolute inset-0 bg-linear-to-t from-black/85 via-black/30 to-transparent" />
                   </>
                 ) : null}

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ExpandArrowTopRightSquare1 } from "@tailgrids/icons";
+import { ImagenProgresiva } from "@/components/common/imagen-progresiva";
 import { cn } from "@/utils/cn";
 
 /**
@@ -95,8 +96,7 @@ export function HeroPortal({
       <div className={cn("relative overflow-hidden", imagen ? "bg-neutral-900" : "bg-[#444446]")}>
         {imagen && (
           <>
-            {/* eslint-disable-next-line @next/next/no-img-element -- imagen subida al bucket público de portadas */}
-            <img src={imagen} alt="" className="portal-zoom absolute inset-0 h-full w-full object-cover" />
+            <ImagenProgresiva src={imagen} className="portal-zoom absolute inset-0 h-full w-full object-cover" />
             {/* Arriba se oscurece para que el encabezado se lea; abajo se funde con el fondo. */}
             <span aria-hidden="true" className="absolute inset-0 bg-linear-to-b from-black/60 via-black/15 to-neutral-950/95" />
           </>
@@ -179,8 +179,7 @@ export function TarjetaLanzamiento({
     >
       {imagen ? (
         <>
-          {/* eslint-disable-next-line @next/next/no-img-element -- imagen subida al bucket público de portadas */}
-          <img src={imagen} alt="" className="absolute inset-0 h-full w-full object-cover" />
+          <ImagenProgresiva src={imagen} className="absolute inset-0 h-full w-full object-cover" />
           <span aria-hidden="true" className="absolute inset-0 bg-linear-to-t from-black/90 via-black/25 to-transparent" />
         </>
       ) : (

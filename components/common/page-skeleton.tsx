@@ -1,11 +1,13 @@
 import { DataTableSkeleton } from "@/components/common/data-table/data-table-skeleton";
 import { Card } from "@/components/tailgrids/core/card";
 import { Skeleton } from "@/components/tailgrids/core/skeleton";
+import { Cargando } from "@/components/common/lattice-loader";
 
 /** Esqueleto genérico de página: encabezado, fila de métricas y una tabla. */
 export function PageSkeleton() {
   return (
-    <div role="status" aria-busy="true" aria-label="Cargando">
+    <div aria-busy="true">
+      <Cargando className="mb-5" />
       <div className="mb-6 flex flex-col gap-2">
         <Skeleton className="h-7 w-56 rounded-md" />
         <Skeleton className="h-4 w-80 max-w-full" />
