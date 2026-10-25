@@ -55,16 +55,16 @@ const TEXTOS: Record<
 > = {
   equipo: {
     badge: "synx studio",
-    titulo: ["Cada proyecto,", "de punta a ", "punta"],
+    titulo: ["Del brief", "al ", "lanzamiento"],
     bajada:
-      "Briefing, diseño, montaje y entrega. Todo el proceso en un solo lugar, para que nada se pierda entre herramientas.",
+      "Proyectos, tareas, clientes y los resultados de cada landing, en el mismo lugar donde trabajamos. Menos pestañas abiertas, más tiempo para construir.",
     alt: "synx build",
   },
   cliente: {
     badge: "synx control",
     titulo: ["Cada lanzamiento,", "en ", "perspectiva"],
     bajada:
-      "Tus métricas en tiempo real, de dónde llega tu audiencia y el historial de cada lanzamiento. Todo lo que necesitas para entender tus resultados, en un solo lugar.",
+      "Visitas, registros y ventas en tiempo real. De dónde llega tu audiencia, qué funcionó y el reporte de cada cierre, listo para decidir el próximo paso.",
     alt: "synx build",
   },
 };

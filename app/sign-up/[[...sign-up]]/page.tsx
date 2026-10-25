@@ -20,11 +20,11 @@ export default async function SignUpPage({
   return (
     <PantallaIngreso
       audiencia={audiencia}
-      encabezado={cliente ? "Activa tu acceso" : "Creá tu cuenta"}
+      encabezado={cliente ? "Activa tu acceso" : "Sumate al estudio"}
       subtitulo={
         cliente
-          ? "Elige una contraseña para ver tus lanzamientos."
-          : "Completá tus datos para entrar al panel del equipo."
+          ? "Elige una contraseña y entra a ver tus lanzamientos."
+          : "Completá tus datos y ya estás adentro del panel."
       }
     >
       <SignUp fallbackRedirectUrl={cliente ? "/portal" : "/"} appearance={APARIENCIA_CLERK} />

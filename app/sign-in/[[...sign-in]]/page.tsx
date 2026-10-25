@@ -23,8 +23,8 @@ export default async function SignInPage({
   return (
     <PantallaIngreso
       audiencia={audiencia}
-      encabezado={cliente ? "Accede a synx control" : "Iniciá sesión"}
-      subtitulo={cliente ? "Usa el email al que llegó tu invitación." : "Entrá con tu cuenta del equipo."}
+      encabezado={cliente ? "Entra a synx control" : "Entrá al estudio"}
+      subtitulo={cliente ? "Ingresa con el email al que llegó tu invitación." : "Con tu cuenta del equipo de synx build."}
     >
       <SignIn fallbackRedirectUrl={cliente ? "/portal" : "/"} appearance={APARIENCIA_CLERK} />
     </PantallaIngreso>
