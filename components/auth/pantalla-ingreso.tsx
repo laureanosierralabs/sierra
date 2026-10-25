@@ -24,6 +24,7 @@ export const APARIENCIA_CLERK = {
     // La caja de Clerk es nuestra tarjeta: borde animado con los azules de la
     // marca. El pie ("Secured by Clerk") lo exige el plan gratis de Clerk, así
     // que se integra en vez de esconderse.
+    rootBox: "clerk-raiz",
     cardBox: "clerk-caja",
     card: "clerk-card",
     footer: "clerk-pie",
