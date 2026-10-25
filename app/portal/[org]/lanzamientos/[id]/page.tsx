@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "@tailgrids/icons";
-import { PanelLanzamiento } from "@/components/lanzamientos/panel-lanzamiento";
 import { AccesosPortal, VideosSoporte } from "@/components/portal/accesos-videos";
 import { EntregablesLanding } from "@/components/portal/entregables-landing";
-import { ENLACE, HeroPortal, SeccionPortal } from "@/components/portal/portal-ui";
+import { HeroPortal, SeccionPortal } from "@/components/portal/portal-ui";
+import { ResultadosPortal } from "@/components/portal/resultados/resultados-portal";
+import { EstadisticasWhatsapp } from "@/components/portal/whatsapp-stats";
 import { AvisoVistaInterna } from "@/components/portal/vista-interna";
 import { listarVideosSoporte } from "@/lib/landing/datos";
 import { fechaCorta } from "@/lib/landing/tipos";
@@ -12,18 +13,21 @@ import { LABEL_ESTADO_LANZAMIENTO } from "@/lib/lanzamientos/tipos";
 import { contextoPortal } from "@/lib/portal/contexto";
 import { accesosPortal, lanzamientoPortal } from "@/lib/portal/datos";
 import { GruposWhatsapp } from "@/components/lanzamientos/grupos-whatsapp";
+import { cruzarRegistrados } from "@/lib/lanzamientos/despues";
+import { gruposLibres } from "@/lib/lanzamientos/grupos";
 import { gruposDeLanzamiento } from "@/lib/lanzamientos/grupos-datos";
 import { sitiosDeCliente } from "@/lib/sitios/datos";
 import { cn } from "@/utils/cn";
 
 export const dynamic = "force-dynamic";
 
-type Vista = "entrega" | "resultados";
+type Vista = "resultados" | "whatsapp" | "entrega";
 
-/** Pestañas Entrega / Resultados: links, así cada vista tiene su URL. */
+/** Pestañas Resultados / WhatsApp / Entrega: links, así cada vista tiene su URL. */
 function Pestanas({ base, actual }: { base: string; actual: Vista }) {
   const pestanas: { vista: Vista; etiqueta: string; href: string }[] = [
     { vista: "resultados", etiqueta: "Resultados", href: base },
+    { vista: "whatsapp", etiqueta: "WhatsApp", href: `${base}?vista=whatsapp` },
     { vista: "entrega", etiqueta: "Entrega", href: `${base}?vista=entrega` },
   ];
   return (
@@ -35,7 +39,7 @@ function Pestanas({ base, actual }: { base: string; actual: Vista }) {
           scroll={false}
           aria-current={p.vista === actual ? "page" : undefined}
           className={cn(
-            "flex-1 rounded-full px-5 py-2 text-center text-sm font-bold transition-colors sm:flex-none",
+            "flex-1 rounded-full px-4 py-2 text-center text-sm font-bold transition-colors sm:flex-none",
             p.vista === actual ? "bg-primary-500 text-white" : "text-white/60 hover:text-white",
           )}
         >
@@ -47,10 +51,10 @@ function Pestanas({ base, actual }: { base: string; actual: Vista }) {
 }
 
 /**
- * Un lanzamiento en el portal: el banner y, debajo, dos pestañas. Primero
- * "Resultados" (las métricas y el reporte: lo que el cliente quiere ver al
- * entrar); después "Entrega", con cada landing y sus PDFs y recursos, los
- * accesos y los videos de soporte.
+ * Un lanzamiento en el portal: el banner y, debajo, tres pestañas. Primero
+ * "Resultados" (las métricas: lo que el cliente quiere ver al entrar); luego
+ * "WhatsApp" (los grupos y cuánta gente entra) y "Entrega", con cada landing
+ * y sus PDFs y recursos, los accesos y los videos de soporte.
  */
 export default async function PortalLanzamiento({
   params,
@@ -66,23 +70,37 @@ export default async function PortalLanzamiento({
   const detalle = await lanzamientoPortal(ctx, id);
   if (!detalle) notFound();
   const { lanzamiento, paginas } = detalle;
-  const vista: Vista = vistaCruda === "entrega" ? "entrega" : "resultados";
+  const vista: Vista = vistaCruda === "entrega" ? "entrega" : vistaCruda === "whatsapp" ? "whatsapp" : "resultados";
 
-  // Accesos y videos son extras: si fallan, el lanzamiento se ve igual.
-  const [accesos, videos, grupos, sitios] =
+  // Cada pestaña lee solo lo suyo. Accesos y videos son extras: si fallan, el lanzamiento se ve igual.
+  const [accesos, videos] =
     vista === "entrega"
+      ? await Promise.all([accesosPortal(ctx).catch(() => []), listarVideosSoporte().catch(() => [])])
+      : [[], []];
+  const [grupos, sitios] =
+    vista === "whatsapp"
       ? await Promise.all([
-          accesosPortal(ctx).catch(() => []),
-          listarVideosSoporte().catch(() => []),
           gruposDeLanzamiento(ctx.clientId, lanzamiento.id).catch(() => null),
           sitiosDeCliente(ctx.clientId).catch(() => []),
         ])
-      : [[], [], null, []];
+      : [null, []];
   // El link fijo del grupo sale con el dominio de la landing del cliente.
   const dominio =
     paginas
       .map((p) => (p.site_id ? sitios.find((s) => s.id === p.site_id)?.domain : null))
       .find((d): d is string => !!d) ?? null;
+
+  // Estadísticas de la pestaña WhatsApp: quiénes de los registrados hicieron clic al grupo.
+  const clics = detalle.despues && detalle.registros.length > 0
+    ? (() => {
+        const cruce = cruzarRegistrados(
+          detalle.registros,
+          detalle.despues.eventos.filter((e) => e.kind === "whatsapp_click").map((e) => e.email),
+        );
+        return { registrados: cruce.total, entraron: cruce.cruzan, porcentaje: cruce.porcentaje };
+      })()
+    : null;
+  const libres = grupos ? gruposLibres(grupos.grupos) : 0;
   const fechas = lanzamiento.starts_on
     ? `${fechaCorta(lanzamiento.starts_on)}${lanzamiento.ends_on ? ` → ${fechaCorta(lanzamiento.ends_on)}` : ""}`
     : null;
@@ -111,34 +129,51 @@ export default async function PortalLanzamiento({
       </div>
 
       {vista === "resultados" ? (
-        <SeccionPortal
-          titulo="Resultados"
-          accion={
-            <Link href={`${base}/reporte`} className={cn(ENLACE, "text-sm")}>
-              {lanzamiento.status === "cerrado" ? "Reporte de cierre →" : "Reporte parcial →"}
-            </Link>
-          }
-        >
-          {paginas.length === 0 ? (
-            <p className="text-sm text-white/60">Los resultados aparecen cuando el lanzamiento tenga sus landings.</p>
-          ) : (
-            <PanelLanzamiento detalle={detalle} />
-          )}
-        </SeccionPortal>
+        paginas.length === 0 ? (
+          <p className="rounded-2xl border border-dashed border-white/15 px-5 py-8 text-center text-sm text-white/60">
+            Los resultados aparecen cuando el lanzamiento tenga sus landings.
+          </p>
+        ) : (
+          <ResultadosPortal
+            detalle={detalle}
+            ahoraIso={new Date().toISOString()}
+            reporteHref={`${base}/reporte`}
+            fechas={fechas}
+          />
+        )
+      ) : vista === "whatsapp" ? (
+        <div className="flex flex-col gap-12 sm:gap-16">
+          <EstadisticasWhatsapp
+            clics={clics}
+            grupos={
+              grupos
+                ? {
+                    cargados: grupos.grupos.length,
+                    llenos: grupos.grupos.length - libres,
+                    libres,
+                    enviadas: grupos.grupos.reduce((t, g) => t + g.joins, 0),
+                  }
+                : null
+            }
+          />
+          <SeccionPortal titulo="Grupos de WhatsApp">
+            {grupos ? (
+              <div className="rounded-2xl bg-white/4 ring-1 ring-white/10">
+                <GruposWhatsapp
+                  modo={{ tipo: "portal", slug: ctx.slug }}
+                  launchId={lanzamiento.id}
+                  token={grupos.token}
+                  dominio={dominio}
+                  grupos={grupos.grupos}
+                />
+              </div>
+            ) : (
+              <p className="text-sm text-white/60">Los grupos de WhatsApp todavía no están disponibles para este lanzamiento.</p>
+            )}
+          </SeccionPortal>
+        </div>
       ) : (
         <div className="flex flex-col gap-12 sm:gap-16">
-          {grupos && (
-            <SeccionPortal titulo="Grupos de WhatsApp">
-              <GruposWhatsapp
-                modo={{ tipo: "portal", slug: ctx.slug }}
-                launchId={lanzamiento.id}
-                token={grupos.token}
-                dominio={dominio}
-                grupos={grupos.grupos}
-              />
-            </SeccionPortal>
-          )}
-
           {paginas.length === 0 ? (
             <p className="rounded-2xl border border-dashed border-white/15 px-5 py-8 text-center text-sm text-white/60">
               Las páginas de este lanzamiento van a aparecer acá.
