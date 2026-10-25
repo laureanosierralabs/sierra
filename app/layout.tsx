@@ -58,6 +58,7 @@ export default async function RootLayout({
               <AppShell
                 esOwner={acceso.esOwner}
                 unidades={acceso.unidades}
+                verPortales={acceso.verPortales}
                 titulo={titulo}
                 rolLabel={acceso.esOwner ? "Owner" : "Builder"}
               >

@@ -14,8 +14,10 @@ export interface ContextoPortal {
   clienteNombre: string;
   orgId: string;
   slug: string;
-  /** El owner viendo el portal de un cliente (soporte / vista previa). */
+  /** Alguien del equipo viendo el portal de un cliente (soporte / vista previa). Solo lectura. */
   vistaInterna: boolean;
+  /** Las cotizaciones las ven el cliente y el owner; el resto del equipo no. */
+  verCotizaciones: boolean;
 }
 
 /** Un portal al que el usuario puede entrar. */
@@ -86,11 +88,12 @@ const organizacionesDelUsuario = cache(async (): Promise<string[]> => {
 
 /**
  * Portales que el usuario puede abrir: los de sus organizaciones si es de un
- * cliente, todos si es el owner (vista interna), ninguno si es member.
+ * cliente, todos si es del equipo con permiso de portales (vista interna:
+ * el owner siempre), ninguno si es member sin ese permiso.
  */
 export const portalesDisponibles = cache(async (): Promise<PortalDisponible[]> => {
   const acceso = await accesoActual();
-  if (!acceso.esCliente && !acceso.esOwner) return [];
+  if (!acceso.esCliente && !acceso.verPortales) return [];
 
   let consulta = supabaseAdmin()
     .from("client_orgs")
@@ -113,12 +116,12 @@ export const portalesDisponibles = cache(async (): Promise<PortalDisponible[]> =
  * corresponde (la página responde 404 en los dos casos, sin revelar cuál).
  *
  * - Usuario de cliente: solo si es miembro de la organización de ese portal.
- * - Owner: cualquier portal (vista interna).
- * - Member del equipo: nunca.
+ * - Owner, o member con permiso de portales: cualquier portal (vista interna).
+ * - Member sin ese permiso: nunca.
  */
 export const contextoPortal = cache(async (slug: string): Promise<ContextoPortal | null> => {
   const acceso = await accesoActual();
-  if (!acceso.esCliente && !acceso.esOwner) return null;
+  if (!acceso.esCliente && !acceso.verPortales) return null;
 
   const { data, error } = await supabaseAdmin()
     .from("client_orgs")
@@ -139,5 +142,6 @@ export const contextoPortal = cache(async (slug: string): Promise<ContextoPortal
     orgId: fila.clerk_org_id,
     slug: fila.slug,
     vistaInterna: !acceso.esCliente,
+    verCotizaciones: acceso.esCliente || acceso.esOwner,
   };
 });

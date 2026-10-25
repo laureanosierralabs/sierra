@@ -79,3 +79,16 @@ test("el portal no lee datos del panel sin filtro de cliente", () => {
     assert.match(f.slice(0, f.indexOf("\n}\n")), /ctx\.clientId/, f.slice(0, 40));
   }
 });
+
+test("permiso de portales: solo con portals: true, en vista interna y sin cotizaciones", () => {
+  const proxy = leer("../proxy.ts");
+  assert.match(proxy, /metadata\?\.portals === true && esRutaPortal\(ruta\)/);
+  const auth = leer("../lib/landing/auth.ts");
+  assert.match(auth, /verPortales: esOwner \|\| m\?\.portals === true/);
+  assert.match(auth, /unidades: \[\], verPortales: false/);
+  const ctx = leer("../lib/portal/contexto.ts");
+  assert.match(ctx, /if \(!acceso\.esCliente && !acceso\.verPortales\) return null;/);
+  assert.match(ctx, /vistaInterna: !acceso\.esCliente,/);
+  assert.match(ctx, /verCotizaciones: acceso\.esCliente \|\| acceso\.esOwner,/);
+  assert.match(leer("../app/portal/[org]/page.tsx"), /ctx\.verCotizaciones \? cotizacionesCompartidas\(ctx\) : \[\]/);
+});

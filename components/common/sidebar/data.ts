@@ -74,10 +74,26 @@ function seccionesPlanas(unidad: Unidad, esOwner: boolean): NavEntry[] {
 }
 
 /**
+ * Menú del panel. Con permiso de portales (el owner, o un member con
+ * `portals: true`) suma "Portales de clientes" a la primera sección.
+ */
+export function buildNav(esOwner: boolean, unidades: Unidad[], verPortales = false): NavSection[] {
+  const secciones = navBase(esOwner, unidades);
+  if (verPortales && secciones.length > 0) {
+    const [primera, ...resto] = secciones;
+    return [
+      { ...primera, items: [...primera.items, { id: "portales", title: "Portales de clientes", icon: "Rocket", url: "/portal" }] },
+      ...resto,
+    ];
+  }
+  return secciones;
+}
+
+/**
  * Un member con una sola unidad ve sus secciones planas, sin el nivel de
  * agrupación: no hay nada entre qué elegir.
  */
-export function buildNav(esOwner: boolean, unidades: Unidad[]): NavSection[] {
+function navBase(esOwner: boolean, unidades: Unidad[]): NavSection[] {
   if (!esOwner && unidades.length === 1) {
     const unidad = unidades[0];
     const def = DEFINICIONES[unidad];

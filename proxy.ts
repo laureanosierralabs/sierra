@@ -82,7 +82,7 @@ export default clerkMiddleware(async (auth, req) => {
   // fallo de Clerk se corta (antes se dejaba pasar: con usuarios de clientes
   // eso abriría el panel interno). Se responde y no se lanza: una excepción
   // acá tumba la request y el host contesta 404 sin pista de qué pasó.
-  let metadata: { role?: unknown; units?: unknown } | undefined;
+  let metadata: { role?: unknown; units?: unknown; portals?: unknown } | undefined;
   try {
     const cliente = await clerkClient();
     const usuario = await cliente.users.getUser(userId);
@@ -105,6 +105,10 @@ export default clerkMiddleware(async (auth, req) => {
   // Un member sin units cae a landing-pages: era el único acceso posible antes
   // de que este campo existiera.
   const unidades = declaradas.length > 0 ? declaradas : ["landing-pages" as const];
+
+  // Un member con permiso de portales (`portals: true`) entra a los portales
+  // de los clientes en vista interna; la página decide qué ve (sin cotizaciones).
+  if (metadata?.portals === true && esRutaPortal(ruta)) return seguir(req, ruta);
 
   if (puedeVerRuta(esOwner, unidades, ruta)) return seguir(req, ruta);
 

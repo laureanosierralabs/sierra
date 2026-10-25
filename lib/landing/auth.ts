@@ -14,6 +14,12 @@ export interface Acceso {
   /** Usuario de un cliente: solo el portal, nunca el panel interno. */
   esCliente: boolean;
   unidades: Unidad[];
+  /**
+   * Puede abrir los portales de los clientes en vista interna (solo lectura,
+   * sin cotizaciones). El owner siempre; un member si tiene `portals: true`
+   * en su publicMetadata (se da persona por persona).
+   */
+  verPortales: boolean;
 }
 
 /**
@@ -22,10 +28,10 @@ export interface Acceso {
  */
 export function leerAcceso(metadata: unknown): Acceso {
   if (esUsuarioCliente(metadata)) {
-    return { rol: "client", esOwner: false, esCliente: true, unidades: [] };
+    return { rol: "client", esOwner: false, esCliente: true, unidades: [], verPortales: false };
   }
 
-  const m = metadata as { role?: unknown; units?: unknown } | undefined;
+  const m = metadata as { role?: unknown; units?: unknown; portals?: unknown } | undefined;
   const esOwner = m?.role === "owner";
   const unidades = parsearUnidades(m?.units);
 
@@ -33,6 +39,7 @@ export function leerAcceso(metadata: unknown): Acceso {
     rol: esOwner ? "owner" : "member",
     esOwner,
     esCliente: false,
+    verPortales: esOwner || m?.portals === true,
     // Un member sin units declaradas cae a landing-pages, que era el único
     // acceso posible antes de que existiera este campo.
     unidades: esOwner

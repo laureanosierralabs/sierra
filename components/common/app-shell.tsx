@@ -11,6 +11,8 @@ import { cn } from "@/utils/cn";
 interface AppShellProps {
   esOwner: boolean;
   unidades: Unidad[];
+  /** Ve los portales de los clientes (suma "Portales de clientes" al menú). */
+  verPortales?: boolean;
   titulo: string;
   rolLabel: string;
   children: ReactNode;
@@ -21,11 +23,11 @@ interface AppShellProps {
  * y un único contenedor con scroll (`main`). Recibe el acceso ya resuelto en el
  * servidor; acá solo vive el estado de apertura.
  */
-export function AppShell({ esOwner, unidades, titulo, rolLabel, children }: AppShellProps) {
+export function AppShell({ esOwner, unidades, verPortales = false, titulo, rolLabel, children }: AppShellProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobileSheetOpen, setIsMobileSheetOpen] = useState(false);
 
-  const sections = useMemo(() => buildNav(esOwner, unidades), [esOwner, unidades]);
+  const sections = useMemo(() => buildNav(esOwner, unidades, verPortales), [esOwner, unidades, verPortales]);
   const leaves = useMemo(() => flattenNav(sections), [sections]);
 
   return (

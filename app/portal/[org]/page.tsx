@@ -31,7 +31,8 @@ export default async function PortalCliente({ params }: { params: Promise<{ org:
       console.error("[portal] no se pudieron leer los lanzamientos:", e);
       return [];
     }),
-    cotizacionesCompartidas(ctx),
+    // Las cotizaciones son del cliente y del owner: el resto del equipo no las ve.
+    ctx.verCotizaciones ? cotizacionesCompartidas(ctx) : [],
     PEDIDOS_ACTIVOS
       ? pedidosDeCliente(ctx.clientId).catch((e) => {
           console.error("[portal] no se pudieron leer los pedidos:", e);
