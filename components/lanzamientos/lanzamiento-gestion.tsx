@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useSyncExternalStore, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { Copy1, Pencil1 } from "@tailgrids/icons";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -1000,70 +1000,17 @@ export function EntregablesForm({ pagina }: { pagina: PaginaLanzamiento }) {
   );
 }
 
-/* ───────────── Webinar: link y link personal ───────────── */
-
-/** Una plantilla de link personal, con su botón de copiar. */
-function LinkPersonal({ etiqueta, valor }: { etiqueta: string; valor: string }) {
-  async function copiar() {
-    try {
-      await navigator.clipboard.writeText(valor);
-      toast.success("Link copiado");
-    } catch {
-      toast.error("No se pudo copiar");
-    }
-  }
-  return (
-    <div className="flex flex-col gap-1">
-      <span className="text-xs font-medium text-text-secondary">{etiqueta}</span>
-      <div className="flex items-center gap-2 rounded-lg border border-card-border px-3 py-2">
-        <code className="min-w-0 flex-1 truncate text-xs text-text-primary" title={valor}>
-          {valor}
-        </code>
-        <button
-          type="button"
-          onClick={copiar}
-          aria-label={`Copiar el link para ${etiqueta}`}
-          className="inline-flex shrink-0 items-center gap-1.5 text-xs font-medium text-primary-500 hover:underline [&>svg]:size-3.5"
-        >
-          <Copy1 />
-          Copiar
-        </button>
-      </div>
-    </div>
-  );
-}
+/* ───────────── Webinar: a dónde manda el link ───────────── */
 
 /**
- * Link del webinar y link personal para pegar en el correo. El link personal
- * lleva el token del lanzamiento y el email de cada contacto: quien lo abre
- * queda registrado como "se conectó al webinar" y pasa al Zoom. Solo en el
- * panel del owner: el portal del cliente no arma links.
+ * Destino del webinar (Zoom o stream) al que manda el link personal. El link
+ * para pegar en el correo se arma en la tarjeta Enlaces (BloqueEnlace).
  */
-export function WebinarConfig({
-  launchId,
-  url,
-  token,
-  dominio,
-}: {
-  launchId: string;
-  url: string | null;
-  token: string;
-  dominio: string | null;
-}) {
+export function WebinarConfig({ launchId, url }: { launchId: string; url: string | null }) {
   const form = useZodForm({ action: guardarWebinar, successMessage: "Link del webinar guardado" });
-  // El origen se lee en el navegador: así sirve igual en local, preview y producción.
-  const origen = useSyncExternalStore(
-    () => () => {},
-    () => window.location.origin,
-    () => "",
-  );
-  // Con landing conectada, el contacto ve el dominio del cliente: la landing
-  // reenvía /vivo/<token> al panel. Sin landing, queda el link del panel.
-  const hostLanding = dominio?.replace(/^https?:\/\//i, "").replace(/\/+$/, "") || null;
-  const base = hostLanding ? `https://${hostLanding}/vivo/${token}` : `${origen || "https://…"}/w/${token}`;
 
   return (
-    <div className="flex flex-col gap-4 px-4 py-4">
+    <div className="flex flex-col gap-4">
       <form onSubmit={form.onSubmit} className="flex flex-col gap-3">
         <input type="hidden" name="launch_id" value={launchId} />
         <label className="flex flex-col gap-1.5">
@@ -1084,16 +1031,6 @@ export function WebinarConfig({
           {form.pending ? "Guardando…" : "Guardar link"}
         </Button>
       </form>
-
-      <div className="flex flex-col gap-3 border-t border-card-border pt-4">
-        <p className="text-sm font-medium text-text-primary">Link personal para el correo</p>
-        <LinkPersonal etiqueta="MailerLite" valor={`${base}?e={$email}`} />
-        <LinkPersonal etiqueta="GoHighLevel" valor={`${base}?e={{contact.email}}`} />
-        <p className="text-xs text-text-tertiary">
-          Pegalo como destino del botón o del link del correo: cada contacto entra con su email, queda anotado como
-          &quot;se conectó al webinar&quot; y pasa al Zoom. Si abre el link sin email, se lo pedimos.
-        </p>
-      </div>
     </div>
   );
 }

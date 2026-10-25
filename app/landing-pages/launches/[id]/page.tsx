@@ -44,8 +44,8 @@ import { EstadoSelect } from "@/components/landing/estado-select";
 import { EmptyState } from "@/components/common/empty-state";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { rutasDeSitio, sitiosDeCliente } from "@/lib/sitios/datos";
-import { webinarDeLanzamiento } from "@/lib/lanzamientos/despues-datos";
-import { gruposDeLanzamiento } from "@/lib/lanzamientos/grupos-datos";
+import { enlacesDeLanzamiento, type EnlacesLanzamiento } from "@/lib/lanzamientos/enlaces-datos";
+import { BloqueEnlace } from "@/components/lanzamientos/enlaces-lanzamiento";
 import { GruposWhatsapp } from "@/components/lanzamientos/grupos-whatsapp";
 import { ajustesDeReporte } from "@/lib/lanzamientos/reporte-diario-datos";
 import { resendConfigurado } from "@/lib/email/resend";
@@ -76,7 +76,7 @@ export default async function LanzamientoDetalle({
   const clientId = await clienteDeLanzamiento(id);
   if (!clientId) notFound();
 
-  const [detalle, conexion, cliente, proyectos, portal, sitios, estadoPortal, accesos, webinar, reporteMail, grupos] = await Promise.all([
+  const [detalle, conexion, cliente, proyectos, portal, sitios, estadoPortal, accesos, reporteMail, enlaces] = await Promise.all([
     lanzamientoDeCliente(clientId, id),
     conexionDeLanzamiento(clientId, id),
     obtenerCliente(clientId),
@@ -97,10 +97,10 @@ export default async function LanzamientoDetalle({
     // Para "Listo para compartir": si Clerk no responde, el portal no se evalúa (no se marca como falta).
     estadoPortalCliente(clientId).catch(() => undefined),
     listarRecursosCliente(clientId).catch(() => []),
-    webinarDeLanzamiento(clientId, id).catch(() => null),
     ajustesDeReporte(clientId, id).catch(() => null),
-    gruposDeLanzamiento(clientId, id).catch(() => null),
+    enlacesDeLanzamiento(clientId, id).catch((): EnlacesLanzamiento => ({ webinar: null, grupo: null })),
   ]);
+  const ahoraIso = new Date().toISOString();
   const nombreSitio = new Map(sitios.map((s) => [s.id, s.name]));
   if (!detalle || !conexion) notFound();
 
@@ -320,21 +320,34 @@ export default async function LanzamientoDetalle({
             <ConclusionesForm launchId={lanzamiento.id} valor={lanzamiento.closing_notes} />
           </SeccionCard>
 
-          {grupos && (
-            <SeccionCard titulo="Grupos de WhatsApp">
-              <GruposWhatsapp
-                modo={{ tipo: "panel" }}
-                launchId={lanzamiento.id}
-                token={grupos.token}
-                dominio={dominioLanding}
-                grupos={grupos.grupos}
-              />
-            </SeccionCard>
-          )}
-
-          {webinar && (
-            <SeccionCard titulo="Webinar">
-              <WebinarConfig launchId={lanzamiento.id} url={webinar.url} token={webinar.token} dominio={dominioLanding} />
+          {(enlaces.webinar || enlaces.grupo) && (
+            <SeccionCard titulo="Enlaces">
+              <div className="flex flex-col divide-y divide-card-border">
+                {enlaces.webinar && (
+                  <BloqueEnlace
+                    modo={{ tipo: "panel" }}
+                    launchId={lanzamiento.id}
+                    tipo="webinar"
+                    dominio={dominioLanding}
+                    ahoraIso={ahoraIso}
+                    datos={enlaces.webinar}
+                  >
+                    <WebinarConfig launchId={lanzamiento.id} url={enlaces.webinar.url} />
+                  </BloqueEnlace>
+                )}
+                {enlaces.grupo && (
+                  <BloqueEnlace
+                    modo={{ tipo: "panel" }}
+                    launchId={lanzamiento.id}
+                    tipo="grupo"
+                    dominio={dominioLanding}
+                    ahoraIso={ahoraIso}
+                    datos={enlaces.grupo}
+                  >
+                    <GruposWhatsapp modo={{ tipo: "panel" }} launchId={lanzamiento.id} grupos={enlaces.grupo.grupos} />
+                  </BloqueEnlace>
+                )}
+              </div>
             </SeccionCard>
           )}
 

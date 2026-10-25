@@ -95,6 +95,15 @@ export async function GET(req: Request, { params }: Contexto) {
     if (error && error.code !== "23505") console.error("[grupos] no se pudo anotar:", error.message);
 
     if (!error) {
+      // Señal de "el link funciona" para el cliente. Best-effort: nunca frena la redirección.
+      after(async () => {
+        const { error: errUso } = await db
+          .from("launches")
+          .update({ group_last_used_at: new Date().toISOString() })
+          .eq("id", lanzamiento.id);
+        if (errUso) console.error("[grupos] no se pudo anotar el último uso:", errUso.message);
+      });
+
       // El cierre lo hace la base al sumar (trigger). Acá solo se avisa, una
       // vez: la condición alerted_at is null deja pasar a una sola request.
       const { data: cerrado } = await db

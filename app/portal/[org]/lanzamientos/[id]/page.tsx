@@ -15,19 +15,20 @@ import { accesosPortal, lanzamientoPortal } from "@/lib/portal/datos";
 import { GruposWhatsapp } from "@/components/lanzamientos/grupos-whatsapp";
 import { cruzarRegistrados } from "@/lib/lanzamientos/despues";
 import { gruposLibres } from "@/lib/lanzamientos/grupos";
-import { gruposDeLanzamiento } from "@/lib/lanzamientos/grupos-datos";
+import { enlacesDeLanzamiento, type EnlacesLanzamiento } from "@/lib/lanzamientos/enlaces-datos";
+import { BloqueEnlace, DestinoWebinar } from "@/components/lanzamientos/enlaces-lanzamiento";
 import { sitiosDeCliente } from "@/lib/sitios/datos";
 import { cn } from "@/utils/cn";
 
 export const dynamic = "force-dynamic";
 
-type Vista = "resultados" | "whatsapp" | "entrega";
+type Vista = "resultados" | "enlaces" | "entrega";
 
-/** Pestañas Resultados / WhatsApp / Entrega: links, así cada vista tiene su URL. */
+/** Pestañas Resultados / Enlaces / Entrega: links, así cada vista tiene su URL. */
 function Pestanas({ base, actual }: { base: string; actual: Vista }) {
   const pestanas: { vista: Vista; etiqueta: string; href: string }[] = [
     { vista: "resultados", etiqueta: "Resultados", href: base },
-    { vista: "whatsapp", etiqueta: "WhatsApp", href: `${base}?vista=whatsapp` },
+    { vista: "enlaces", etiqueta: "Enlaces", href: `${base}?vista=enlaces` },
     { vista: "entrega", etiqueta: "Entrega", href: `${base}?vista=entrega` },
   ];
   return (
@@ -53,7 +54,7 @@ function Pestanas({ base, actual }: { base: string; actual: Vista }) {
 /**
  * Un lanzamiento en el portal: el banner y, debajo, tres pestañas. Primero
  * "Resultados" (las métricas: lo que el cliente quiere ver al entrar); luego
- * "WhatsApp" (los grupos y cuánta gente entra) y "Entrega", con cada landing
+ * "Enlaces" (los links del webinar y del grupo de WhatsApp, y si funcionan) y "Entrega", con cada landing
  * y sus PDFs y recursos, los accesos y los videos de soporte.
  */
 export default async function PortalLanzamiento({
@@ -70,27 +71,28 @@ export default async function PortalLanzamiento({
   const detalle = await lanzamientoPortal(ctx, id);
   if (!detalle) notFound();
   const { lanzamiento, paginas } = detalle;
-  const vista: Vista = vistaCruda === "entrega" ? "entrega" : vistaCruda === "whatsapp" ? "whatsapp" : "resultados";
+  const vista: Vista = vistaCruda === "entrega" ? "entrega" : vistaCruda === "enlaces" || vistaCruda === "whatsapp" ? "enlaces" : "resultados";
 
   // Cada pestaña lee solo lo suyo. Accesos y videos son extras: si fallan, el lanzamiento se ve igual.
   const [accesos, videos] =
     vista === "entrega"
       ? await Promise.all([accesosPortal(ctx).catch(() => []), listarVideosSoporte().catch(() => [])])
       : [[], []];
-  const [grupos, sitios] =
-    vista === "whatsapp"
+  const [enlaces, sitios] =
+    vista === "enlaces"
       ? await Promise.all([
-          gruposDeLanzamiento(ctx.clientId, lanzamiento.id).catch(() => null),
+          enlacesDeLanzamiento(ctx.clientId, lanzamiento.id).catch((): EnlacesLanzamiento => ({ webinar: null, grupo: null })),
           sitiosDeCliente(ctx.clientId).catch(() => []),
         ])
       : [null, []];
-  // El link fijo del grupo sale con el dominio de la landing del cliente.
+  const grupos = enlaces?.grupo ?? null;
+  // Los links estables salen con el dominio de la landing del cliente.
   const dominio =
     paginas
       .map((p) => (p.site_id ? sitios.find((s) => s.id === p.site_id)?.domain : null))
       .find((d): d is string => !!d) ?? null;
 
-  // Estadísticas de la pestaña WhatsApp: quiénes de los registrados hicieron clic al grupo.
+  // Estadísticas del grupo en la pestaña Enlaces: quiénes de los registrados hicieron clic al grupo.
   const clics = detalle.despues && detalle.registros.length > 0
     ? (() => {
         const cruce = cruzarRegistrados(
@@ -101,6 +103,7 @@ export default async function PortalLanzamiento({
       })()
     : null;
   const libres = grupos ? gruposLibres(grupos.grupos) : 0;
+  const ahoraIso = new Date().toISOString();
   const fechas = lanzamiento.starts_on
     ? `${fechaCorta(lanzamiento.starts_on)}${lanzamiento.ends_on ? ` → ${fechaCorta(lanzamiento.ends_on)}` : ""}`
     : null;
@@ -136,36 +139,61 @@ export default async function PortalLanzamiento({
         ) : (
           <ResultadosPortal
             detalle={detalle}
-            ahoraIso={new Date().toISOString()}
+            ahoraIso={ahoraIso}
             reporteHref={`${base}/reporte`}
             fechas={fechas}
           />
         )
-      ) : vista === "whatsapp" ? (
+      ) : vista === "enlaces" ? (
         <div className="flex flex-col gap-12 sm:gap-16">
-          <EstadisticasWhatsapp
-            clics={clics}
-            grupos={
-              grupos
-                ? {
+          <p className="max-w-3xl text-sm text-white/70">
+            Estos links los pegas una sola vez en tu herramienta de correo, en la página de gracias o en WhatsApp. No
+            cambian nunca: si después cambias el destino, no tienes que editar nada.
+          </p>
+
+          <SeccionPortal titulo="Webinar">
+            {enlaces?.webinar ? (
+              <div className="rounded-2xl bg-white/4 ring-1 ring-white/10">
+                <BloqueEnlace
+                  modo={{ tipo: "portal", slug: ctx.slug }}
+                  launchId={lanzamiento.id}
+                  tipo="webinar"
+                  dominio={dominio}
+                  ahoraIso={ahoraIso}
+                  datos={enlaces.webinar}
+                >
+                  <DestinoWebinar slug={ctx.slug} launchId={lanzamiento.id} url={enlaces.webinar.url} />
+                </BloqueEnlace>
+              </div>
+            ) : (
+              <p className="text-sm text-white/60">El link del webinar todavía no está disponible para este lanzamiento.</p>
+            )}
+          </SeccionPortal>
+
+          <SeccionPortal titulo="Grupo de WhatsApp">
+            {grupos ? (
+              <div className="flex flex-col gap-6">
+                <EstadisticasWhatsapp
+                  clics={clics}
+                  grupos={{
                     cargados: grupos.grupos.length,
                     llenos: grupos.grupos.length - libres,
                     libres,
                     enviadas: grupos.grupos.reduce((t, g) => t + g.joins, 0),
-                  }
-                : null
-            }
-          />
-          <SeccionPortal titulo="Grupos de WhatsApp">
-            {grupos ? (
-              <div className="rounded-2xl bg-white/4 ring-1 ring-white/10">
-                <GruposWhatsapp
-                  modo={{ tipo: "portal", slug: ctx.slug }}
-                  launchId={lanzamiento.id}
-                  token={grupos.token}
-                  dominio={dominio}
-                  grupos={grupos.grupos}
+                  }}
                 />
+                <div className="rounded-2xl bg-white/4 ring-1 ring-white/10">
+                  <BloqueEnlace
+                    modo={{ tipo: "portal", slug: ctx.slug }}
+                    launchId={lanzamiento.id}
+                    tipo="grupo"
+                    dominio={dominio}
+                    ahoraIso={ahoraIso}
+                    datos={grupos}
+                  >
+                    <GruposWhatsapp modo={{ tipo: "portal", slug: ctx.slug }} launchId={lanzamiento.id} grupos={grupos.grupos} />
+                  </BloqueEnlace>
+                </div>
               </div>
             ) : (
               <p className="text-sm text-white/60">Los grupos de WhatsApp todavía no están disponibles para este lanzamiento.</p>
