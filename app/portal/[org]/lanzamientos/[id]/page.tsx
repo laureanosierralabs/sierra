@@ -194,7 +194,7 @@ export default async function PortalLanzamiento({
         <div className="flex flex-col gap-12 sm:gap-16">
           {paginas.length === 0 ? (
             <p className="rounded-2xl border border-dashed border-white/15 px-5 py-8 text-center text-sm text-white/60">
-              Las páginas de este lanzamiento van a aparecer acá.
+              Las páginas de este lanzamiento aparecerán aquí.
             </p>
           ) : (
             paginas.map((p) => <EntregablesLanding key={p.id} nombre={p.name} url={p.url} entregables={p.deliverables} />)
