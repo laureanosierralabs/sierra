@@ -145,37 +145,73 @@ export function GruposWhatsapp({
     );
   };
 
+  const formAlta = (
+    <form onSubmit={form.onSubmit} className="flex flex-col gap-2">
+      <input type="hidden" name="launch_id" value={launchId} />
+      {modo.tipo === "portal" && <input type="hidden" name="slug" value={modo.slug} />}
+      <label className="flex flex-col gap-1.5">
+        <span className={cn("text-sm font-medium", e.titulo)}>
+          {grupos.length === 0 ? "Links de los grupos" : "Agregar grupos"}
+        </span>
+        <TextArea
+          name="links"
+          rows={3}
+          value={links}
+          onChange={(ev) => setLinks(ev.target.value)}
+          placeholder={"https://chat.whatsapp.com/…\nhttps://chat.whatsapp.com/…"}
+          className="w-full"
+        />
+        <span className={cn("text-xs", e.pista)}>
+          {segun(
+            modo,
+            "Uno por línea, en el orden en que se van a usar. Puedes cargar varios por adelantado.",
+            "Uno por línea, en el orden en que se van a usar. Podés cargar varios por adelantado.",
+          )}
+        </span>
+      </label>
+      <FormError message={form.formError} />
+      <button
+        type="submit"
+        disabled={form.pending || links.trim() === ""}
+        className={cn(
+          "self-end rounded-lg px-4 py-2 text-xs font-bold transition-colors disabled:opacity-50",
+          e.botonPrimario,
+        )}
+      >
+        {form.pending ? "Guardando…" : "Agregar"}
+      </button>
+    </form>
+  );
+
+  // Sin grupos todavía, el alta se muestra directo: no hay nada más que hacer en este paso.
+  if (!actual) return formAlta;
+
   return (
     <div className="flex flex-col gap-3">
-      {actual ? (
-        <div className="flex flex-col gap-2">
-          <p className={cn("text-sm", e.texto)}>
-            <span className="font-semibold">
-              {vigente ? "Grupo vigente" : "Todos los grupos están llenos · último"}: {numeroActual}
-            </span>
-            <span className={cn("tabular-nums", e.suave)}>
-              {" "}
-              · {num(actual.joins)} / {num(actual.cap)} personas
-            </span>
-          </p>
-          <span
-            role="progressbar"
-            aria-label="Ocupación del grupo vigente"
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={avance}
-            className={cn("h-2 overflow-hidden rounded-full", e.barraFondo)}
-          >
-            <span className="block h-full rounded-full bg-primary-500" style={{ width: `${avance}%` }} />
+      <div className="flex flex-col gap-2">
+        <p className={cn("text-sm", e.texto)}>
+          <span aria-hidden className={e.estadoTexto.ok}>
+            ✓{" "}
           </span>
-        </div>
-      ) : (
-        <p className={cn("text-sm", e.suave)}>
-          {segun(modo, "Aún no hay grupos: carga los links para empezar a repartir gente.", "Todavía no hay grupos: cargá los links para empezar a repartir gente.")}
+          <span className="font-semibold">{grupos.length === 1 ? "1 grupo" : `${grupos.length} grupos`}</span>
+          <span className={cn("tabular-nums", e.suave)}>
+            {" "}
+            · {vigente ? "vigente" : "todos llenos, último"}: grupo {numeroActual} ({num(actual.joins)} / {num(actual.cap)})
+          </span>
         </p>
-      )}
+        <span
+          role="progressbar"
+          aria-label="Ocupación del grupo vigente"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={avance}
+          className={cn("h-2 overflow-hidden rounded-full", e.barraFondo)}
+        >
+          <span className="block h-full rounded-full bg-primary-500" style={{ width: `${avance}%` }} />
+        </span>
+      </div>
 
-      {grupos.length > 0 && libres <= AVISO_GRUPOS_LIBRES && (
+      {libres <= AVISO_GRUPOS_LIBRES && (
         <p role="status" className={cn("px-3 py-2 text-sm", e.aviso)}>
           {libres === 0
             ? segun(
@@ -239,41 +275,7 @@ export function GruposWhatsapp({
 
           {activos.length > 0 && <ol className={cn("flex flex-col divide-y", e.caja, e.separador)}>{activos.map(fila)}</ol>}
 
-          <form onSubmit={form.onSubmit} className="flex flex-col gap-2">
-            <input type="hidden" name="launch_id" value={launchId} />
-            {modo.tipo === "portal" && <input type="hidden" name="slug" value={modo.slug} />}
-            <label className="flex flex-col gap-1.5">
-              <span className={cn("text-sm font-medium", e.titulo)}>
-                {grupos.length === 0 ? "Links de los grupos" : "Agregar grupos"}
-              </span>
-              <TextArea
-                name="links"
-                rows={3}
-                value={links}
-                onChange={(ev) => setLinks(ev.target.value)}
-                placeholder={"https://chat.whatsapp.com/…\nhttps://chat.whatsapp.com/…"}
-                className="w-full"
-              />
-              <span className={cn("text-xs", e.pista)}>
-                {segun(
-                  modo,
-                  "Uno por línea, en el orden en que se van a usar. Puedes cargar varios por adelantado.",
-                  "Uno por línea, en el orden en que se van a usar. Podés cargar varios por adelantado.",
-                )}
-              </span>
-            </label>
-            <FormError message={form.formError} />
-            <button
-              type="submit"
-              disabled={form.pending || links.trim() === ""}
-              className={cn(
-                "self-end rounded-lg px-4 py-2 text-xs font-bold transition-colors disabled:opacity-50",
-                e.botonPrimario,
-              )}
-            >
-              {form.pending ? "Guardando…" : "Agregar"}
-            </button>
-          </form>
+          {formAlta}
         </div>
       )}
     </div>

@@ -20,6 +20,10 @@ export interface EstilosEnlaces {
   barraFondo: string;
   enlace: string;
   estadoTexto: { ok: string; espera: string; falta: string };
+  badgeActual: string;
+  badgeHecho: string;
+  badgeFuturo: string;
+  linea: string;
 }
 
 const PORTAL: EstilosEnlaces = {
@@ -41,6 +45,10 @@ const PORTAL: EstilosEnlaces = {
   barraFondo: "bg-white/10",
   enlace: "text-primary-400 hover:underline",
   estadoTexto: { ok: "text-emerald-300", espera: "text-amber-300", falta: "text-red-300" },
+  badgeActual: "bg-primary-500 text-white",
+  badgeHecho: "bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-400/40",
+  badgeFuturo: "text-white/45 ring-1 ring-white/15",
+  linea: "bg-white/10",
 };
 
 const PANEL: EstilosEnlaces = {
@@ -62,6 +70,10 @@ const PANEL: EstilosEnlaces = {
   barraFondo: "bg-background-gray-secondary",
   enlace: "text-primary-500 hover:underline",
   estadoTexto: { ok: "text-emerald-600", espera: "text-amber-600", falta: "text-red-600" },
+  badgeActual: "bg-primary-500 text-white",
+  badgeHecho: "bg-emerald-500/10 text-emerald-600 ring-1 ring-emerald-500/30",
+  badgeFuturo: "text-text-tertiary ring-1 ring-card-border",
+  linea: "bg-card-border",
 };
 
 export const estilosEnlaces = (portal: boolean): EstilosEnlaces => (portal ? PORTAL : PANEL);

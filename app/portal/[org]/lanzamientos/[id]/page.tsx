@@ -15,7 +15,7 @@ import { accesosPortal, lanzamientoPortal } from "@/lib/portal/datos";
 import { GruposWhatsapp } from "@/components/lanzamientos/grupos-whatsapp";
 import { cruzarRegistrados } from "@/lib/lanzamientos/despues";
 import { enlacesDeLanzamiento, type EnlacesLanzamiento } from "@/lib/lanzamientos/enlaces-datos";
-import { BloqueEnlace, DestinoWebinar, SelectorHerramienta } from "@/components/lanzamientos/enlaces-lanzamiento";
+import { BloqueEnlace, DestinoWebinar, IntroEnlaces } from "@/components/lanzamientos/enlaces-lanzamiento";
 import { sitiosDeCliente } from "@/lib/sitios/datos";
 import { cn } from "@/utils/cn";
 
@@ -145,13 +145,7 @@ export default async function PortalLanzamiento({
         )
       ) : vista === "enlaces" ? (
         <div className="flex flex-col gap-8">
-          <div className="flex flex-col gap-5">
-            <p className="max-w-3xl text-sm text-white/70">
-              Pega estos links una sola vez en tus correos o en WhatsApp. No cambian nunca: si cambias el Zoom o los
-              grupos, siguen funcionando.
-            </p>
-            <SelectorHerramienta modo={modoPortal} />
-          </div>
+          <IntroEnlaces modo={modoPortal} />
 
           <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2 lg:gap-6">
             {enlaces?.webinar ? (
@@ -162,6 +156,7 @@ export default async function PortalLanzamiento({
                 dominio={dominio}
                 ahoraIso={ahoraIso}
                 datos={enlaces.webinar}
+                hrefResultados={base}
               >
                 <DestinoWebinar slug={ctx.slug} launchId={lanzamiento.id} url={enlaces.webinar.url} />
               </BloqueEnlace>
@@ -177,6 +172,7 @@ export default async function PortalLanzamiento({
                 dominio={dominio}
                 ahoraIso={ahoraIso}
                 datos={grupos}
+                hrefResultados={base}
                 lineaClave={
                   clics
                     ? `${numero(clics.entraron)} de ${numero(clics.registrados)} registrados entraron (${porcentaje(clics.porcentaje)})`

@@ -45,7 +45,7 @@ import { EmptyState } from "@/components/common/empty-state";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { rutasDeSitio, sitiosDeCliente } from "@/lib/sitios/datos";
 import { enlacesDeLanzamiento, type EnlacesLanzamiento } from "@/lib/lanzamientos/enlaces-datos";
-import { BloqueEnlace, SelectorHerramienta } from "@/components/lanzamientos/enlaces-lanzamiento";
+import { BloqueEnlace, IntroEnlaces } from "@/components/lanzamientos/enlaces-lanzamiento";
 import { GruposWhatsapp } from "@/components/lanzamientos/grupos-whatsapp";
 import { ajustesDeReporte } from "@/lib/lanzamientos/reporte-diario-datos";
 import { resendConfigurado } from "@/lib/email/resend";
@@ -323,7 +323,7 @@ export default async function LanzamientoDetalle({
           {(enlaces.webinar || enlaces.grupo) && (
             <SeccionCard titulo="Enlaces">
               <div className="flex flex-col gap-5 px-4 py-4">
-                <SelectorHerramienta modo={{ tipo: "panel" }} />
+                <IntroEnlaces modo={{ tipo: "panel" }} />
                 <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
                 {enlaces.webinar && (
                   <BloqueEnlace
