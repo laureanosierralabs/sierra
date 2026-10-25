@@ -1,17 +1,17 @@
 "use client";
 
-import { useOptimistic, useState, useSyncExternalStore, useTransition } from "react";
+import { useOptimistic, useSyncExternalStore, useTransition } from "react";
 import { Copy1, ExpandArrowTopRightSquare1 } from "@tailgrids/icons";
 import { toast } from "sonner";
 import { FormError } from "@/components/common/form/form-error";
 import { useZodForm } from "@/components/common/form/use-zod-form";
-import { Badge } from "@/components/tailgrids/core/badge";
-import { Button } from "@/components/tailgrids/core/button";
+import { estilosEnlaces } from "@/components/lanzamientos/enlaces-estilos";
 import { marcarLugarPanel } from "@/app/landing-pages/enlaces-acciones";
 import { guardarWebinarPortal, marcarLugarPortal } from "@/app/portal/enlaces-acciones";
 import {
   HERRAMIENTAS,
   LUGARES,
+  haceCuanto,
   hostDe,
   linkBase,
   linkCompartir,
@@ -29,12 +29,6 @@ import { cn } from "@/utils/cn";
 /** Panel del owner o portal del cliente: cambia solo a qué acciones se llama y el tono del texto. */
 export type ModoEnlaces = { tipo: "panel" } | { tipo: "portal"; slug: string };
 
-const PILDORA: Record<EstadoEnlace, "warning" | "gray" | "success"> = {
-  "falta-destino": "warning",
-  "sin-usos": "gray",
-  funcionando: "success",
-};
-
 const TITULO: Record<TipoEnlace, string> = { webinar: "Webinar", grupo: "Grupo de WhatsApp" };
 
 /** Texto según quién mira: el portal habla de "tú", el panel de "vos". */
@@ -48,11 +42,122 @@ export interface DatosBloque {
   marcas: MarcaLugar[];
 }
 
+/* ───────────── Herramienta de correo (una sola para los dos links) ───────────── */
+
+const CLAVE_HERRAMIENTA = "enlaces:herramienta";
+const oyentes = new Set<() => void>();
+
+function leerHerramienta(): Herramienta {
+  try {
+    const v = window.localStorage.getItem(CLAVE_HERRAMIENTA);
+    return HERRAMIENTAS.some((h) => h.id === v) ? (v as Herramienta) : "ghl";
+  } catch {
+    return "ghl";
+  }
+}
+
+function suscribirHerramienta(cb: () => void) {
+  oyentes.add(cb);
+  window.addEventListener("storage", cb);
+  return () => {
+    oyentes.delete(cb);
+    window.removeEventListener("storage", cb);
+  };
+}
+
+/** La elección se recuerda en este navegador; los bloques y el selector comparten el mismo valor. */
+function useHerramienta(): [Herramienta, (h: Herramienta) => void] {
+  const actual = useSyncExternalStore(suscribirHerramienta, leerHerramienta, (): Herramienta => "ghl");
+  const cambiar = (h: Herramienta) => {
+    try {
+      window.localStorage.setItem(CLAVE_HERRAMIENTA, h);
+    } catch {
+      /* sin almacenamiento: queda el valor por defecto */
+    }
+    oyentes.forEach((cb) => cb());
+  };
+  return [actual, cambiar];
+}
+
+const ETIQUETA_SELECTOR: Record<Herramienta, string> = {
+  ghl: "GoHighLevel",
+  mailerlite: "MailerLite",
+  ninguna: "Otro (sin variable)",
+};
+
+/** "¿Con qué envías tus correos?": aplica a los dos links. */
+export function SelectorHerramienta({ modo }: { modo: ModoEnlaces }) {
+  const e = estilosEnlaces(modo.tipo === "portal");
+  const [herramienta, setHerramienta] = useHerramienta();
+  const variable = variableDe(herramienta);
+  return (
+    <div className="flex flex-col gap-2">
+      <p className={cn("text-sm font-medium", e.titulo)}>
+        {segun(modo, "¿Con qué envías tus correos?", "¿Con qué mandás los correos?")}
+      </p>
+      <div
+        role="group"
+        aria-label={segun(modo, "Herramienta con la que envías tus correos", "Herramienta con la que mandás los correos")}
+        className="flex flex-wrap gap-2"
+      >
+        {HERRAMIENTAS.map((h) => (
+          <button
+            key={h.id}
+            type="button"
+            aria-pressed={h.id === herramienta}
+            onClick={() => setHerramienta(h.id)}
+            className={cn(
+              "rounded-full px-3.5 py-1.5 text-xs font-medium whitespace-nowrap transition-colors",
+              e.chip,
+              h.id === herramienta ? e.chipOn : e.chipOff,
+            )}
+          >
+            {ETIQUETA_SELECTOR[h.id]}
+          </button>
+        ))}
+      </div>
+      <p className={cn("text-xs", e.pista)}>
+        {variable
+          ? `${variable} se reemplaza por el email de cada contacto: así sabemos quién entró.`
+          : "Sin variable no sabemos quién entró. Úsalo para WhatsApp, redes o cualquier lugar sin el email del contacto."}
+      </p>
+    </div>
+  );
+}
+
+/* ───────────── Bloque ───────────── */
+
+type Tono = "ok" | "espera" | "falta";
+
+function estadoVisible(tipo: TipoEnlace, estado: EstadoEnlace): { tono: Tono; texto: string } {
+  if (estado === "funcionando") return { tono: "ok", texto: "Funcionando" };
+  if (estado === "sin-usos") return { tono: "espera", texto: "Sin usos todavía" };
+  return { tono: "falta", texto: tipo === "webinar" ? "Falta el link del Zoom" : "Faltan grupos" };
+}
+
+const PUNTO: Record<Tono, string> = { ok: "bg-emerald-500", espera: "bg-amber-500", falta: "bg-red-500" };
+
+function lineaDeUsos(modo: ModoEnlaces, tipo: TipoEnlace, d: DatosBloque, ahoraIso: string): string {
+  if (!d.tieneDestino) {
+    return tipo === "webinar"
+      ? segun(modo, "Pega el link de YouTube o Zoom para activarlo.", "Pegá el link de YouTube o Zoom para activarlo.")
+      : segun(modo, "Carga los links de los grupos para activarlo.", "Cargá los links de los grupos para activarlo.");
+  }
+  if (d.usos <= 0) return "Nadie ha entrado todavía.";
+  const cuando = haceCuanto(d.ultimoUso, ahoraIso);
+  const n = d.usos.toLocaleString("es-AR");
+  const quienes =
+    tipo === "webinar"
+      ? `${n} ${d.usos === 1 ? "persona entró" : "personas entraron"}`
+      : `${n} ${d.usos === 1 ? "persona enviada" : "personas enviadas"} a un grupo`;
+  return `${quienes}${cuando ? ` · la última ${cuando}` : ""}`;
+}
+
 /**
- * Un enlace del lanzamiento (webinar o grupo): estado, destino, el link para
- * pegar en el correo y dónde se puso. El destino se edita en `children`
- * (formulario del webinar, manager de grupos). El link es estable: siempre
- * manda al destino actual, así que cambiarlo no obliga a tocar los correos.
+ * Un enlace del lanzamiento (webinar o grupo) como tarjeta: estado, el link
+ * para pegar, el destino (en `children`) y dónde se puso. El link es estable:
+ * siempre manda al destino actual, así que cambiarlo no obliga a tocar los
+ * correos. La herramienta de correo se elige una vez para los dos (selector).
  */
 export function BloqueEnlace({
   modo,
@@ -61,6 +166,7 @@ export function BloqueEnlace({
   dominio,
   ahoraIso,
   datos,
+  lineaClave,
   children,
 }: {
   modo: ModoEnlaces;
@@ -70,30 +176,37 @@ export function BloqueEnlace({
   /** "Ahora" del servidor: el "hace X" no cambia entre el servidor y el navegador. */
   ahoraIso: string;
   datos: DatosBloque;
+  /** Frase con el número clave si hay una mejor que el conteo de usos (p. ej. "X de Y registrados entraron"). */
+  lineaClave?: string;
   children?: React.ReactNode;
 }) {
+  const e = estilosEnlaces(modo.tipo === "portal");
   const resumen = resumenEnlace({
     tieneDestino: datos.tieneDestino,
     usos: datos.usos,
     ultimoUso: datos.ultimoUso,
     ahoraIso,
   });
+  const visible = estadoVisible(tipo, resumen.estado);
+  const linea = datos.tieneDestino && datos.usos > 0 && lineaClave ? lineaClave : lineaDeUsos(modo, tipo, datos, ahoraIso);
 
   return (
-    <div className="flex flex-col gap-5 px-4 py-4">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <h3 className="text-base font-semibold text-text-primary">{TITULO[tipo]}</h3>
-        <Badge color={PILDORA[resumen.estado]} size="sm" className="rounded-md">
-          {resumen.texto}
-        </Badge>
+    <section aria-label={TITULO[tipo]} className={cn("flex min-w-0 flex-col gap-4", e.tarjeta)}>
+      <div className="flex flex-col gap-1">
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+          <h3 className={cn("text-base font-bold", e.titulo)}>{TITULO[tipo]}</h3>
+          <span className={cn("inline-flex items-center gap-2 text-sm font-semibold", e.estadoTexto[visible.tono])}>
+            <span aria-hidden className={cn("size-2 rounded-full", PUNTO[visible.tono])} />
+            {visible.texto}
+          </span>
+        </div>
+        <p className={cn("text-sm tabular-nums", e.suave)}>{linea}</p>
       </div>
-
-      {children}
 
       <LinkParaCompartir modo={modo} tipo={tipo} token={datos.token} dominio={dominio} />
 
-      {resumen.estado !== "funcionando" && (
-        <p className="rounded-lg bg-background-gray-secondary px-3 py-2 text-sm text-text-secondary">
+      {resumen.estado === "sin-usos" && (
+        <p className={cn("text-xs", e.pista)}>
           {segun(
             modo,
             "Envíate el mail de prueba y toca el botón: en segundos esto pasa a Funcionando.",
@@ -102,8 +215,10 @@ export function BloqueEnlace({
         </p>
       )}
 
+      {children}
+
       <Lugares modo={modo} launchId={launchId} tipo={tipo} marcas={datos.marcas} />
-    </div>
+    </section>
   );
 }
 
@@ -129,7 +244,8 @@ function LinkParaCompartir({
   token: string;
   dominio: string | null;
 }) {
-  const [herramienta, setHerramienta] = useState<Herramienta>("ghl");
+  const e = estilosEnlaces(modo.tipo === "portal");
+  const [herramienta] = useHerramienta();
   // El origen se lee en el navegador: así sirve igual en local, preview y producción.
   const origen = useSyncExternalStore(
     () => () => {},
@@ -138,48 +254,35 @@ function LinkParaCompartir({
   );
   const base = linkBase(tipo, token, dominio, origen || "https://…");
   const link = linkCompartir(base, herramienta);
-  const variable = variableDe(herramienta);
 
   return (
-    <div className="flex flex-col gap-3">
-      <p className="text-sm font-medium text-text-primary">Tu link para compartir</p>
-
-      <div role="group" aria-label="Herramienta de correo" className="flex w-full rounded-lg bg-background-gray-secondary p-1 sm:w-fit">
-        {HERRAMIENTAS.map((h) => (
-          <button
-            key={h.id}
-            type="button"
-            aria-pressed={h.id === herramienta}
-            onClick={() => setHerramienta(h.id)}
-            className={cn(
-              "flex-1 rounded-md px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors sm:flex-none",
-              h.id === herramienta
-                ? "bg-primary-500 text-white"
-                : "text-text-secondary hover:text-text-primary",
-            )}
-          >
-            {h.etiqueta}
-          </button>
-        ))}
-      </div>
-
-      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-card-border px-3 py-2">
-        <code className="min-w-0 flex-1 basis-60 text-xs break-all text-text-primary">{link}</code>
-        <span className="flex shrink-0 items-center gap-3 text-xs font-medium">
+    <div className="flex flex-col gap-2">
+      <div className={cn("flex flex-wrap items-center gap-2 p-2", e.caja)}>
+        <code title={link} className={cn("min-w-0 flex-1 basis-40 truncate px-2 font-mono text-xs", e.texto)}>
+          {link}
+        </code>
+        <span className="flex shrink-0 items-center gap-2">
           <button
             type="button"
             onClick={() => copiar(link)}
             aria-label={`Copiar el link de ${TITULO[tipo]}`}
-            className="inline-flex items-center gap-1.5 text-primary-500 hover:underline [&>svg]:size-3.5"
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-bold transition-colors [&>svg]:size-3.5",
+              e.botonPrimario,
+            )}
           >
             <Copy1 />
-            Copiar
+            Copiar link
           </button>
           <a
             href={base}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-1.5 text-primary-500 hover:underline [&>svg]:size-3.5"
+            aria-label={`Probar el link de ${TITULO[tipo]} (se abre en otra pestaña)`}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-bold transition-colors [&>svg]:size-3.5",
+              e.botonSecundario,
+            )}
           >
             <ExpandArrowTopRightSquare1 />
             Probar
@@ -187,39 +290,23 @@ function LinkParaCompartir({
         </span>
       </div>
 
-      <p className="text-xs text-text-tertiary">
-        {variable
-          ? `${variable} se reemplaza por el email de cada contacto al enviar el correo: así sabemos quién entró.`
-          : "Sin variable no sabemos quién entró. Es el link para WhatsApp, redes o cualquier lugar sin el email del contacto."}
-        {tipo === "webinar" && variable === null && " Si abren el link sin email, se lo pedimos."}
-      </p>
-
       {!hostDe(dominio) && (
-        <p className="text-xs text-badge-warning-text">
-          Este lanzamiento no tiene landing conectada, así que el link usa la dirección del panel. Con una landing
-          conectada, el link sale con el dominio del cliente.
+        <p className={cn("text-xs", e.pista)}>
+          Este lanzamiento no tiene landing conectada, así que el link usa la dirección del panel.
         </p>
       )}
-
-      <p className="text-xs text-text-tertiary">
-        <strong className="text-text-secondary">Este link no cambia.</strong>{" "}
-        {tipo === "webinar"
-          ? segun(
-              modo,
-              "Si cambias el link de YouTube o Zoom, no tienes que editar tus correos: siempre manda al destino actual.",
-              "Si cambian el link de YouTube o Zoom, no hay que editar los correos: siempre manda al destino actual.",
-            )
-          : segun(
-              modo,
-              "Si cargas o cambias grupos, no tienes que editar tus correos: siempre manda al grupo vigente.",
-              "Si se cargan o cambian grupos, no hay que editar los correos: siempre manda al grupo vigente.",
-            )}
-      </p>
     </div>
   );
 }
 
 /* ───────────── Dónde lo pusiste ───────────── */
+
+const LUGAR_CORTO: Record<Lugar, string> = {
+  "mail-registro": "Mail de registro",
+  recordatorios: "Recordatorios",
+  "pagina-gracias": "Página de gracias",
+  "whatsapp-redes": "WhatsApp o redes",
+};
 
 function Lugares({
   modo,
@@ -232,6 +319,7 @@ function Lugares({
   tipo: TipoEnlace;
   marcas: MarcaLugar[];
 }) {
+  const e = estilosEnlaces(modo.tipo === "portal");
   const [pendiente, start] = useTransition();
   const [vistas, aplicar] = useOptimistic(marcas, (actuales, cambio: { lugar: Lugar; marcado: boolean }) => {
     const resto = actuales.filter((m) => m.placement !== cambio.lugar);
@@ -257,59 +345,102 @@ function Lugares({
 
   return (
     <div className="flex flex-col gap-2">
-      <p className="text-sm font-medium text-text-primary">Dónde lo pusiste</p>
-      <ul className="flex flex-col divide-y divide-card-border rounded-lg border border-card-border">
+      <p className={cn("text-xs font-medium", e.suave)}>Dónde lo pusiste</p>
+      <div className="flex flex-wrap gap-2">
         {LUGARES.map((l) => {
           const marca = vistas.find((m) => m.placement === l.slug);
+          const marcado = Boolean(marca);
           return (
-            <li key={l.slug}>
-              <label className="flex cursor-pointer items-start gap-3 px-3 py-2.5">
-                <input
-                  type="checkbox"
-                  checked={Boolean(marca)}
-                  disabled={pendiente}
-                  onChange={(e) => alternar(l.slug, e.target.checked)}
-                  className="mt-0.5 size-4 shrink-0 accent-primary-500"
-                />
-                <span className="min-w-0">
-                  <span className="block text-sm text-text-primary">{l.etiqueta}</span>
-                  {marca && <span className="block text-xs text-text-tertiary">{textoMarca(marca)}</span>}
-                </span>
-              </label>
-            </li>
+            <button
+              key={l.slug}
+              type="button"
+              aria-pressed={marcado}
+              disabled={pendiente}
+              title={marca ? textoMarca(marca) : l.etiqueta}
+              onClick={() => alternar(l.slug, !marcado)}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-60",
+                e.chip,
+                marcado ? e.chipOn : e.chipOff,
+              )}
+            >
+              {marcado && (
+                <svg
+                  aria-hidden
+                  viewBox="0 0 16 16"
+                  className="size-3.5"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M3 8.5l3.2 3.2L13 4.8" />
+                </svg>
+              )}
+              {LUGAR_CORTO[l.slug]}
+            </button>
           );
         })}
-      </ul>
+      </div>
     </div>
   );
 }
 
-/* ───────────── Destino del webinar (portal) ───────────── */
+/* ───────────── Destino del webinar ───────────── */
 
-/** El cliente edita desde acá a dónde manda el link del webinar (YouTube, Zoom…). */
-export function DestinoWebinar({ slug, launchId, url }: { slug: string; launchId: string; url: string | null }) {
-  const form = useZodForm({ action: guardarWebinarPortal, successMessage: "Link del webinar guardado" });
+/**
+ * Destino del webinar en una sola fila: campo + Guardar. Lo usan el portal
+ * (cliente) y el panel; cambia solo la action y los campos ocultos.
+ */
+export function FilaDestinoWebinar({
+  modo,
+  action,
+  campos,
+  url,
+}: {
+  modo: ModoEnlaces;
+  action: (formData: FormData) => Promise<unknown>;
+  campos: Record<string, string>;
+  url: string | null;
+}) {
+  const e = estilosEnlaces(modo.tipo === "portal");
+  const form = useZodForm({ action, successMessage: "Link del webinar guardado" });
   return (
-    <form onSubmit={form.onSubmit} className="flex flex-col gap-3">
-      <input type="hidden" name="slug" value={slug} />
-      <input type="hidden" name="launch_id" value={launchId} />
-      <label className="flex flex-col gap-1.5">
-        <span className="text-sm font-medium text-input-label-text">Dónde se transmite (YouTube, Zoom…)</span>
+    <form onSubmit={form.onSubmit} className="flex flex-col gap-2">
+      {Object.entries(campos).map(([nombre, valor]) => (
+        <input key={nombre} type="hidden" name={nombre} value={valor} />
+      ))}
+      <div className="flex flex-wrap items-center gap-2">
         <input
           name="webinar_url"
           type="url"
+          aria-label="Link del webinar (YouTube o Zoom)"
           defaultValue={url ?? ""}
-          placeholder="https://www.youtube.com/live/…"
-          className="rounded-lg border border-card-border bg-input-background px-4 py-2.5 text-title-50 outline-none duration-300 placeholder:text-input-placeholder-text focus:border-input-primary-focus-border focus:ring-4 focus:ring-input-primary-focus-border/20"
+          placeholder="Link de YouTube o Zoom"
+          className={cn("min-w-0 flex-1 basis-48", e.input)}
         />
-        <span className="text-xs text-text-tertiary">
-          Puedes cambiarlo cuando quieras. Vacío = quien abra el link verá que el webinar todavía no está disponible.
-        </span>
-      </label>
+        <button
+          type="submit"
+          disabled={form.pending}
+          className={cn("rounded-lg px-4 py-2 text-xs font-bold transition-colors disabled:opacity-60", e.botonSecundario)}
+        >
+          {form.pending ? "Guardando…" : "Guardar"}
+        </button>
+      </div>
       <FormError message={form.formError} />
-      <Button type="submit" className="self-end" isDisabled={form.pending}>
-        {form.pending ? "Guardando…" : "Guardar link"}
-      </Button>
     </form>
+  );
+}
+
+/** El cliente edita desde acá a dónde manda el link del webinar (YouTube, Zoom…). */
+export function DestinoWebinar({ slug, launchId, url }: { slug: string; launchId: string; url: string | null }) {
+  return (
+    <FilaDestinoWebinar
+      modo={{ tipo: "portal", slug }}
+      action={guardarWebinarPortal}
+      campos={{ slug, launch_id: launchId }}
+      url={url}
+    />
   );
 }

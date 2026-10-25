@@ -5,7 +5,7 @@ import { AccesosPortal, VideosSoporte } from "@/components/portal/accesos-videos
 import { EntregablesLanding } from "@/components/portal/entregables-landing";
 import { HeroPortal, SeccionPortal } from "@/components/portal/portal-ui";
 import { ResultadosPortal } from "@/components/portal/resultados/resultados-portal";
-import { EstadisticasWhatsapp } from "@/components/portal/whatsapp-stats";
+import { numero, porcentaje } from "@/components/portal/resultados/formato";
 import { AvisoVistaInterna } from "@/components/portal/vista-interna";
 import { listarVideosSoporte } from "@/lib/landing/datos";
 import { fechaCorta } from "@/lib/landing/tipos";
@@ -14,9 +14,8 @@ import { contextoPortal } from "@/lib/portal/contexto";
 import { accesosPortal, lanzamientoPortal } from "@/lib/portal/datos";
 import { GruposWhatsapp } from "@/components/lanzamientos/grupos-whatsapp";
 import { cruzarRegistrados } from "@/lib/lanzamientos/despues";
-import { gruposLibres } from "@/lib/lanzamientos/grupos";
 import { enlacesDeLanzamiento, type EnlacesLanzamiento } from "@/lib/lanzamientos/enlaces-datos";
-import { BloqueEnlace, DestinoWebinar } from "@/components/lanzamientos/enlaces-lanzamiento";
+import { BloqueEnlace, DestinoWebinar, SelectorHerramienta } from "@/components/lanzamientos/enlaces-lanzamiento";
 import { sitiosDeCliente } from "@/lib/sitios/datos";
 import { cn } from "@/utils/cn";
 
@@ -102,7 +101,7 @@ export default async function PortalLanzamiento({
         return { registrados: cruce.total, entraron: cruce.cruzan, porcentaje: cruce.porcentaje };
       })()
     : null;
-  const libres = grupos ? gruposLibres(grupos.grupos) : 0;
+  const modoPortal = { tipo: "portal", slug: ctx.slug } as const;
   const ahoraIso = new Date().toISOString();
   const fechas = lanzamiento.starts_on
     ? `${fechaCorta(lanzamiento.starts_on)}${lanzamiento.ends_on ? ` → ${fechaCorta(lanzamiento.ends_on)}` : ""}`
@@ -145,60 +144,51 @@ export default async function PortalLanzamiento({
           />
         )
       ) : vista === "enlaces" ? (
-        <div className="flex flex-col gap-12 sm:gap-16">
-          <p className="max-w-3xl text-sm text-white/70">
-            Estos links los pegas una sola vez en tu herramienta de correo, en la página de gracias o en WhatsApp. No
-            cambian nunca: si después cambias el destino, no tienes que editar nada.
-          </p>
+        <div className="flex flex-col gap-8">
+          <div className="flex flex-col gap-5">
+            <p className="max-w-3xl text-sm text-white/70">
+              Pega estos links una sola vez en tus correos o en WhatsApp. No cambian nunca: si cambias el Zoom o los
+              grupos, siguen funcionando.
+            </p>
+            <SelectorHerramienta modo={modoPortal} />
+          </div>
 
-          <SeccionPortal titulo="Webinar">
+          <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2 lg:gap-6">
             {enlaces?.webinar ? (
-              <div className="rounded-2xl bg-white/4 ring-1 ring-white/10">
-                <BloqueEnlace
-                  modo={{ tipo: "portal", slug: ctx.slug }}
-                  launchId={lanzamiento.id}
-                  tipo="webinar"
-                  dominio={dominio}
-                  ahoraIso={ahoraIso}
-                  datos={enlaces.webinar}
-                >
-                  <DestinoWebinar slug={ctx.slug} launchId={lanzamiento.id} url={enlaces.webinar.url} />
-                </BloqueEnlace>
-              </div>
+              <BloqueEnlace
+                modo={modoPortal}
+                launchId={lanzamiento.id}
+                tipo="webinar"
+                dominio={dominio}
+                ahoraIso={ahoraIso}
+                datos={enlaces.webinar}
+              >
+                <DestinoWebinar slug={ctx.slug} launchId={lanzamiento.id} url={enlaces.webinar.url} />
+              </BloqueEnlace>
             ) : (
               <p className="text-sm text-white/60">El link del webinar todavía no está disponible para este lanzamiento.</p>
             )}
-          </SeccionPortal>
 
-          <SeccionPortal titulo="Grupo de WhatsApp">
             {grupos ? (
-              <div className="flex flex-col gap-6">
-                <EstadisticasWhatsapp
-                  clics={clics}
-                  grupos={{
-                    cargados: grupos.grupos.length,
-                    llenos: grupos.grupos.length - libres,
-                    libres,
-                    enviadas: grupos.grupos.reduce((t, g) => t + g.joins, 0),
-                  }}
-                />
-                <div className="rounded-2xl bg-white/4 ring-1 ring-white/10">
-                  <BloqueEnlace
-                    modo={{ tipo: "portal", slug: ctx.slug }}
-                    launchId={lanzamiento.id}
-                    tipo="grupo"
-                    dominio={dominio}
-                    ahoraIso={ahoraIso}
-                    datos={grupos}
-                  >
-                    <GruposWhatsapp modo={{ tipo: "portal", slug: ctx.slug }} launchId={lanzamiento.id} grupos={grupos.grupos} />
-                  </BloqueEnlace>
-                </div>
-              </div>
+              <BloqueEnlace
+                modo={modoPortal}
+                launchId={lanzamiento.id}
+                tipo="grupo"
+                dominio={dominio}
+                ahoraIso={ahoraIso}
+                datos={grupos}
+                lineaClave={
+                  clics
+                    ? `${numero(clics.entraron)} de ${numero(clics.registrados)} registrados entraron (${porcentaje(clics.porcentaje)})`
+                    : undefined
+                }
+              >
+                <GruposWhatsapp modo={modoPortal} launchId={lanzamiento.id} grupos={grupos.grupos} />
+              </BloqueEnlace>
             ) : (
               <p className="text-sm text-white/60">Los grupos de WhatsApp todavía no están disponibles para este lanzamiento.</p>
             )}
-          </SeccionPortal>
+          </div>
         </div>
       ) : (
         <div className="flex flex-col gap-12 sm:gap-16">

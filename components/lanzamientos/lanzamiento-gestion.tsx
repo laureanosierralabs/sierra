@@ -11,6 +11,7 @@ import { SIN_OPCION } from "@/components/landing/proyecto-esquema";
 import { Button } from "@/components/tailgrids/core/button";
 import { TextArea } from "@/components/tailgrids/core/text-area";
 import { FormError } from "@/components/common/form/form-error";
+import { FilaDestinoWebinar } from "@/components/lanzamientos/enlaces-lanzamiento";
 import { useZodForm } from "@/components/common/form/use-zod-form";
 import { Checkbox } from "@/components/tailgrids/core/checkbox";
 import { guardarEntregables } from "@/app/landing-pages/portal-entrega-acciones";
@@ -1007,31 +1008,8 @@ export function EntregablesForm({ pagina }: { pagina: PaginaLanzamiento }) {
  * para pegar en el correo se arma en la tarjeta Enlaces (BloqueEnlace).
  */
 export function WebinarConfig({ launchId, url }: { launchId: string; url: string | null }) {
-  const form = useZodForm({ action: guardarWebinar, successMessage: "Link del webinar guardado" });
-
   return (
-    <div className="flex flex-col gap-4">
-      <form onSubmit={form.onSubmit} className="flex flex-col gap-3">
-        <input type="hidden" name="launch_id" value={launchId} />
-        <label className="flex flex-col gap-1.5">
-          <span className="text-sm font-medium text-input-label-text">Link del webinar (Zoom)</span>
-          <input
-            name="webinar_url"
-            type="url"
-            defaultValue={url ?? ""}
-            placeholder="https://us02web.zoom.us/j/…"
-            className="rounded-lg border border-card-border bg-input-background px-4 py-2.5 text-title-50 outline-none duration-300 placeholder:text-input-placeholder-text focus:border-input-primary-focus-border focus:ring-4 focus:ring-input-primary-focus-border/20"
-          />
-          <span className="text-xs text-text-tertiary">
-            A dónde manda el link personal. Vacío = el link personal avisa que todavía no está disponible.
-          </span>
-        </label>
-        <FormError message={form.formError} />
-        <Button type="submit" className="self-end" isDisabled={form.pending}>
-          {form.pending ? "Guardando…" : "Guardar link"}
-        </Button>
-      </form>
-    </div>
+    <FilaDestinoWebinar modo={{ tipo: "panel" }} action={guardarWebinar} campos={{ launch_id: launchId }} url={url} />
   );
 }
 
