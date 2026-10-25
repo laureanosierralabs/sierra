@@ -3,6 +3,7 @@ import {
   Buildings11,
   CheckCircle1,
   ClockThree,
+  Code1,
   Comment1,
   DashboardSquare1,
   FileText,
@@ -39,6 +40,7 @@ const ICONOS = {
   Inbox: Comment1,
   Rocket: Rocket1,
   Clock: ClockThree,
+  Components: Code1,
 } as const;
 
 /** Unidades con logo propio en vez de ícono. */

@@ -51,6 +51,7 @@ export const DEFINICIONES: Record<Unidad, DefinicionUnidad> = {
         owner: true,
       },
       { href: "/landing-pages/pedidos", label: "Pedidos", icono: "Inbox" },
+      { href: "/landing-pages/componentes", label: "Componentes", icono: "Components" },
       { href: "/landing-pages/horas", label: "Horas", icono: "Clock" },
       { href: "/landing-pages/mis-cobros", label: "Mis cobros", icono: "Wallet", soloEquipo: true },
       {
