@@ -85,7 +85,7 @@ export async function pedirSeguro(
       const res = await fetch(url, {
         redirect: "manual",
         signal: senal,
-        headers: { "User-Agent": "SierraLabs-Verificador/1.0 (+https://app.laureanosierra.com)", Accept: "text/html,*/*" },
+        headers: { "User-Agent": "synxbuild-Verificador/1.0 (+https://app.synxbuild.com)", Accept: "text/html,*/*" },
         cache: "no-store",
       });
 
