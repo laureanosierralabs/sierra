@@ -1,11 +1,13 @@
 import Image from "next/image";
-import { Envelope1, ExpandArrowTopRightSquare1, Instagram, Linkedin } from "@tailgrids/icons";
+import { Envelope1, ExpandArrowTopRightSquare1, Instagram, Linkedin, Whatsapp } from "@tailgrids/icons";
 
 /** Links del footer. El mail de contacto es el de la marca (llega a synxbuild@gmail.com). */
 const PAGINAS = [
-  { etiqueta: "laureanosierra.com", href: "https://laureanosierra.com" },
-  { etiqueta: "Servicio", href: "https://laureanosierra.com/servicio/" },
+  { etiqueta: "Página de links", href: "https://laureanosierra.com" },
+  { etiqueta: "Página de servicio", href: "https://laureanosierra.com/servicio/" },
 ];
+
+const WHATSAPP = { visible: "+54 9 2221 42-9754", href: "https://wa.me/5492221429754" };
 
 const REDES = [
   { etiqueta: "Instagram", detalle: "@laureanosierra_", href: "https://instagram.com/laureanosierra_", icono: Instagram },
@@ -46,7 +48,7 @@ export function FooterMarca() {
         <div className="flex flex-col gap-4">
           <Image src="/synxbuild/synxbuild-white.png" alt="synx build" width={446} height={91} className="h-auto w-33" />
           <p className="max-w-xs text-sm leading-relaxed text-white/50">
-            Landing pages y lanzamientos, medidos de punta a punta.
+            Diseñamos experiencias de alto impacto y construimos la tecnología detrás de grandes lanzamientos digitales.
           </p>
         </div>
 
@@ -81,6 +83,14 @@ export function FooterMarca() {
                 <Envelope1 className="size-3.5" />
               </span>
               <span className="break-all">{EMAIL}</span>
+            </a>
+          </li>
+          <li>
+            <a href={WHATSAPP.href} target="_blank" rel="noopener noreferrer" className={LINK} aria-label={`WhatsApp ${WHATSAPP.visible}`}>
+              <span className="flex size-7 items-center justify-center rounded-lg bg-white/5 ring-1 ring-white/10 transition-colors group-hover/link:bg-primary-500 group-hover/link:ring-primary-500">
+                <Whatsapp className="size-3.5" />
+              </span>
+              {WHATSAPP.visible}
             </a>
           </li>
         </Columna>
