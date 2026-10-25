@@ -230,12 +230,53 @@
 
 /* ── Clerk ────────────────────────────────────────────────────────────── */
 
-/* El form viene con su propio ancho y padding de tarjeta: acá ocupa la columna. */
+/* Tarjeta del login con un borde que recorre el contorno: una luz en los
+   azules de la marca (#000083 → #0000FF → #5073FF) que da la vuelta despacio
+   sobre un borde tenue fijo. */
+@property --borde-angulo {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.login-clerk .clerk-caja {
+  width: 100%;
+  border: 1px solid transparent;
+  border-radius: 18px;
+  background:
+    linear-gradient(#060914, #060914) padding-box,
+    conic-gradient(
+        from var(--borde-angulo),
+        transparent 0% 62%,
+        #000083 72%,
+        #0000ff 84%,
+        #5073ff 93%,
+        transparent 100%
+      )
+      border-box,
+    linear-gradient(var(--edge), var(--edge)) border-box;
+  box-shadow: 0 24px 60px -28px rgb(0 0 255 / 0.45);
+  animation: borde-gira 7s linear infinite;
+  overflow: hidden;
+}
+
+@keyframes borde-gira {
+  to {
+    --borde-angulo: 360deg;
+  }
+}
+
 .login-clerk .clerk-card {
   width: 100%;
-  padding: 0;
+  padding: 28px 24px 24px;
+  border: none;
   background: transparent;
   box-shadow: none;
+}
+
+.login-clerk .clerk-pie {
+  background: transparent;
+  border-top: 1px solid var(--edge);
 }
 
 .login-clerk .clerk-label {
@@ -314,7 +355,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .login-badge-orb {
+  .login-badge-orb,
+  .login-clerk .clerk-caja {
     animation: none;
   }
 }

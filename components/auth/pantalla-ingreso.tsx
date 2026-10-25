@@ -21,11 +21,12 @@ export const APARIENCIA_CLERK = {
     fontFamily: "var(--font-marca), ui-sans-serif, system-ui, sans-serif",
   },
   elements: {
-    // White-label: el footer "Secured by Clerk" y el card propio se ocultan
-    // porque el form se monta dentro de nuestra columna.
-    footer: "hidden",
-    cardBox: "shadow-none",
+    // La caja de Clerk es nuestra tarjeta: borde animado con los azules de la
+    // marca. El pie ("Secured by Clerk") lo exige el plan gratis de Clerk, así
+    // que se integra en vez de esconderse.
+    cardBox: "clerk-caja",
     card: "clerk-card",
+    footer: "clerk-pie",
     headerTitle: "hidden",
     headerSubtitle: "hidden",
     formFieldLabel: "clerk-label",
