@@ -1,5 +1,6 @@
 import { clerkClient, clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse, type NextRequest } from "next/server";
+import { decidirDominio } from "@/lib/dominios";
 import {
   RUTA_PORTAL,
   esRutaPortal,
@@ -42,13 +43,27 @@ const esPublica = createRouteMatcher([
  * pantallas que no son del panel (auth, cotización pública, portal). No hay
  * API server-side para leer el pathname en un layout.
  */
-function seguir(req: NextRequest) {
+function seguir(req: NextRequest, ruta = req.nextUrl.pathname) {
   const headers = new Headers(req.headers);
-  headers.set("x-pathname", req.nextUrl.pathname);
+  headers.set("x-pathname", ruta);
+  // En el dominio de clientes, /<marca> se atiende como /portal/<marca>.
+  if (ruta !== req.nextUrl.pathname) {
+    return NextResponse.rewrite(new URL(`${ruta}${req.nextUrl.search}`, req.url), { request: { headers } });
+  }
   return NextResponse.next({ request: { headers } });
 }
 
 export default clerkMiddleware(async (auth, req) => {
+  // Dominio viejo → el nuevo; en el de clientes, /<marca> es su portal.
+  const dominio = decidirDominio(req.headers.get("host"), req.nextUrl.pathname, req.nextUrl.search, {
+    DOMINIO_PANEL: process.env.DOMINIO_PANEL,
+    DOMINIOS_VIEJOS: process.env.DOMINIOS_VIEJOS,
+    DOMINIO_CLIENTES: process.env.DOMINIO_CLIENTES,
+  });
+  if (dominio.tipo === "redirigir") return NextResponse.redirect(dominio.url, 308);
+  // La ruta que se atiende de verdad: los permisos se deciden sobre ella.
+  const ruta = dominio.tipo === "portal" ? dominio.ruta : req.nextUrl.pathname;
+
   if (esPublica(req)) return seguir(req);
 
   const { userId } = await auth();
@@ -56,10 +71,7 @@ export default clerkMiddleware(async (auth, req) => {
   // a /sign-in, que es la nuestra, conservando adónde queria ir.
   if (!userId) {
     const destino = new URL("/sign-in", req.url);
-    destino.searchParams.set(
-      "redirect_url",
-      req.nextUrl.pathname + req.nextUrl.search,
-    );
+    destino.searchParams.set("redirect_url", req.nextUrl.pathname + req.nextUrl.search);
     return NextResponse.redirect(destino);
   }
 
@@ -84,7 +96,7 @@ export default clerkMiddleware(async (auth, req) => {
 
   // Un usuario de cliente vive en el portal y en ningún otro lado.
   if (esUsuarioCliente(metadata)) {
-    if (esRutaPortal(req.nextUrl.pathname)) return seguir(req);
+    if (esRutaPortal(ruta)) return seguir(req, ruta);
     return NextResponse.redirect(new URL(RUTA_PORTAL, req.url));
   }
 
@@ -94,10 +106,10 @@ export default clerkMiddleware(async (auth, req) => {
   // de que este campo existiera.
   const unidades = declaradas.length > 0 ? declaradas : ["landing-pages" as const];
 
-  if (puedeVerRuta(esOwner, unidades, req.nextUrl.pathname)) return seguir(req);
+  if (puedeVerRuta(esOwner, unidades, ruta)) return seguir(req, ruta);
 
   const destino = rutaInicial(esOwner, unidades);
-  if (req.nextUrl.pathname === destino) return seguir(req);
+  if (ruta === destino) return seguir(req, ruta);
   return NextResponse.redirect(new URL(destino, req.url));
 });
 

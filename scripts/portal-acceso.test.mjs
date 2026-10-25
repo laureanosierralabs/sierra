@@ -36,7 +36,8 @@ test("un member del equipo no entra al portal; el owner sí", () => {
 
 test("el middleware confina al cliente al portal y corta si Clerk falla", () => {
   const proxy = leer("../proxy.ts");
-  assert.match(proxy, /if \(esUsuarioCliente\(metadata\)\) \{\s*if \(esRutaPortal\(req\.nextUrl\.pathname\)\) return seguir\(req\);\s*return NextResponse\.redirect\(new URL\(RUTA_PORTAL/);
+  // `ruta` es la que se atiende de verdad (en clientes.<dominio>, /<marca> es /portal/<marca>).
+  assert.match(proxy, /if \(esUsuarioCliente\(metadata\)\) \{\s*if \(esRutaPortal\(ruta\)\) return seguir\(req, ruta\);\s*return NextResponse\.redirect\(new URL\(RUTA_PORTAL/);
   // Fail-closed: el catch responde 503, ya no deja pasar con `return;`.
   assert.match(proxy, /catch \(e\) \{[\s\S]*?status: 503/);
   assert.doesNotMatch(proxy, /catch \(e\) \{\s*console\.error\([^)]*\);\s*return;\s*\}/);
