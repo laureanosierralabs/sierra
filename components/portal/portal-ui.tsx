@@ -7,7 +7,26 @@ import { cn } from "@/utils/cn";
  * layout. Con `!` porque la regla global de h1/h2/h3 (sin capa) le gana a
  * cualquier utilidad.
  */
-export const DISPLAY = "font-(family-name:--font-portal)! font-extrabold uppercase tracking-[-0.05em]";
+export const DISPLAY = "font-(family-name:--font-portal)! font-semibold uppercase tracking-[-0.05em]";
+
+/** Link de texto del portal: blanco, con el subrayado en el azul de la marca. */
+export const ENLACE =
+  "font-medium text-white underline decoration-primary-500 decoration-2 underline-offset-4 transition-colors hover:decoration-white";
+
+/** Etiqueta chica (blanco y negro, con un punto en el azul de la marca). */
+export function EtiquetaPortal({ children, className }: { children: React.ReactNode; className?: string }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-2.5 py-1 text-xs font-medium text-white/80 backdrop-blur",
+        className,
+      )}
+    >
+      <span aria-hidden="true" className="size-1.5 rounded-full bg-primary-500 shadow-[0_0_8px_2px_rgb(0_0_255/0.7)]" />
+      {children}
+    </span>
+  );
+}
 
 /** Sección del portal: título, una línea que la separa y una acción a la derecha. */
 export function SeccionPortal({
@@ -40,7 +59,7 @@ export function PildoraEnlace({ href, children }: { href: string; children: Reac
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-primary-500 px-4 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-primary-400 [&>svg]:size-3.5"
+      className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-primary-500 px-4 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-primary-600 [&>svg]:size-3.5"
     >
       {children}
       <ExpandArrowTopRightSquare1 />
@@ -114,7 +133,7 @@ export function HeroPortal({
           aria-label="Bajar al contenido"
           className="absolute bottom-0 left-1/2 flex size-14 -translate-x-1/2 translate-y-1/2 items-center justify-center rounded-full bg-neutral-950 outline-none focus-visible:ring-4 focus-visible:ring-primary-500/40 sm:size-16"
         >
-          <span className="flex size-8 items-center justify-center rounded-full bg-white/10 text-primary-300 ring-1 ring-white/15 transition-colors hover:bg-primary-500 hover:text-white sm:size-9">
+          <span className="flex size-8 items-center justify-center rounded-full bg-white/10 text-white ring-1 ring-white/15 transition-colors hover:bg-primary-500 hover:text-white sm:size-9">
             ↓
           </span>
         </a>
@@ -190,7 +209,7 @@ export function TarjetaLanzamiento({
         <span className={cn("text-[11px] sm:text-xs", imagen ? "text-white/70" : "text-neutral-600")}>
           {[fechas, detalle].filter(Boolean).join(" · ")}
         </span>
-        <span className={cn("mt-1 text-xs font-bold sm:text-sm", imagen ? "text-primary-300" : "text-primary-600")}>
+        <span className={cn("mt-1 text-xs font-medium underline decoration-primary-500 decoration-2 underline-offset-4 sm:text-sm", imagen ? "text-white" : "text-neutral-900")}>
           Ver lanzamiento <span className="inline-block transition-transform group-hover:translate-x-0.5">→</span>
         </span>
       </span>
@@ -227,7 +246,7 @@ export function MetricaPortal({
         aria-hidden="true"
         className={cn(
           "flex size-10 items-center justify-center rounded-xl [&>svg]:size-5",
-          destacada ? "bg-badge-warning-text/15 text-badge-warning-text" : "bg-primary-500/15 text-primary-300",
+          destacada ? "bg-badge-warning-text/15 text-badge-warning-text" : "bg-primary-500 text-white",
         )}
       >
         {icono}

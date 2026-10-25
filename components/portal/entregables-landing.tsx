@@ -108,7 +108,7 @@ export function EntregablesLanding({
                 url={r.url}
                 className="flex min-w-0 items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium [&>svg]:size-6 [&>svg]:shrink-0"
               >
-                <Folder1 className={r.url ? "text-primary-400" : undefined} />
+                <Folder1 className={r.url ? "text-white" : undefined} />
                 <span className="truncate">{r.etiqueta}</span>
               </Casillero>
             ))}

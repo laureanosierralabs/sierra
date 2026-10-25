@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { DISPLAY } from "@/components/portal/portal-ui";
+import { DISPLAY, ENLACE, EtiquetaPortal } from "@/components/portal/portal-ui";
 import { accesoActual } from "@/lib/landing/auth";
 import { portalesDisponibles } from "@/lib/portal/contexto";
 import { cn } from "@/utils/cn";
@@ -20,10 +20,8 @@ export default async function PortalInicio() {
 
   return (
     <div className="pt-6 sm:pt-10">
-      <p className="text-sm font-bold tracking-wide text-primary-300 uppercase">
-        {acceso.esOwner ? "Vista interna" : "Bienvenido"}
-      </p>
-      <h1 className={cn(DISPLAY, "mt-2 text-[clamp(2rem,6vw,3.5rem)] leading-[0.95] text-white")}>
+      <EtiquetaPortal>{acceso.esOwner ? "Vista interna" : "Bienvenido"}</EtiquetaPortal>
+      <h1 className={cn(DISPLAY, "mt-4 text-[clamp(2rem,6vw,3.5rem)] leading-[0.95] text-white")}>
         {acceso.esOwner ? "Portales de clientes" : "Elegí la marca"}
       </h1>
       <p className="mt-3 max-w-xl text-sm text-white/60 sm:text-base">
@@ -65,7 +63,7 @@ export default async function PortalInicio() {
                 ) : null}
                 <span className="relative flex w-full items-end justify-between gap-3">
                   <span className={cn(DISPLAY, "text-2xl leading-none text-white sm:text-3xl")}>{p.nombre}</span>
-                  <span className="shrink-0 text-sm font-bold text-primary-300">
+                  <span className={cn(ENLACE, "shrink-0 text-sm")}>
                     Entrar <span className="inline-block transition-transform group-hover:translate-x-0.5">→</span>
                   </span>
                 </span>

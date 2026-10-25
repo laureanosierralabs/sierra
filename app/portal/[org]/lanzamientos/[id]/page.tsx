@@ -4,7 +4,7 @@ import { ArrowLeft } from "@tailgrids/icons";
 import { PanelLanzamiento } from "@/components/lanzamientos/panel-lanzamiento";
 import { AccesosPortal, VideosSoporte } from "@/components/portal/accesos-videos";
 import { EntregablesLanding } from "@/components/portal/entregables-landing";
-import { HeroPortal, SeccionPortal } from "@/components/portal/portal-ui";
+import { ENLACE, HeroPortal, SeccionPortal } from "@/components/portal/portal-ui";
 import { AvisoVistaInterna } from "@/components/portal/vista-interna";
 import { listarVideosSoporte } from "@/lib/landing/datos";
 import { fechaCorta } from "@/lib/landing/tipos";
@@ -114,7 +114,7 @@ export default async function PortalLanzamiento({
         <SeccionPortal
           titulo="Resultados"
           accion={
-            <Link href={`${base}/reporte`} className="text-sm font-bold text-primary-300 hover:text-primary-200">
+            <Link href={`${base}/reporte`} className={cn(ENLACE, "text-sm")}>
               {lanzamiento.status === "cerrado" ? "Reporte de cierre →" : "Reporte parcial →"}
             </Link>
           }

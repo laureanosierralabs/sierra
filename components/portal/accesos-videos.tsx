@@ -4,7 +4,7 @@ import { useRef, useState, useTransition } from "react";
 import { Copy1, Play } from "@tailgrids/icons";
 import { toast } from "sonner";
 import { revelarAccesoPortal } from "@/app/portal/entrega-acciones";
-import { DISPLAY } from "@/components/portal/portal-ui";
+import { DISPLAY, ENLACE } from "@/components/portal/portal-ui";
 import { miniaturaVideo, type VideoSoporte } from "@/lib/portal/entrega";
 import type { AccesoPortal } from "@/lib/portal/datos";
 import { cn } from "@/utils/cn";
@@ -44,7 +44,7 @@ function TarjetaAcceso({ slug, acceso, abierto }: { slug: string; acceso: Acceso
       <div className="flex flex-col gap-3 p-5">
         {acceso.url && (
           <Dato etiqueta="Link de acceso">
-            <a href={acceso.url} target="_blank" rel="noopener noreferrer" className="truncate text-primary-300 hover:underline">
+            <a href={acceso.url} target="_blank" rel="noopener noreferrer" className={cn(ENLACE, "truncate")}>
               {acceso.url.replace(/^https?:\/\//, "")}
             </a>
           </Dato>
@@ -77,7 +77,7 @@ function TarjetaAcceso({ slug, acceso, abierto }: { slug: string; acceso: Acceso
                     else setSecreto(r.secreto);
                   })
                 }
-                className="text-sm font-medium text-primary-300 hover:underline"
+                className={cn(ENLACE, "text-sm")}
               >
                 {pendiente ? "Mostrando…" : "Mostrar contraseña"}
               </button>
@@ -107,10 +107,10 @@ export function VideosSoporte({ videos }: { videos: VideoSoporte[] }) {
   return (
     <div>
       <div className="mb-3 flex justify-end gap-2">
-        <button type="button" onClick={() => mover(-1)} aria-label="Videos anteriores" className="rounded-full px-2 text-2xl text-primary-400 hover:text-primary-300">
+        <button type="button" onClick={() => mover(-1)} aria-label="Videos anteriores" className="rounded-full px-2 text-2xl text-white/70 hover:text-white">
           ←
         </button>
-        <button type="button" onClick={() => mover(1)} aria-label="Más videos" className="rounded-full px-2 text-2xl text-primary-400 hover:text-primary-300">
+        <button type="button" onClick={() => mover(1)} aria-label="Más videos" className="rounded-full px-2 text-2xl text-white/70 hover:text-white">
           →
         </button>
       </div>
@@ -129,7 +129,7 @@ export function VideosSoporte({ videos }: { videos: VideoSoporte[] }) {
                   // eslint-disable-next-line @next/next/no-img-element -- miniatura pública de YouTube
                   <img src={miniatura} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover opacity-30 transition-opacity group-hover:opacity-45" />
                 )}
-                <span className="relative text-primary-400 [&>svg]:size-10">
+                <span className="relative text-white [&>svg]:size-10">
                   <Play />
                 </span>
                 <span className={cn(DISPLAY, "relative text-2xl leading-[0.95] break-words text-white sm:text-[1.7rem]")}>{v.title}</span>

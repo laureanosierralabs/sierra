@@ -3,6 +3,7 @@ import { Geist } from "next/font/google";
 import Image from "next/image";
 import Link from "next/link";
 import { UserProfileButton } from "@/components/common/header/user-profile";
+import { EtiquetaPortal } from "@/components/portal/portal-ui";
 import { portalesDisponibles } from "@/lib/portal/contexto";
 import "./portal.css";
 
@@ -45,9 +46,7 @@ export default async function PortalLayout({ children }: { children: React.React
               priority
               className="h-7 w-auto drop-shadow"
             />
-            <span className="hidden text-sm font-extrabold tracking-wide text-primary-300 uppercase transition-colors group-hover:text-primary-200 sm:inline">
-              Portal <span className="text-white">de clientes</span>
-            </span>
+            <EtiquetaPortal className="hidden sm:inline-flex">Portal de clientes</EtiquetaPortal>
           </Link>
           <span className="flex items-center gap-4">
             {variasMarcas && (

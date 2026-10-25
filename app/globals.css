@@ -204,6 +204,14 @@ h1, h2, h3 {
 /* Logos según el tema del panel: el oscuro sobre fondo claro y el claro sobre
    fondo oscuro. El tema lo pone next-themes en data-theme, así que se resuelve
    acá y no con `dark:` (que sigue a la preferencia del sistema). */
+/* Panel en modo oscuro: el azul del medio (#0000FF) como texto no se lee
+   sobre negro. Los rellenos (botones, badges) lo siguen usando; solo los
+   textos azules pasan al azul claro de la marca. */
+:root[data-theme="dark"] .text-primary-500,
+:root[data-theme="dark"] .text-primary-600 {
+  color: var(--primary-400);
+}
+
 :root:not([data-theme="dark"]) .logo-en-oscuro,
 :root[data-theme="dark"] .logo-en-claro {
   display: none;

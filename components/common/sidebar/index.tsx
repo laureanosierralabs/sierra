@@ -51,12 +51,10 @@ export function Sidebar({
       >
         <Link href="/" className="flex min-w-0 items-center gap-2.5" aria-label={`synx build · ${titulo}`}>
           {isSidebarOpen ? (
-            <span className="flex min-w-0 flex-col gap-1">
-              <Image src="/synxbuild/synxbuild-black.png" alt="synx build" width={446} height={91} priority className="logo-en-claro h-6 w-auto" />
-              <Image src="/synxbuild/synxbuild-white.png" alt="synx build" width={446} height={91} priority className="logo-en-oscuro h-6 w-auto" />
-              <span className="block truncate text-xs text-text-tertiary">
-                {titulo} · {rolLabel}
-              </span>
+            <span className="flex min-w-0 flex-col items-start gap-2">
+              <Image src="/synxbuild/synxbuild-blue.png" alt="synx build" width={444} height={91} priority className="logo-en-claro h-auto w-[118px]" />
+              <Image src="/synxbuild/synxbuild-white.png" alt="synx build" width={446} height={91} priority className="logo-en-oscuro h-auto w-[118px]" />
+              <BadgeRol rol={rolLabel} />
             </span>
           ) : (
             <Image src="/synxbuild/icono-blue.png" alt="synx build" width={91} height={91} className="size-7 shrink-0" />
@@ -112,5 +110,18 @@ export function Sidebar({
         </CollapsibleGroup>
       </nav>
     </div>
+  );
+}
+
+/** El rol de quien está logueado, con un punto azul que respira (sutil). */
+function BadgeRol({ rol }: { rol: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-card-border bg-background-gray-secondary px-2 py-0.5 text-[11px] leading-4 font-medium text-text-secondary">
+      <span aria-hidden="true" className="relative flex size-1.5">
+        <span className="absolute inline-flex size-full rounded-full bg-primary-500 opacity-60 motion-safe:animate-[ping_2.4s_cubic-bezier(0,0,0.2,1)_infinite]" />
+        <span className="relative inline-flex size-1.5 rounded-full bg-primary-500" />
+      </span>
+      {rol}
+    </span>
   );
 }

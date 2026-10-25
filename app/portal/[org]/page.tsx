@@ -2,7 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CheckCircle1, ExpandArrowTopRightSquare1, Message1, Rocket1, UserMultiple4 } from "@tailgrids/icons";
 import { EstadoPagoPill } from "@/components/landing/ui";
-import { HeroPortal, MetricaPortal, SeccionPortal, TarjetaLanzamiento } from "@/components/portal/portal-ui";
+import { cn } from "@/utils/cn";
+import { ENLACE, HeroPortal, MetricaPortal, SeccionPortal, TarjetaLanzamiento } from "@/components/portal/portal-ui";
 import { AvisoVistaInterna } from "@/components/portal/vista-interna";
 import { codigoCotizacion, fechaCorta, fechaCotizacion, formatearMonto } from "@/lib/landing/tipos";
 import { LABEL_ESTADO_LANZAMIENTO } from "@/lib/lanzamientos/tipos";
@@ -129,7 +130,7 @@ export default async function PortalCliente({ params }: { params: Promise<{ org:
         <SeccionPortal
           titulo="Pedidos"
           accion={
-            <Link href={`/portal/${ctx.slug}/pedidos`} className="shrink-0 text-sm font-medium text-primary-300 hover:text-primary-200">
+            <Link href={`/portal/${ctx.slug}/pedidos`} className={cn(ENLACE, "shrink-0 text-sm")}>
               Ver pedidos →
             </Link>
           }
@@ -160,7 +161,7 @@ export default async function PortalCliente({ params }: { params: Promise<{ org:
                     <span className="flex shrink-0 items-center gap-3">
                       <span className="text-sm font-semibold tabular-nums text-white">{formatearMonto(q.total_amount, q.currency)}</span>
                       <EstadoPagoPill estado={q.payment_status} />
-                      <ExpandArrowTopRightSquare1 className="size-4 text-white/40 transition-colors group-hover:text-primary-300" />
+                      <ExpandArrowTopRightSquare1 className="size-4 text-white/40 transition-colors group-hover:text-white" />
                     </span>
                   </Link>
                 </li>
