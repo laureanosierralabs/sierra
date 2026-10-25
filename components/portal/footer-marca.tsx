@@ -1,7 +1,7 @@
 import Image from "next/image";
 import { Envelope1, ExpandArrowTopRightSquare1, Instagram, Linkedin } from "@tailgrids/icons";
 
-/** Links del footer. Cuando la marca tenga su mail propio, se cambia acá. */
+/** Links del footer. El mail de contacto es el de la marca (llega a synxbuild@gmail.com). */
 const PAGINAS = [
   { etiqueta: "laureanosierra.com", href: "https://laureanosierra.com" },
   { etiqueta: "Servicio", href: "https://laureanosierra.com/servicio/" },
@@ -12,7 +12,7 @@ const REDES = [
   { etiqueta: "LinkedIn", detalle: "in/laureanosierra", href: "https://www.linkedin.com/in/laureanosierra", icono: Linkedin },
 ];
 
-const EMAIL = "laureanosierra.labs@gmail.com";
+const EMAIL = "team@synxbuild.com";
 
 const LINK =
   "group/link inline-flex items-center gap-2 text-sm text-white/60 transition-colors hover:text-white focus-visible:text-white focus-visible:outline-none";
@@ -44,7 +44,7 @@ export function FooterMarca() {
 
       <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 pt-14 pb-10 sm:px-6 md:grid-cols-[1.4fr_1fr_1fr_1.2fr]">
         <div className="flex flex-col gap-4">
-          <Image src="/synxbuild/synxbuild-white.png" alt="synx build" width={446} height={91} className="h-auto w-[132px]" />
+          <Image src="/synxbuild/synxbuild-white.png" alt="synx build" width={446} height={91} className="h-auto w-33" />
           <p className="max-w-xs text-sm leading-relaxed text-white/50">
             Landing pages y lanzamientos, medidos de punta a punta.
           </p>
@@ -97,7 +97,7 @@ export function FooterMarca() {
       {/* La marca grande de fondo, cortada por el borde inferior. */}
       <p
         aria-hidden="true"
-        className="pointer-events-none -mb-[0.22em] text-center text-[clamp(4.5rem,19vw,15rem)] leading-none font-semibold tracking-[-0.06em] text-transparent select-none [background-clip:text] bg-linear-to-b from-white/10 to-white/0"
+        className="pointer-events-none mb-[-0.22em] text-center text-[clamp(4.5rem,19vw,15rem)] leading-none font-semibold tracking-[-0.06em] text-transparent select-none bg-clip-text bg-linear-to-b from-white/10 to-white/0"
       >
         synx build
       </p>
