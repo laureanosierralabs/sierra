@@ -10,6 +10,8 @@ import { dominioDe } from "@/lib/lanzamientos/tipos";
 export interface TemaWebinar {
   /** Nombre de la marca, chico arriba del título. Null = sin rótulo. */
   marca: string | null;
+  /** Cómo llama la marca a su evento en vivo: "webinar", "seminario", "clase"… */
+  evento: string;
   fondo: string;
   /** Fondo de la tarjeta. */
   tarjeta: string;
@@ -36,6 +38,7 @@ const SISTEMA = 'system-ui,-apple-system,"Segoe UI",Roboto,sans-serif';
 
 export const TEMA_SYNX: TemaWebinar = {
   marca: null,
+  evento: "webinar",
   fondo: "#0a0a0a",
   tarjeta: "transparent",
   borde: "transparent",
@@ -57,6 +60,7 @@ export const TEMA_SYNX: TemaWebinar = {
 /** Paleta de manuelazuluaga.com (src/styles/theme.css de su landing). */
 const TEMA_MANUELA: TemaWebinar = {
   marca: "Manuela Zuluaga",
+  evento: "webinar",
   fondo: "#eee4da", // crema
   tarjeta: "#f7f2ed", // papel
   borde: "#c8a49f", // rosa arcilla
@@ -75,8 +79,34 @@ const TEMA_MANUELA: TemaWebinar = {
   fuentesUrl: "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=DM+Sans:wght@400;600&display=swap",
 };
 
+/**
+ * lp.pilarsousa.es, con la paleta de "Volver al Origen" (globals.css de su
+ * landing, tokens --color-vo-*): Pilar llama "seminario" a su evento.
+ */
+const TEMA_PILAR: TemaWebinar = {
+  marca: "Pilar Sousa",
+  evento: "seminario",
+  fondo: "#0b1502", // vo-black
+  tarjeta: "#1a2b07", // vo-forest
+  borde: "#2e4b0f", // vo-olive
+  titulo: "#f6f6e5", // vo-bone
+  texto: "#f6f6e5",
+  suave: "rgba(246,246,229,.72)",
+  boton: "#b4e236", // vo-lumen
+  botonHover: "#c6ec5e",
+  botonTexto: "#0b1502",
+  campo: "rgba(246,246,229,.06)",
+  campoBorde: "#2e4b0f",
+  foco: "#b4e236",
+  error: "#f4a3a3",
+  fuenteTitulo: 'Cinzel,"Times New Roman",serif',
+  fuenteTexto: '"DM Sans",system-ui,sans-serif',
+  fuentesUrl: "https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600&family=DM+Sans:wght@400;600&display=swap",
+};
+
 const POR_DOMINIO: Record<string, TemaWebinar> = {
   "manuelazuluaga.com": TEMA_MANUELA,
+  "lp.pilarsousa.es": TEMA_PILAR,
 };
 
 /** El tema de la primera landing con dominio conocido; si ninguna lo tiene, el de synx build. */

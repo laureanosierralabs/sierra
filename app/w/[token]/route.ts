@@ -56,10 +56,11 @@ async function atender(req: Request, token: string, emailCrudo: string | null, m
 
   const destino = urlSegura(lanzamiento.webinar_url as string | null);
   if (!destino) {
+    const tema = await temaDelLanzamiento(lanzamiento.id as string);
     return pagina(
-      await temaDelLanzamiento(lanzamiento.id as string),
+      tema,
       "El link todavía no está disponible",
-      "Todavía no cargamos el link del webinar. Vuelve a intentarlo un poco más tarde.",
+      `Todavía no cargamos el link del ${tema.evento}. Vuelve a intentarlo un poco más tarde.`,
     );
   }
 
@@ -136,7 +137,7 @@ function documento(t: TemaWebinar, contenido: string, estado = 200) {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Webinar${t.marca ? ` · ${escapar(t.marca)}` : ""}</title>
+<title>${escapar(t.evento.charAt(0).toUpperCase() + t.evento.slice(1))}${t.marca ? ` · ${escapar(t.marca)}` : ""}</title>
 ${t.fuentesUrl ? `<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="${t.fuentesUrl}">` : ""}
 <style>
 *{box-sizing:border-box}
@@ -169,13 +170,13 @@ function pagina(t: TemaWebinar, titulo: string, detalle: string, estado = 200) {
 function formulario(t: TemaWebinar, aviso: string | null) {
   return documento(
     t,
-    `<h1>Entra al webinar</h1>
+    `<h1>Entra al ${escapar(t.evento)}</h1>
 <p>Escribe el email con el que te registraste para entrar.</p>
 <form method="post">
 <label for="e">Tu email</label>
 <input id="e" name="e" type="email" inputmode="email" autocomplete="email" required autofocus placeholder="tu@email.com">
 ${aviso ? `<p class="aviso" role="alert">${escapar(aviso)}</p>` : ""}
-<button type="submit">Entrar al webinar</button>
+<button type="submit">Entrar al ${escapar(t.evento)}</button>
 </form>`,
   );
 }

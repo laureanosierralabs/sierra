@@ -21,8 +21,16 @@ test("el tema sale del dominio de las landings, con o sin www", () => {
   assert.equal(temaWebinar(["https://manuelazuluaga.com"]).boton, "#4d0e13");
 });
 
+test("Pilar usa la paleta de Volver al Origen y llama seminario a su evento", () => {
+  const t = temaWebinar(["https://lp.pilarsousa.es/volver-al-origen"]);
+  assert.equal(t.marca, "Pilar Sousa");
+  assert.equal(t.evento, "seminario");
+  assert.equal(t.boton, "#b4e236");
+  assert.equal(TEMA_SYNX.evento, "webinar");
+});
+
 test("sin dominio conocido, o sin landings, sale el de synx build", () => {
-  assert.equal(temaWebinar(["https://lp.pilarsousa.es"]), TEMA_SYNX);
+  assert.equal(temaWebinar(["https://otra-landing.com"]), TEMA_SYNX);
   assert.equal(temaWebinar([]), TEMA_SYNX);
   assert.equal(temaWebinar(["no es una url", undefined]), TEMA_SYNX);
 });
@@ -30,6 +38,6 @@ test("sin dominio conocido, o sin landings, sale el de synx build", () => {
 test("la página del webinar usa el tema y habla en español neutro", () => {
   const w = leer("../app/w/[token]/route.ts");
   assert.match(w, /temaWebinar\(/);
-  assert.match(w, /Entra al webinar/);
+  assert.match(w, /Entra al \$\{escapar\(t\.evento\)\}/);
   assert.doesNotMatch(w, /Entrá|Escribí|Revisá|Volvé|intentá/);
 });
