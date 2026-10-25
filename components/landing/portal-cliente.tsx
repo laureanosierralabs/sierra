@@ -109,8 +109,7 @@ export function PortalCliente({
         )}
         <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
           <p className="text-sm text-text-tertiary">
-            Dale a este cliente un acceso propio para ver sus lanzamientos, entregas, pedidos y
-            cotizaciones.
+            Dale a este cliente un acceso propio para ver sus lanzamientos, entregas y cotizaciones.
           </p>
           <Button
             size="sm"

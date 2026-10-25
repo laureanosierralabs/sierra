@@ -5,6 +5,14 @@
  * botones posibles).
  */
 
+/**
+ * Por ahora los pedidos se gestionan por WhatsApp: con esto en false no se
+ * muestran ni en el portal ni en el panel, y sus páginas responden 404. El
+ * código y los datos quedan intactos; volver a usarlos es pasarlo a true
+ * (y la entrada "Pedidos" del menú, en lib/unidades.ts).
+ */
+export const PEDIDOS_ACTIVOS = false;
+
 export const TIPOS_PEDIDO = ["incidencia", "cambio", "aprobacion"] as const;
 export type TipoPedido = (typeof TIPOS_PEDIDO)[number];
 

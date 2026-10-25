@@ -50,7 +50,8 @@ export const DEFINICIONES: Record<Unidad, DefinicionUnidad> = {
         icono: "Rocket",
         owner: true,
       },
-      { href: "/landing-pages/pedidos", label: "Pedidos", icono: "Inbox" },
+      // Pedidos: oculto mientras se gestionan por WhatsApp (PEDIDOS_ACTIVOS en lib/pedidos/tipos.ts).
+      // { href: "/landing-pages/pedidos", label: "Pedidos", icono: "Inbox" },
       { href: "/landing-pages/componentes", label: "Componentes", icono: "Components" },
       { href: "/landing-pages/horas", label: "Horas", icono: "Clock" },
       { href: "/landing-pages/mis-cobros", label: "Mis cobros", icono: "Wallet", soloEquipo: true },

@@ -36,7 +36,7 @@ import { NuevaAprobacion } from "@/components/pedidos/pedido-formularios";
 import { ListaPedidos } from "@/components/pedidos/pedido-ui";
 import { crearAprobacion } from "@/app/landing-pages/pedidos-acciones";
 import { pedidosDeCliente } from "@/lib/pedidos/datos";
-import { estaCerrado } from "@/lib/pedidos/tipos";
+import { estaCerrado, PEDIDOS_ACTIVOS } from "@/lib/pedidos/tipos";
 import {
   EstadoClientePill,
   EstadoCotizacionPill,
@@ -144,10 +144,12 @@ export default async function ClienteDetalle({
           })
       : Promise.resolve(null),
     listarClientes(),
-    pedidosDeCliente(id).catch((e) => {
-      console.error("[clientes] no se pudieron leer los pedidos:", e);
-      return [];
-    }),
+    PEDIDOS_ACTIVOS
+      ? pedidosDeCliente(id).catch((e) => {
+          console.error("[clientes] no se pudieron leer los pedidos:", e);
+          return [];
+        })
+      : [],
     // Integración GoHighLevel (solo owner). Si falla, esa tarjeta no aparece.
     esOwner
       ? integracionGhlDeCliente(id).catch((e) => {
@@ -187,7 +189,9 @@ export default async function ClienteDetalle({
       href: `${base}?vista=landings`,
       cantidad: susProyectos.length + (esOwner ? rutas.length : 0),
     },
-    { id: "pedidos", label: "Pedidos", href: `${base}?vista=pedidos`, cantidad: pedidosAbiertos },
+    ...(PEDIDOS_ACTIVOS
+      ? [{ id: "pedidos" as const, label: "Pedidos", href: `${base}?vista=pedidos`, cantidad: pedidosAbiertos }]
+      : []),
     { id: "accesos", label: "Accesos", href: `${base}?vista=accesos`, cantidad: accesos.length },
     { id: "reuniones", label: "Reuniones", href: `${base}?vista=reuniones`, cantidad: notas.length },
     ...(esOwner && portal !== undefined

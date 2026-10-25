@@ -10,11 +10,14 @@ import { obtenerCliente } from "@/lib/landing/datos";
 import { supabaseAdmin } from "@/lib/landing/supabase";
 import { clienteDePedido, pedidoDeCliente } from "@/lib/pedidos/datos";
 import { transicionesEquipo } from "@/lib/pedidos/tipos";
+import { PEDIDOS_ACTIVOS } from "@/lib/pedidos/tipos";
 
 export const dynamic = "force-dynamic";
 
 /** Un pedido en el panel: el equipo lo mueve de estado y conversa con el cliente. */
 export default async function PedidoDetalle({ params }: { params: Promise<{ id: string }> }) {
+  // Pedidos apagados: se gestionan por WhatsApp (ver PEDIDOS_ACTIVOS).
+  if (!PEDIDOS_ACTIVOS) notFound();
   const { id } = await params;
   const clientId = await clienteDePedido(id);
   if (!clientId) notFound();

@@ -10,7 +10,7 @@ import { LABEL_ESTADO_LANZAMIENTO } from "@/lib/lanzamientos/tipos";
 import { contextoPortal } from "@/lib/portal/contexto";
 import { cotizacionesCompartidas, lanzamientosPortal, portadaCliente } from "@/lib/portal/datos";
 import { pedidosDeCliente } from "@/lib/pedidos/datos";
-import { estaCerrado } from "@/lib/pedidos/tipos";
+import { estaCerrado, PEDIDOS_ACTIVOS } from "@/lib/pedidos/tipos";
 
 export const dynamic = "force-dynamic";
 
@@ -32,10 +32,12 @@ export default async function PortalCliente({ params }: { params: Promise<{ org:
       return [];
     }),
     cotizacionesCompartidas(ctx),
-    pedidosDeCliente(ctx.clientId).catch((e) => {
-      console.error("[portal] no se pudieron leer los pedidos:", e);
-      return [];
-    }),
+    PEDIDOS_ACTIVOS
+      ? pedidosDeCliente(ctx.clientId).catch((e) => {
+          console.error("[portal] no se pudieron leer los pedidos:", e);
+          return [];
+        })
+      : [],
     portadaCliente(ctx).catch(() => null),
   ]);
   const porAprobar = pedidos.filter((p) => p.kind === "aprobacion" && p.status === "abierta").length;
@@ -54,7 +56,7 @@ export default async function PortalCliente({ params }: { params: Promise<{ org:
         solapa={
           lanzamientos.length === 0 ? (
             <div className="portal-entrar flex aspect-9/16 max-w-[16rem] items-center justify-center rounded-[28px] border border-dashed border-white/20 bg-white/5 p-6 text-center text-sm text-white/60">
-              Tus lanzamientos van a aparecer acá.
+              Tus lanzamientos aparecerán aquí.
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-4">
@@ -82,7 +84,7 @@ export default async function PortalCliente({ params }: { params: Promise<{ org:
 
       <div className="flex flex-col gap-12 sm:gap-14">
         <SeccionPortal titulo="Resumen">
-          <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+          <div className={cn("grid grid-cols-2 gap-3 sm:gap-4", PEDIDOS_ACTIVOS && "lg:grid-cols-4")}>
             <MetricaPortal
               etiqueta="Registros"
               valor={registros.toLocaleString("es-AR")}
@@ -95,6 +97,8 @@ export default async function PortalCliente({ params }: { params: Promise<{ org:
               detalle={`De ${lanzamientos.length} en total`}
               icono={<Rocket1 />}
             />
+            {PEDIDOS_ACTIVOS && (
+              <>
             <MetricaPortal
               etiqueta={abiertos === 1 ? "Pedido abierto" : "Pedidos abiertos"}
               valor={String(abiertos)}
@@ -108,10 +112,12 @@ export default async function PortalCliente({ params }: { params: Promise<{ org:
               icono={<CheckCircle1 />}
               destacada={porAprobar > 0}
             />
+              </>
+            )}
           </div>
         </SeccionPortal>
 
-        {porAprobar > 0 && (
+        {PEDIDOS_ACTIVOS && porAprobar > 0 && (
           <Link
             href={`/portal/${ctx.slug}/pedidos`}
             className="group flex items-center justify-between gap-4 rounded-2xl border border-badge-warning-text/30 bg-badge-warning-text/10 px-5 py-4 transition-colors hover:bg-badge-warning-text/15"
@@ -127,20 +133,22 @@ export default async function PortalCliente({ params }: { params: Promise<{ org:
           </Link>
         )}
 
-        <SeccionPortal
-          titulo="Pedidos"
-          accion={
-            <Link href={`/portal/${ctx.slug}/pedidos`} className={cn(ENLACE, "shrink-0 text-sm")}>
-              Ver pedidos →
-            </Link>
-          }
-        >
-          <p className="text-sm text-white/70">
-            {abiertos === 0
-              ? "No hay pedidos abiertos. Si algo no funciona o querés un cambio, pedilo desde acá."
-              : `${abiertos} ${abiertos === 1 ? "pedido abierto" : "pedidos abiertos"}.`}
-          </p>
-        </SeccionPortal>
+        {PEDIDOS_ACTIVOS && (
+          <SeccionPortal
+            titulo="Pedidos"
+            accion={
+              <Link href={`/portal/${ctx.slug}/pedidos`} className={cn(ENLACE, "shrink-0 text-sm")}>
+                Ver pedidos →
+              </Link>
+            }
+          >
+            <p className="text-sm text-white/70">
+              {abiertos === 0
+                ? "No hay pedidos abiertos. Si algo no funciona o quieres un cambio, pídelo desde aquí."
+                : `${abiertos} ${abiertos === 1 ? "pedido abierto" : "pedidos abiertos"}.`}
+            </p>
+          </SeccionPortal>
+        )}
 
         {cotizaciones.length > 0 && (
           <SeccionPortal titulo="Cotizaciones">

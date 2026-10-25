@@ -9,6 +9,7 @@ import { contextoPortal } from "@/lib/portal/contexto";
 import { lanzamientosPortal } from "@/lib/portal/datos";
 import { pedidosDeCliente } from "@/lib/pedidos/datos";
 import { estaCerrado } from "@/lib/pedidos/tipos";
+import { PEDIDOS_ACTIVOS } from "@/lib/pedidos/tipos";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +27,8 @@ function Seccion({ titulo, children }: { titulo: string; children: React.ReactNo
  * está en curso y al final el historial.
  */
 export default async function PedidosPortal({ params }: { params: Promise<{ org: string }> }) {
+  // Pedidos apagados: se gestionan por WhatsApp (ver PEDIDOS_ACTIVOS).
+  if (!PEDIDOS_ACTIVOS) notFound();
   const ctx = await contextoPortal((await params).org);
   if (!ctx) notFound();
 

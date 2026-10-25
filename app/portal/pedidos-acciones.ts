@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { avisarPedidoNuevo } from "@/lib/pedidos/avisos";
+import { PEDIDOS_ACTIVOS } from "@/lib/pedidos/tipos";
 import { nombreDe, usuarioActual } from "@/lib/landing/auth";
 import { supabaseAdmin } from "@/lib/landing/supabase";
 import { contextoPortal, type ContextoPortal } from "@/lib/portal/contexto";
@@ -59,6 +60,7 @@ async function pedidoDelPortal(ctx: ContextoPortal, id: string): Promise<Pick<Pe
 }
 
 export async function crearPedidoPortal(fd: FormData): Promise<Resultado> {
+  if (!PEDIDOS_ACTIVOS) return { error: "Los pedidos se gestionan por WhatsApp" };
   const quien = await quienEscribe(texto(fd, "slug"));
   if ("error" in quien) return quien;
   const { ctx, userId, nombre } = quien;
@@ -108,6 +110,7 @@ export async function crearPedidoPortal(fd: FormData): Promise<Resultado> {
 }
 
 export async function comentarPedidoPortal(fd: FormData): Promise<Resultado> {
+  if (!PEDIDOS_ACTIVOS) return { error: "Los pedidos se gestionan por WhatsApp" };
   const quien = await quienEscribe(texto(fd, "slug"));
   if ("error" in quien) return quien;
   const { ctx, userId, nombre } = quien;
@@ -145,6 +148,7 @@ export async function comentarPedidoPortal(fd: FormData): Promise<Resultado> {
 
 /** El cliente aprueba o rechaza una aprobación abierta, con un comentario opcional. */
 export async function decidirAprobacion(fd: FormData): Promise<Resultado> {
+  if (!PEDIDOS_ACTIVOS) return { error: "Los pedidos se gestionan por WhatsApp" };
   const quien = await quienEscribe(texto(fd, "slug"));
   if ("error" in quien) return quien;
   const { ctx, userId, nombre } = quien;

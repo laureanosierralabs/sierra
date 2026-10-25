@@ -8,11 +8,14 @@ import { comentarPedidoPortal, decidirAprobacion } from "@/app/portal/pedidos-ac
 import { contextoPortal } from "@/lib/portal/contexto";
 import { pedidoDeCliente } from "@/lib/pedidos/datos";
 import { decisionesCliente } from "@/lib/pedidos/tipos";
+import { PEDIDOS_ACTIVOS } from "@/lib/pedidos/tipos";
 
 export const dynamic = "force-dynamic";
 
 /** Un pedido en el portal: qué es, en qué estado está y la conversación. */
 export default async function PedidoPortal({ params }: { params: Promise<{ org: string; id: string }> }) {
+  // Pedidos apagados: se gestionan por WhatsApp (ver PEDIDOS_ACTIVOS).
+  if (!PEDIDOS_ACTIVOS) notFound();
   const { org, id } = await params;
   const ctx = await contextoPortal(org);
   if (!ctx) notFound();

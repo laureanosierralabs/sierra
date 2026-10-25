@@ -9,6 +9,7 @@ import { armarReporte } from "@/lib/lanzamientos/reporte";
 import { contextoPortal } from "@/lib/portal/contexto";
 import { lanzamientoPortal } from "@/lib/portal/datos";
 import { pedidosDeLanzamiento } from "@/lib/pedidos/datos";
+import { PEDIDOS_ACTIVOS } from "@/lib/pedidos/tipos";
 
 export const dynamic = "force-dynamic";
 
@@ -19,8 +20,8 @@ const datosDe = cache(async (org: string, id: string) => {
   if (!ctx) return null;
   const detalle = await lanzamientoPortal(ctx, id);
   if (!detalle) return null;
-  // Los pedidos son un extra: si fallan, el reporte sale igual sin esa sección.
-  const pedidos = await pedidosDeLanzamiento(ctx.clientId, id).catch(() => []);
+  // Los pedidos son un extra: si fallan (o están apagados), el reporte sale igual sin esa sección.
+  const pedidos = PEDIDOS_ACTIVOS ? await pedidosDeLanzamiento(ctx.clientId, id).catch(() => []) : [];
   return { ctx, detalle, reporte: armarReporte(detalle, pedidos) };
 });
 
