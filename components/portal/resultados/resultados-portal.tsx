@@ -10,6 +10,7 @@ import { TarjetaEmbudo, TarjetaMeta } from "@/components/portal/resultados/meta-
 import { BloqueOrigen } from "@/components/portal/resultados/origen";
 import { SeccionPortal } from "@/components/portal/portal-ui";
 import { descargar, ExportarRegistros } from "@/components/lanzamientos/exportar-registros";
+import { IngresosWebinar } from "@/components/lanzamientos/ingresos-webinar";
 import { RegistrosTabla } from "@/components/lanzamientos/registros-tabla";
 import { slugify } from "@/lib/escritura";
 import type { DetalleLanzamiento } from "@/lib/lanzamientos/datos";
@@ -153,6 +154,12 @@ export function ResultadosPortal({
       <SeccionPortal titulo="Embudo">
         <TarjetaEmbudo r={r} />
       </SeccionPortal>
+
+      {detalle.despues && detalle.despues.webinar.length > 0 && (
+        <SeccionPortal titulo="Webinar">
+          <IngresosWebinar registros={detalle.registros} webinar={detalle.despues.webinar} lanzamiento={lanzamiento.name} />
+        </SeccionPortal>
+      )}
 
       <SeccionPortal titulo="Origen">
         <BloqueOrigen r={r} />

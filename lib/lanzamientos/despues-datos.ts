@@ -44,7 +44,7 @@ export async function eventosDeLanzamiento(
   for (let inicio = 0; webinar.length < TOPE; inicio += LOTE) {
     const { data, error } = await db
       .from("launch_events")
-      .select("email, day")
+      .select("email, day, occurred_at")
       .eq("client_id", clientId)
       .eq("launch_id", launchId)
       .eq("kind", "webinar_join")

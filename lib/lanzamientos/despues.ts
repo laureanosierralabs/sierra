@@ -73,6 +73,8 @@ export interface EventoSitio {
 export interface EventoWebinar {
   email: string;
   day: string;
+  /** Cuándo entró (lo trae la base; los datos de prueba pueden no tenerlo). */
+  occurred_at?: string | null;
 }
 
 /** Lo que leyó la base. Si falta la migración, el lanzamiento trae `null` y no se muestra nada. */
@@ -119,6 +121,72 @@ export function cruzarRegistrados(registros: Registro[], emailsEvento: Iterable<
     else faltan.push(r);
   }
   return { total: vistos.size, cruzan, porcentaje: conversion(cruzan, vistos.size), faltan };
+}
+
+/* ───────────── Ingresos al webinar, persona por persona ───────────── */
+
+export interface IngresoWebinar {
+  email: string;
+  /** Nombre y teléfono de su registro; null si entró sin estar registrada. */
+  nombre: string | null;
+  telefono: string | null;
+  /** Primer ingreso: instante si lo hay, si no el día (AAAA-MM-DD). */
+  primerIngreso: string;
+  /** Días distintos en que entró (un webinar en varias fechas cuenta cada una). */
+  dias: number;
+  /** Ya estaba registrada en alguna landing del lanzamiento. */
+  registrada: boolean;
+}
+
+export interface IngresosWebinar {
+  personas: number;
+  registradas: number;
+  /** Entraron con un email que no está entre los registrados (link reenviado u otro email). */
+  nuevas: number;
+  /** Del ingreso más reciente al más viejo. */
+  filas: IngresoWebinar[];
+}
+
+/**
+ * Quién entró al webinar, una fila por persona (email). A diferencia de
+ * `cruzarRegistrados`, no descarta a quien no está registrado: lo marca como
+ * nueva, así no se pierde nadie que entró con el link.
+ */
+export function ingresosWebinar(registros: Registro[], webinar: EventoWebinar[]): IngresosWebinar {
+  const registro = new Map<string, Registro>();
+  for (const r of registros) {
+    const email = normalizarEmail(r.email);
+    if (email && !registro.has(email)) registro.set(email, r);
+  }
+
+  const porEmail = new Map<string, { primero: string; dias: Set<string> }>();
+  for (const e of webinar) {
+    const email = normalizarEmail(e.email);
+    if (!email) continue;
+    const cuando = e.occurred_at ?? e.day;
+    const previo = porEmail.get(email);
+    if (!previo) porEmail.set(email, { primero: cuando, dias: new Set([e.day]) });
+    else {
+      previo.dias.add(e.day);
+      if (cuando < previo.primero) previo.primero = cuando;
+    }
+  }
+
+  const filas: IngresoWebinar[] = [...porEmail].map(([email, v]) => {
+    const r = registro.get(email);
+    return {
+      email,
+      nombre: r?.name ?? null,
+      telefono: r?.phone ?? null,
+      primerIngreso: v.primero,
+      dias: v.dias.size,
+      registrada: Boolean(r),
+    };
+  });
+  filas.sort((a, b) => b.primerIngreso.localeCompare(a.primerIngreso));
+
+  const registradas = filas.filter((f) => f.registrada).length;
+  return { personas: filas.length, registradas, nuevas: filas.length - registradas, filas };
 }
 
 /* ───────────── Clics al checkout ───────────── */

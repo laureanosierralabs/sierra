@@ -163,6 +163,26 @@ function valor(r: Registro, columna: string, nombrePagina: Map<string, string>):
   }
 }
 
+/** Fecha y hora de Buenos Aires de un instante; si solo hay día (AAAA-MM-DD), el día tal cual. */
+export function fechaHora(valor: string): string {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(valor)) return valor.split("-").reverse().join("/");
+  const d = new Date(valor);
+  return Number.isNaN(d.getTime()) ? valor : FECHA.format(d);
+}
+
+/** CSV de los ingresos al webinar (una fila por persona). BOM para que Excel lea los acentos. */
+export function csvIngresosWebinar(
+  filas: { email: string; nombre: string | null; telefono: string | null; primerIngreso: string; dias: number; registrada: boolean }[],
+): string {
+  const encabezado = ["Email", "Nombre", "Teléfono", "Primer ingreso", "Días que entró", "Estado"];
+  const lineas = filas.map((f) =>
+    [f.email, f.nombre, f.telefono, fechaHora(f.primerIngreso), String(f.dias), f.registrada ? "Registrada" : "Nueva"]
+      .map(celdaCsv)
+      .join(","),
+  );
+  return `﻿${[encabezado.map(celdaCsv).join(","), ...lineas].join("\r\n")}`;
+}
+
 /** Entre comillas y con las comillas duplicadas: una coma no rompe la fila. */
 export function celdaCsv(v: string | null): string {
   let t = v ?? "";

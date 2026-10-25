@@ -16,6 +16,7 @@ import { KpiCard } from "@/components/common/kpi-card";
 import { FiltroSelect } from "@/components/landing/filtro-select";
 import { DespuesDelRegistro } from "@/components/lanzamientos/despues-del-registro";
 import { ExportarRegistros } from "@/components/lanzamientos/exportar-registros";
+import { IngresosWebinar } from "@/components/lanzamientos/ingresos-webinar";
 import { RegistrosTabla } from "@/components/lanzamientos/registros-tabla";
 import { Card } from "@/components/tailgrids/core/card";
 import type { DetalleLanzamiento } from "@/lib/lanzamientos/datos";
@@ -180,6 +181,10 @@ export function PanelLanzamiento({ detalle }: { detalle: DetalleLanzamiento }) {
         lanzamiento={lanzamiento.name}
         landing={seleccion?.name ?? null}
       />
+
+      {detalle.despues && detalle.despues.webinar.length > 0 && (
+        <IngresosWebinar registros={detalle.registros} webinar={detalle.despues.webinar} lanzamiento={lanzamiento.name} />
+      )}
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-5">
         <div className="xl:col-span-3">

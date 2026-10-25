@@ -150,3 +150,46 @@ test("la migración, el endpoint y el link del webinar cumplen el contrato", () 
   assert.match(w, /MAX_INGRESOS_POR_DIA/);
   assert.match(w, /status: 302/);
 });
+
+test("ingresosWebinar no descarta a quien entró sin estar registrado: lo marca como nueva", async () => {
+  const { ingresosWebinar } = await import("../lib/lanzamientos/despues.ts");
+  const reg = (email, name) => ({ id: email, page_id: "p1", email, name, phone: "+34 600", utm_source: null, utm_medium: null, utm_campaign: null, utm_content: null, registered_at: "2026-10-20T10:00:00Z", extra: null });
+  const r = ingresosWebinar(
+    [reg("Ana@x.com", "Ana"), reg("bob@x.com", "Bob")],
+    [
+      { email: "ana@x.com", day: "2026-10-25", occurred_at: "2026-10-25T22:05:00Z" },
+      { email: "ANA@x.com", day: "2026-10-26", occurred_at: "2026-10-26T22:01:00Z" },
+      { email: "nueva@y.com", day: "2026-10-25", occurred_at: "2026-10-25T22:10:00Z" },
+      { email: "no es email", day: "2026-10-25" },
+    ],
+  );
+  assert.equal(r.personas, 2);
+  assert.equal(r.registradas, 1);
+  assert.equal(r.nuevas, 1);
+  // Del más reciente al más viejo, por primer ingreso.
+  assert.deepEqual(r.filas.map((f) => f.email), ["nueva@y.com", "ana@x.com"]);
+  const ana = r.filas.find((f) => f.email === "ana@x.com");
+  assert.equal(ana.nombre, "Ana");
+  assert.equal(ana.dias, 2);
+  assert.equal(ana.primerIngreso, "2026-10-25T22:05:00Z");
+  assert.equal(r.filas[0].nombre, null);
+});
+
+test("csvIngresosWebinar: fecha en hora de Buenos Aires, estado legible y celdas seguras", async () => {
+  const { csvIngresosWebinar, fechaHora } = await import("../lib/lanzamientos/vista.ts");
+  const csv = csvIngresosWebinar([
+    { email: "=cmd@x.com", nombre: null, telefono: null, primerIngreso: "2026-10-25T22:05:00Z", dias: 1, registrada: false },
+  ]);
+  assert.ok(csv.startsWith("\uFEFF"));
+  assert.match(csv, /"Estado"/);
+  assert.match(csv, /"'=cmd@x\.com"/);
+  assert.match(csv, /"Nueva"/);
+  assert.match(csv, /25\/10\/2026/);
+  assert.equal(fechaHora("2026-10-25"), "25/10/2026");
+});
+
+test("la lista de ingresos al webinar está en el panel interno y en el portal", () => {
+  assert.match(leer("../components/lanzamientos/panel-lanzamiento.tsx"), /<IngresosWebinar registros=\{detalle\.registros\}/);
+  assert.match(leer("../components/portal/resultados/resultados-portal.tsx"), /<IngresosWebinar registros=\{detalle\.registros\}/);
+  assert.match(leer("../lib/lanzamientos/despues-datos.ts"), /select\("email, day, occurred_at"\)/);
+});
