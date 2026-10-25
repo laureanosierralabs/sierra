@@ -26,6 +26,8 @@ test("el link base usa el dominio de la landing o, sin landing, el del panel", (
   assert.equal(linkBase("grupo", TOKEN, "", "https://panel.x"), `https://panel.x/g/${TOKEN}`);
   assert.equal(hostDe("https://a.com//"), "a.com");
   assert.equal(hostDe(null), null);
+  // Una URL con ruta no puede meter la ruta en el link (lp.x.es/registro/vivo/... no existe).
+  assert.equal(hostDe("https://lp.pilarsousa.es/registro?utm=1"), "lp.pilarsousa.es");
 });
 
 test("la variable del email cambia según la herramienta", () => {

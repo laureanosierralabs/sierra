@@ -23,9 +23,9 @@ export function variableDe(h: Herramienta): string | null {
   return HERRAMIENTAS.find((x) => x.id === h)?.variable ?? null;
 }
 
-/** Host limpio de un dominio guardado con o sin https:// y barra final. */
+/** Host limpio de un dominio guardado con o sin https://, barra final o ruta (solo el host). */
 export function hostDe(dominio: string | null | undefined): string | null {
-  return dominio?.replace(/^https?:\/\//i, "").replace(/\/+$/, "") || null;
+  return dominio?.trim().replace(/^https?:\/\//i, "").split(/[/?#]/)[0] || null;
 }
 
 /**
