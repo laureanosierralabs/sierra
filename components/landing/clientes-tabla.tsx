@@ -44,10 +44,16 @@ export function ClientesTabla({ clientes }: { clientes: Cliente[] }) {
     ...new Set(clientes.map((c) => c.company).filter((v): v is string => !!v)),
   ].sort((a, b) => a.localeCompare(b, "es"));
 
-  const visibles = clientes.filter(
-    (c) =>
-      (estado === TODOS || c.status === estado) && (empresa === TODAS || c.company === empresa),
-  );
+  // Los destacados van primero, en el orden en que se fijaron; el resto sigue por nombre.
+  const visibles = clientes
+    .filter(
+      (c) =>
+        (estado === TODOS || c.status === estado) && (empresa === TODAS || c.company === empresa),
+    )
+    .sort((a, b) => {
+      if (!a.pinned_at || !b.pinned_at) return (a.pinned_at ? 0 : 1) - (b.pinned_at ? 0 : 1);
+      return a.pinned_at.localeCompare(b.pinned_at);
+    });
 
   // Un estado sin contactos solo se ofrece si es el que está activo.
   const opciones: OpcionFiltro<Filtro>[] = [

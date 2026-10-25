@@ -366,6 +366,8 @@ export interface Cliente {
   operated_by: string | null;
   /** Imagen de la marca en el inicio de su portal. */
   portal_cover_url?: string | null;
+  /** Cuándo se fijó como destacado. Null si no lo está. Los fijados van primero. */
+  pinned_at?: string | null;
   created_at: string;
   updated_at: string;
 }

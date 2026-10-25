@@ -5,6 +5,7 @@ import { ArrowRight, Buildings11, Instagram, Phone } from "@tailgrids/icons";
 import { EmptyState } from "@/components/common/empty-state";
 import { BorrarCliente } from "@/components/landing/borrar";
 import { ClienteForm } from "@/components/landing/cliente-form";
+import { DestacarCliente } from "@/components/landing/destacar-cliente";
 import { EstadoClientePill } from "@/components/landing/ui";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Card } from "@/components/tailgrids/core/card";
@@ -45,7 +46,7 @@ export function ClienteCards({ clientes }: { clientes: Cliente[] }) {
         return (
           <Card
             key={c.id}
-            className="flex flex-col gap-3 p-4 transition-colors hover:border-primary-300"
+            className={`flex flex-col gap-3 p-4 transition-colors hover:border-primary-300 ${c.pinned_at ? "border-amber-300 dark:border-amber-500/40" : ""}`}
           >
             <div className="flex items-start gap-2.5">
               <Iniciales nombre={c.name} />
@@ -63,6 +64,7 @@ export function ClienteCards({ clientes }: { clientes: Cliente[] }) {
                   </p>
                 )}
               </div>
+              <DestacarCliente id={c.id} destacado={!!c.pinned_at} />
             </div>
 
             <div className="flex flex-wrap items-center gap-1.5">

@@ -428,6 +428,19 @@ export async function cambiarEstadoCliente(id: string, estado: string) {
   revalidatePath(`/landing-pages/clients/${id}`);
 }
 
+/** Fija o suelta un cliente destacado (los fijados van primero en la lista). */
+export async function destacarCliente(id: string, destacado: boolean) {
+  await exigirSesion();
+
+  const { error } = await supabaseAdmin()
+    .from("clients")
+    .update({ pinned_at: destacado ? new Date().toISOString() : null })
+    .eq("id", id);
+
+  if (error) throw new Error(`No se pudo destacar el cliente: ${error.message}`);
+  revalidatePath("/landing-pages/clients");
+}
+
 /**
  * Reemplaza el set completo de proyectos que cubre la cotización, con su
  * monto asignado. Sin monto queda null: la rentabilidad muestra "sin

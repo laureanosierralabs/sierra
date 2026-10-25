@@ -3,6 +3,7 @@ import { ArrowRight } from "@tailgrids/icons";
 import type { ColumnDef } from "@tanstack/react-table";
 import { BorrarCliente } from "@/components/landing/borrar";
 import { ClienteForm } from "@/components/landing/cliente-form";
+import { DestacarCliente } from "@/components/landing/destacar-cliente";
 import { EnlaceExterno } from "@/components/landing/enlace-boton";
 import { EstadoSelect } from "@/components/landing/estado-select";
 import {
@@ -29,12 +30,15 @@ export function crearColumnasClientes(): ColumnDef<Cliente>[] {
       header: "Nombre",
       accessorFn: (c) => c.name,
       cell: ({ row }) => (
-        <Link
-          href={`/landing-pages/clients/${row.original.id}`}
-          className="font-medium text-text-primary hover:underline"
-        >
-          {row.original.name}
-        </Link>
+        <span className="flex items-center gap-2">
+          <DestacarCliente id={row.original.id} destacado={!!row.original.pinned_at} />
+          <Link
+            href={`/landing-pages/clients/${row.original.id}`}
+            className="font-medium text-text-primary hover:underline"
+          >
+            {row.original.name}
+          </Link>
+        </span>
       ),
     },
     {
