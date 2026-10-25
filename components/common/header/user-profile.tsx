@@ -13,6 +13,17 @@ import {
   DropdownMenuTrigger,
 } from "@/components/tailgrids/core/dropdown";
 
+/**
+ * Adónde vuelve quien cierra sesión: un cliente, a su login (synx control);
+ * el equipo, al suyo. Se decide por el rol y, por las dudas, por dónde está
+ * (el portal o el dominio de clientes, donde la ruta no empieza con /portal).
+ */
+function destinoAlSalir(rol: unknown): string {
+  const { hostname, pathname } = window.location;
+  const esCliente = rol === "client" || pathname.startsWith("/portal") || hostname.startsWith("clientes.");
+  return esCliente ? "/sign-in?para=cliente" : "/sign-in";
+}
+
 export function UserProfileButton() {
   const { user } = useUser();
   const { openUserProfile, signOut } = useClerk();
@@ -73,7 +84,7 @@ export function UserProfileButton() {
         <DropdownMenuSeparator />
 
         <DropdownMenuItem
-          onAction={() => signOut({ redirectUrl: "/sign-in" })}
+          onAction={() => signOut({ redirectUrl: destinoAlSalir(user?.publicMetadata?.role) })}
           className="m-1.5 w-auto cursor-pointer px-3 py-2.5"
         >
           <span className="text-icon-secondary group-hover:text-text-primary">
