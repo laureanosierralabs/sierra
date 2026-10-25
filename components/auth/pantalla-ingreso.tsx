@@ -54,14 +54,14 @@ const TEXTOS: Record<
   { badge: string; titulo: [string, string, string]; bajada: string; alt: string }
 > = {
   equipo: {
-    badge: "SYNX STUDIO",
+    badge: "synx studio",
     titulo: ["Cada proyecto,", "de punta a ", "punta"],
     bajada:
       "Briefing, diseño, montaje y entrega. Todo el proceso en un solo lugar, para que nada se pierda entre herramientas.",
     alt: "synx build",
   },
   cliente: {
-    badge: "SYNX CONTROL",
+    badge: "synx control",
     titulo: ["Cada lanzamiento,", "en ", "perspectiva"],
     bajada:
       "Tus métricas en tiempo real, de dónde llega tu audiencia y el historial de cada lanzamiento. Todo lo que necesitas para entender tus resultados, en un solo lugar.",

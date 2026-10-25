@@ -9,7 +9,7 @@ import { portalesDisponibles } from "@/lib/portal/contexto";
 import "./portal.css";
 
 export const metadata: Metadata = {
-  title: "SYNX CONTROL · synx build",
+  title: "synx control",
   robots: { index: false, follow: false },
 };
 
@@ -47,7 +47,7 @@ export default async function PortalLayout({ children }: { children: React.React
               priority
               className="h-auto w-34 drop-shadow"
             />
-            <EtiquetaPortal className="hidden sm:inline-flex">SYNX CONTROL</EtiquetaPortal>
+            <EtiquetaPortal className="hidden sm:inline-flex">synx control</EtiquetaPortal>
           </Link>
           <span className="flex items-center gap-4">
             {variasMarcas && (

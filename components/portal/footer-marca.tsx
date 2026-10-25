@@ -90,7 +90,7 @@ export function FooterMarca() {
         <span>© {anio} synx build · Todos los derechos reservados</span>
         <span className="inline-flex items-center gap-1.5">
           <span aria-hidden="true" className="size-1.5 rounded-full bg-primary-500 shadow-[0_0_8px_2px_rgb(0_0_255/0.7)]" />
-          SYNX CONTROL
+          synx control
         </span>
       </div>
 
