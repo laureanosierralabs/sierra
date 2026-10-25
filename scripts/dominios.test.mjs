@@ -20,8 +20,12 @@ test("el dominio viejo manda las páginas al nuevo, con la ruta y la consulta", 
     tipo: "redirigir",
     url: "https://app.synxbuild.com/portal/pilar-sousa?vista=entrega",
   });
-  // Links de mails ya enviados (webinar y grupos) siguen llegando.
-  assert.equal(decidirDominio("APP.LaureanoSierra.com:443", "/w/abc", "?e=a@b.c", ENV).tipo, "redirigir");
+  assert.equal(decidirDominio("APP.LaureanoSierra.com:443", "/landing-pages", "", ENV).tipo, "redirigir");
+});
+
+test("el dominio viejo NO redirige /w ni /g: las landings los reenvían y el visitante vería el panel", () => {
+  assert.deepEqual(decidirDominio("app.laureanosierra.com", "/w/abc", "?e=a@b.c", ENV), { tipo: "seguir" });
+  assert.deepEqual(decidirDominio("app.laureanosierra.com", "/g/abc", "", ENV), { tipo: "seguir" });
 });
 
 test("el dominio viejo NO redirige /api: lo llaman servidores con POST", () => {

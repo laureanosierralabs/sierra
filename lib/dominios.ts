@@ -35,7 +35,10 @@ export function decidirDominio(host: string | null | undefined, pathname: string
   const clientes = limpio(env.DOMINIO_CLIENTES);
   const viejos = (env.DOMINIOS_VIEJOS ?? "").split(",").map(limpio).filter(Boolean);
 
-  if (panel && viejos.includes(h) && !pathname.startsWith("/api/")) {
+  // /w y /g (webinar y grupo) tampoco: las landings los reenvían por el dominio
+  // viejo y una redirección le mostraría al visitante el dominio del panel.
+  const sinRedireccion = ["/api/", "/w/", "/g/"].some((p) => pathname.startsWith(p));
+  if (panel && viejos.includes(h) && !sinRedireccion) {
     return { tipo: "redirigir", url: `https://${panel}${pathname}${search}` };
   }
 
