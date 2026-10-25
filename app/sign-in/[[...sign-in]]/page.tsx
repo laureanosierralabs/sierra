@@ -9,6 +9,7 @@
 
 import { SignIn } from "@clerk/nextjs";
 import { APARIENCIA_CLERK, PantallaIngreso } from "@/components/auth/pantalla-ingreso";
+import { headers } from "next/headers";
 import { audienciaDe } from "@/lib/audiencia-ingreso";
 
 export default async function SignInPage({
@@ -16,14 +17,14 @@ export default async function SignInPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const audiencia = audienciaDe(await searchParams);
+  const audiencia = audienciaDe(await searchParams, (await headers()).get("host"));
   const cliente = audiencia === "cliente";
 
   return (
     <PantallaIngreso
       audiencia={audiencia}
-      encabezado={cliente ? "Ingresá a tu portal" : "Iniciá sesión"}
-      subtitulo={cliente ? "Con el email al que te llegó la invitación." : "Entrá con tu cuenta del equipo."}
+      encabezado={cliente ? "Accede a SYNX CONTROL" : "Iniciá sesión"}
+      subtitulo={cliente ? "Usa el email al que llegó tu invitación." : "Entrá con tu cuenta del equipo."}
     >
       <SignIn fallbackRedirectUrl={cliente ? "/portal" : "/"} appearance={APARIENCIA_CLERK} />
     </PantallaIngreso>

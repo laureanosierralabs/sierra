@@ -6,6 +6,7 @@
 
 import { SignUp } from "@clerk/nextjs";
 import { APARIENCIA_CLERK, PantallaIngreso } from "@/components/auth/pantalla-ingreso";
+import { headers } from "next/headers";
 import { audienciaDe } from "@/lib/audiencia-ingreso";
 
 export default async function SignUpPage({
@@ -13,16 +14,16 @@ export default async function SignUpPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const audiencia = audienciaDe(await searchParams);
+  const audiencia = audienciaDe(await searchParams, (await headers()).get("host"));
   const cliente = audiencia === "cliente";
 
   return (
     <PantallaIngreso
       audiencia={audiencia}
-      encabezado={cliente ? "Activá tu portal" : "Creá tu cuenta"}
+      encabezado={cliente ? "Activa tu acceso" : "Creá tu cuenta"}
       subtitulo={
         cliente
-          ? "Elegí una contraseña para entrar a ver tus lanzamientos."
+          ? "Elige una contraseña para ver tus lanzamientos."
           : "Completá tus datos para entrar al panel del equipo."
       }
     >

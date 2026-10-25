@@ -19,3 +19,9 @@ test("la invitación al portal lleva a nuestra pantalla de registro, versión cl
   const acciones = leer("../app/landing-pages/portal-acciones.ts");
   assert.match(acciones, /redirectUrl: `https:\/\/\$\{host\}\/sign-up\?para=cliente`/);
 });
+
+test("ingreso: el dominio de clientes siempre muestra la versión cliente", () => {
+  assert.equal(audienciaDe({ redirect_url: "/pilar-sousa" }, "clientes.synxbuild.com"), "cliente");
+  assert.equal(audienciaDe({}, "Clientes.SynxBuild.com"), "cliente");
+  assert.equal(audienciaDe({ redirect_url: "/landing-pages" }, "app.synxbuild.com"), "equipo");
+});
