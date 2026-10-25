@@ -53,7 +53,7 @@ export function ReporteCierre({
   return (
     <article className="mx-auto flex w-full max-w-[1000px] flex-col gap-12 bg-doc-paper px-6 pt-12 pb-12 text-doc-ink sm:px-14 print:max-w-none print:px-12 print:pt-10 [print-color-adjust:exact]">
       <header className="flex flex-wrap items-center justify-between gap-6 border-b-4 border-doc-box pb-6">
-        <Image src="/logotipo-azul.png" alt="sierra labs · web design" width={320} height={85} priority className="h-auto w-44 sm:w-52" />
+        <Image src="/synxbuild/synxbuild-blue.png" alt="synx build" width={444} height={91} priority className="h-auto w-44 sm:w-52" />
         <div className="flex flex-col items-end gap-1.5">
           <span className="rounded-xl bg-doc-navy px-6 py-2.5 text-lg font-semibold text-doc-paper sm:text-xl">
             Reporte de cierre
@@ -221,7 +221,7 @@ export function ReporteCierre({
       )}
 
       <footer className="border-t-2 border-doc-box pt-4 text-xs text-doc-muted">
-        sierra labs · Launch Operations. Visitantes medidos sin cookies y contados una vez por día.
+        synx build · Launch Operations. Visitantes medidos sin cookies y contados una vez por día.
       </footer>
     </article>
   );

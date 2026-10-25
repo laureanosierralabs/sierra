@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
-import { Inter } from "next/font/google";
+import { Geist } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { AppShell } from "@/components/common/app-shell";
 import { accesoActual } from "@/lib/landing/auth";
@@ -8,14 +8,15 @@ import { DEFINICIONES, esRutaPortal } from "@/lib/unidades";
 import Providers from "./providers";
 import "./globals.css";
 
-const inter = Inter({
-  variable: "--font-inter",
+// Tipografía de marca (synx build).
+const geist = Geist({
+  variable: "--font-geist",
   subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
-  title: "Sistema Operativo",
-  description: "Centro de operaciones",
+  title: "synx build",
+  description: "Panel de synx build",
 };
 
 export default async function RootLayout({
@@ -38,7 +39,7 @@ export default async function RootLayout({
   const titulo = soloUnidad ? DEFINICIONES[soloUnidad].nombre : "Sistema Operativo";
 
   return (
-    <html lang="es" className={`${inter.variable} h-full`} suppressHydrationWarning>
+    <html lang="es" className={`${geist.variable} h-full`} suppressHydrationWarning>
       <body className="min-h-full">
         <Providers>
           {/* Sin esto Clerk redirige a su pantalla alojada en accounts.<dominio>

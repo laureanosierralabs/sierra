@@ -1005,7 +1005,7 @@ export async function conectarMailerlite(
         method: "POST",
         headers: cabeceras,
         body: JSON.stringify({
-          name: `Sierra Labs · ${lanzamiento.name}`,
+          name: `synx build · ${lanzamiento.name}`,
           events: ["subscriber.added_to_group"],
           url,
           enabled: true,

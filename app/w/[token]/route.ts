@@ -131,9 +131,9 @@ h1{margin:0 0 .75rem;font-size:1.5rem;line-height:1.2;font-weight:800;letter-spa
 p{margin:0 0 1.25rem;color:rgba(255,255,255,.65);line-height:1.5;font-size:.95rem}
 label{display:block;margin-bottom:.4rem;font-size:.85rem;font-weight:600}
 input{width:100%;padding:.8rem 1rem;border-radius:.75rem;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.06);color:#fff;font-size:1rem}
-input:focus-visible{outline:2px solid #5e84fc;outline-offset:2px}
-button{width:100%;margin-top:1rem;padding:.85rem 1rem;border:0;border-radius:999px;background:#3758f9;color:#fff;font-size:1rem;font-weight:700;cursor:pointer}
-button:hover{background:#5e84fc}
+input:focus-visible{outline:2px solid #5073ff;outline-offset:2px}
+button{width:100%;margin-top:1rem;padding:.85rem 1rem;border:0;border-radius:999px;background:#0000ff;color:#fff;font-size:1rem;font-weight:700;cursor:pointer}
+button:hover{background:#5073ff}
 .aviso{color:#fca5a5;margin:.75rem 0 0;font-size:.85rem}
 </style>
 </head>

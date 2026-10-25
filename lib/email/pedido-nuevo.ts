@@ -15,7 +15,7 @@ export function pedidoNuevoEmail(d: DatosPedidoNuevo) {
   const cliente = lineaUnica(d.cliente);
   const subject = `${d.urgente ? "[Urgente] " : ""}Nuevo pedido de ${cliente}: ${lineaUnica(d.titulo)}`;
   const { html, text } = armarEmail({
-    etiqueta: "Sierra Labs · Pedidos",
+    etiqueta: "synx build · Pedidos",
     titulo: `${cliente} creó un pedido`,
     parrafos: [`${d.tipo}${d.urgente ? " · urgente" : ""}: «${lineaUnica(d.titulo)}»`],
     cita: d.descripcion ? { rotulo: "Lo que escribió", texto: extracto(d.descripcion) } : null,

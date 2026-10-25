@@ -1,17 +1,16 @@
-import { Plus_Jakarta_Sans } from "next/font/google";
+import { Geist } from "next/font/google";
 import "./login.css";
 
-// The app shell moved to Inter; the login keeps its original typeface.
-const jakarta = Plus_Jakarta_Sans({
-  variable: "--font-jakarta",
+// Brand typeface (synx build), same as the rest of the app.
+const marca = Geist({
+  variable: "--font-marca",
   subsets: ["latin"],
-  weight: ["500", "600", "700", "800"],
 });
 
 /** Apariencia de los componentes de Clerk dentro de nuestra pantalla. */
 export const APARIENCIA_CLERK = {
   variables: {
-    colorPrimary: "#96c0ff",
+    colorPrimary: "#5073ff",
     colorBackground: "transparent",
     colorText: "#dadff5",
     colorTextSecondary: "#93a1b4",
@@ -19,7 +18,7 @@ export const APARIENCIA_CLERK = {
     colorInputText: "#dadff5",
     colorDanger: "#ff9a9a",
     borderRadius: "10px",
-    fontFamily: "var(--font-jakarta), ui-sans-serif, system-ui, sans-serif",
+    fontFamily: "var(--font-marca), ui-sans-serif, system-ui, sans-serif",
   },
   elements: {
     // White-label: el footer "Secured by Clerk" y el card propio se ocultan
@@ -57,14 +56,14 @@ const TEXTOS: Record<
     titulo: ["Cada proyecto,", "de punta a ", "punta"],
     bajada:
       "Briefing, diseño, montaje y entrega. Todo el proceso en un solo lugar, para que nada se pierda entre herramientas.",
-    alt: "Sistema Operativo",
+    alt: "synx build",
   },
   cliente: {
     badge: "PORTAL DE CLIENTES",
     titulo: ["Tu lanzamiento,", "en ", "vivo"],
     bajada:
       "Visitas, registros y ventas de tus landings, tus pedidos al equipo y el reporte de cierre. Todo en un solo lugar.",
-    alt: "sierra labs",
+    alt: "synx build",
   },
 };
 
@@ -86,7 +85,7 @@ export function PantallaIngreso({
 }) {
   const t = TEXTOS[audiencia];
   return (
-    <div className={`login-page ${jakarta.variable}`}>
+    <div className={`login-page ${marca.variable}`}>
       {/* Panel de marca */}
       <aside className="login-brand">
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -96,7 +95,7 @@ export function PantallaIngreso({
 
         <div className="login-brand-head">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="login-logo" src="/logotipo-blanco.png" alt={t.alt} />
+          <img className="login-logo" src="/synxbuild/synxbuild-white.png" alt={t.alt} />
         </div>
 
         <div className="login-brand-body">
@@ -124,7 +123,7 @@ export function PantallaIngreso({
       <main className="login-form-side">
         <div className="login-form-inner">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="login-logo login-logo-mobile" src="/logotipo-blanco.png" alt={t.alt} />
+          <img className="login-logo login-logo-mobile" src="/synxbuild/synxbuild-white.png" alt={t.alt} />
 
           <h2 className="login-heading">{encabezado}</h2>
           <p className="login-sub">{subtitulo}</p>

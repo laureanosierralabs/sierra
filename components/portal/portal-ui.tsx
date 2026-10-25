@@ -7,7 +7,7 @@ import { cn } from "@/utils/cn";
  * layout. Con `!` porque la regla global de h1/h2/h3 (sin capa) le gana a
  * cualquier utilidad.
  */
-export const DISPLAY = "font-(family-name:--font-portal)! font-extrabold uppercase tracking-[-0.03em]";
+export const DISPLAY = "font-(family-name:--font-portal)! font-extrabold uppercase tracking-[-0.05em]";
 
 /** Sección del portal: título, una línea que la separa y una acción a la derecha. */
 export function SeccionPortal({

@@ -18,8 +18,8 @@
   --muted: #c3cede;
   --muted-dim: #93a1b4;
 
-  --accent: #96c0ff;
-  --accent-deep: #1c73ca;
+  --accent: #5073ff;
+  --accent-deep: #0000ff;
 
   display: grid;
   grid-template-columns: 1.05fr 1fr;
@@ -27,7 +27,7 @@
   min-height: 100dvh;
   background: var(--void);
   color: var(--body-text);
-  font-family: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-marca), ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -85,7 +85,7 @@
   aspect-ratio: 1;
   z-index: 0;
   border-radius: 50%;
-  background: radial-gradient(circle, #1c73ca3d 0%, transparent 68%);
+  background: radial-gradient(circle, #0000ff3d 0%, transparent 68%);
   filter: blur(60px);
   pointer-events: none;
 }
@@ -117,7 +117,7 @@
   border: 2px solid var(--edge);
   border-radius: 100px;
   background: var(--surface);
-  font-family: var(--font-jakarta), ui-monospace, monospace;
+  font-family: var(--font-marca), ui-monospace, monospace;
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.8px;
@@ -257,7 +257,7 @@
 .login-clerk .clerk-input:focus,
 .login-clerk .clerk-input:focus-within {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px #96c0ff26;
+  box-shadow: 0 0 0 3px #5073ff26;
   outline: none;
 }
 
@@ -310,7 +310,7 @@
 
 .login-clerk .clerk-social:hover {
   border-color: var(--accent);
-  background: #96c0ff14;
+  background: #5073ff14;
 }
 
 @media (prefers-reduced-motion: reduce) {

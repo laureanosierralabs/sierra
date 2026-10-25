@@ -49,13 +49,17 @@ export function Sidebar({
           isSidebarOpen ? "justify-between" : "flex-col justify-center gap-4",
         )}
       >
-        <Link href="/" className="flex min-w-0 items-center gap-2.5" aria-label={titulo}>
-          <Image src="/sierra.png" alt="" width={28} height={28} className="shrink-0 rounded-md" />
-          {isSidebarOpen && (
-            <span className="min-w-0 leading-tight">
-              <span className="block truncate text-sm font-bold">{titulo}</span>
-              <span className="block text-xs text-text-tertiary">{rolLabel}</span>
+        <Link href="/" className="flex min-w-0 items-center gap-2.5" aria-label={`synx build · ${titulo}`}>
+          {isSidebarOpen ? (
+            <span className="flex min-w-0 flex-col gap-1">
+              <Image src="/synxbuild/synxbuild-black.png" alt="synx build" width={446} height={91} priority className="logo-en-claro h-6 w-auto" />
+              <Image src="/synxbuild/synxbuild-white.png" alt="synx build" width={446} height={91} priority className="logo-en-oscuro h-6 w-auto" />
+              <span className="block truncate text-xs text-text-tertiary">
+                {titulo} · {rolLabel}
+              </span>
             </span>
+          ) : (
+            <Image src="/synxbuild/icono-blue.png" alt="synx build" width={91} height={91} className="size-7 shrink-0" />
           )}
         </Link>
 

@@ -12,15 +12,15 @@
 :root {
   /* El fondo es apenas gris y las superficies blancas: así las tarjetas
      flotan sobre la página en vez de fundirse con ella. */
-  --ground: #f7f8fa;
+  --ground: #f5f5f5;
   --surface: #ffffff;
-  --surface-2: #f0f2f5;
-  --border: #e1e4ea;
-  --border-strong: #bcc2cc;
+  --surface-2: #f5f5f5;
+  --border: #eaeaea;
+  --border-strong: #bababa;
 
-  --text: #0d1117;
-  --text-2: #55606e;
-  --text-3: #8b94a3;
+  --text: #0d0d0d;
+  --text-2: #383838;
+  --text-3: #6b6b6b;
 
   /* Semántica de estado — oscurecida para contrastar sobre blanco */
   --critical: #c62828;
@@ -52,15 +52,15 @@
 /* Tema oscuro — se aplica si el sistema lo pide */
 @media (prefers-color-scheme: dark) {
   :root {
-    --ground: #0a0a0b;
-    --surface: #131316;
-    --surface-2: #191920;
-    --border: #24242c;
-    --border-strong: #32323c;
+    --ground: #0d0d0d;
+    --surface: #161616;
+    --surface-2: #1c1c1c;
+    --border: #262626;
+    --border-strong: #383838;
 
-    --text: #fafafa;
-    --text-2: #9a9aa6;
-    --text-3: #62626e;
+    --text: #f5f5f5;
+    --text-2: #bababa;
+    --text-3: #898989;
 
     --critical: #e5484d;
     --warn: #f5a623;
@@ -86,14 +86,14 @@
 
 /* El toggle manual gana sobre la preferencia del sistema, en ambos sentidos */
 :root[data-theme="light"] {
-  --ground: #ffffff;
-  --surface: #fbfbfc;
-  --surface-2: #f3f3f6;
-  --border: #e4e4ea;
-  --border-strong: #c9c9d4;
-  --text: #0a0a0b;
-  --text-2: #5c5c68;
-  --text-3: #8b8b97;
+  --ground: #f5f5f5;
+  --surface: #ffffff;
+  --surface-2: #f5f5f5;
+  --border: #eaeaea;
+  --border-strong: #bababa;
+  --text: #0d0d0d;
+  --text-2: #383838;
+  --text-3: #6b6b6b;
   --critical: #cc2229;
   --warn: #a35c00;
   --warn-dim: #fdf3e3;
@@ -115,14 +115,14 @@
 }
 
 :root[data-theme="dark"] {
-  --ground: #0a0a0b;
-  --surface: #131316;
-  --surface-2: #191920;
-  --border: #24242c;
-  --border-strong: #32323c;
-  --text: #fafafa;
-  --text-2: #9a9aa6;
-  --text-3: #62626e;
+  --ground: #0d0d0d;
+  --surface: #161616;
+  --surface-2: #1c1c1c;
+  --border: #262626;
+  --border-strong: #383838;
+  --text: #f5f5f5;
+  --text-2: #bababa;
+  --text-3: #898989;
   --critical: #e5484d;
   --warn: #f5a623;
   --warn-dim: #3a2a10;
@@ -168,20 +168,45 @@
   --color-cat-teal-dim: var(--cat-teal-dim);
   --color-cat-lima: var(--cat-lima);
   --color-cat-lima-dim: var(--cat-lima-dim);
-  --font-sans: var(--font-inter), system-ui, sans-serif;
-  --font-display: var(--font-inter), system-ui, sans-serif;
+  --font-sans: var(--font-geist), system-ui, sans-serif;
+  --font-display: var(--font-geist), system-ui, sans-serif;
+
+  /* Espaciado de marca (Geist): -5% en títulos; en el cuerpo y el texto chico
+     se afloja, porque a 16px y menos el -5% pega las palabras. Un `tracking-*`
+     explícito en un componente sigue ganando. */
+  --tracking-marca: -0.05em;
+  --text-xs--letter-spacing: -0.01em;
+  --text-sm--letter-spacing: -0.015em;
+  --text-base--letter-spacing: -0.02em;
+  --text-lg--letter-spacing: -0.025em;
+  --text-xl--letter-spacing: -0.03em;
+  --text-2xl--letter-spacing: -0.05em;
+  --text-3xl--letter-spacing: -0.05em;
+  --text-4xl--letter-spacing: -0.05em;
+  --text-5xl--letter-spacing: -0.05em;
+  --text-6xl--letter-spacing: -0.05em;
 }
 
 body {
   background: var(--ground);
   color: var(--text);
   font-family: var(--font-sans);
+  letter-spacing: -0.02em;
   -webkit-font-smoothing: antialiased;
 }
 
 h1, h2, h3 {
   font-family: var(--font-display);
+  letter-spacing: var(--tracking-marca);
   text-wrap: balance;
+}
+
+/* Logos según el tema del panel: el oscuro sobre fondo claro y el claro sobre
+   fondo oscuro. El tema lo pone next-themes en data-theme, así que se resuelve
+   acá y no con `dark:` (que sigue a la preferencia del sistema). */
+:root:not([data-theme="dark"]) .logo-en-oscuro,
+:root[data-theme="dark"] .logo-en-claro {
+  display: none;
 }
 
 /* En @layer base para que `outline-none` y los `focus-visible:ring-*` de las

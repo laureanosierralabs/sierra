@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import { Geist } from "next/font/google";
 import Image from "next/image";
 import Link from "next/link";
 import { UserProfileButton } from "@/components/common/header/user-profile";
@@ -7,14 +7,13 @@ import { portalesDisponibles } from "@/lib/portal/contexto";
 import "./portal.css";
 
 export const metadata: Metadata = {
-  title: "Portal de clientes · sierra labs",
+  title: "Portal de clientes · synx build",
   robots: { index: false, follow: false },
 };
 
-/* La tipografía de la marca (la de laureanosierra.com y el login del panel). */
-const marca = Plus_Jakarta_Sans({
+/* La tipografía de la marca (synx build). */
+const marca = Geist({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
   variable: "--font-portal",
 });
 
@@ -39,12 +38,12 @@ export default async function PortalLayout({ children }: { children: React.React
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 py-6 sm:px-6">
           <Link href="/portal" aria-label="Inicio del portal" className="group flex items-center gap-3">
             <Image
-              src="/logotipo-blanco.png"
-              alt="sierra labs · web design"
-              width={320}
-              height={85}
+              src="/synxbuild/synxbuild-white.png"
+              alt="synx build"
+              width={446}
+              height={91}
               priority
-              className="h-auto w-32 drop-shadow"
+              className="h-7 w-auto drop-shadow"
             />
             <span className="hidden text-sm font-extrabold tracking-wide text-primary-300 uppercase transition-colors group-hover:text-primary-200 sm:inline">
               Portal <span className="text-white">de clientes</span>
@@ -67,7 +66,7 @@ export default async function PortalLayout({ children }: { children: React.React
       <footer className="pb-10 text-center text-xs leading-relaxed font-medium text-white/60 print:hidden">
         Todos los derechos reservados
         <br />
-        sierra labs {new Date().getFullYear()}®
+        synx build {new Date().getFullYear()}®
       </footer>
     </div>
   );

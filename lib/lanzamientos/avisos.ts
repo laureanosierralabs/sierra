@@ -24,7 +24,7 @@ function marco(nombre: string, titulo: string, parrafos: string[], boton: { text
     .join("\n");
   const accion = boton
     ? `<tr><td style="padding:28px 32px 0;">
-<table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="background:#3758f9;border-radius:999px;"><a href="${escaparHtml(boton.url)}" style="display:inline-block;padding:14px 28px;${FUENTE}font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;">${escaparHtml(boton.texto)}</a></td></tr></table>
+<table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="background:#0000ff;border-radius:999px;"><a href="${escaparHtml(boton.url)}" style="display:inline-block;padding:14px 28px;${FUENTE}font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;">${escaparHtml(boton.texto)}</a></td></tr></table>
 </td></tr>`
     : "";
   return `<!doctype html>
@@ -34,7 +34,7 @@ function marco(nombre: string, titulo: string, parrafos: string[], boton: { text
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0a0a0a;">
 <tr><td align="center" style="padding:32px 16px;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#171717;border-radius:16px;border:1px solid #262626;">
-<tr><td style="padding:32px 32px 8px;${FUENTE}font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:#a3a3a3;">Sierra Labs &middot; ${escaparHtml(nombre)}</td></tr>
+<tr><td style="padding:32px 32px 8px;${FUENTE}font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:#a3a3a3;">synx build &middot; ${escaparHtml(nombre)}</td></tr>
 <tr><td style="padding:8px 32px 0;${FUENTE}font-size:24px;line-height:30px;font-weight:700;color:#ffffff;">${escaparHtml(titulo)}</td></tr>
 ${cuerpo}
 ${accion}

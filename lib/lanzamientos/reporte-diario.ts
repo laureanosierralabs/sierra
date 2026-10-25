@@ -327,7 +327,7 @@ ${analisisHtml(analisis)}
   const u = url ? escaparHtml(url) : "";
   const boton = url
     ? `<tr><td style="padding:28px 32px 0;">
-<table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="background:#3758f9;border-radius:999px;"><a href="${u}" style="display:inline-block;padding:14px 28px;${FUENTE}font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;">${textoBoton}</a></td></tr></table>
+<table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="background:#0000ff;border-radius:999px;"><a href="${u}" style="display:inline-block;padding:14px 28px;${FUENTE}font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;">${textoBoton}</a></td></tr></table>
 </td></tr>`
     : "";
 
@@ -343,7 +343,7 @@ ${analisisHtml(analisis)}
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0a0a0a;">
 <tr><td align="center" style="padding:32px 16px;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#171717;border-radius:16px;border:1px solid #262626;">
-<tr><td style="padding:32px 32px 8px;${FUENTE}font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:#a3a3a3;">Sierra Labs &middot; ${escaparHtml(nombre)}</td></tr>
+<tr><td style="padding:32px 32px 8px;${FUENTE}font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:#a3a3a3;">synx build &middot; ${escaparHtml(nombre)}</td></tr>
 <tr><td style="padding:8px 32px 0;${FUENTE}font-size:24px;line-height:30px;font-weight:700;color:#ffffff;">${escaparHtml(titulo)}</td></tr>
 <tr><td style="padding:12px 32px 0;${FUENTE}font-size:15px;line-height:24px;color:#d4d4d4;">${escaparHtml(intro)}</td></tr>
 ${bloques}
@@ -356,7 +356,7 @@ ${boton}
 </body>
 </html>`;
 
-  const lineas: string[] = [`Sierra Labs · ${nombre}`, "", titulo, intro, ""];
+  const lineas: string[] = [`synx build · ${nombre}`, "", titulo, intro, ""];
   if (final) {
     lineas.push(etiquetaCol1.toUpperCase());
     for (const m of metricas) lineas.push(`${m.etiqueta}: ${m.total}`);

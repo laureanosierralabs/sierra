@@ -13,7 +13,7 @@ export function pedidoResueltoEmail(d: DatosPedidoResuelto) {
   const titulo = lineaUnica(d.titulo);
   const subject = `Tu pedido «${titulo}» está resuelto`;
   const { html, text } = armarEmail({
-    etiqueta: "Sierra Labs · Portal de clientes",
+    etiqueta: "synx build · Portal de clientes",
     titulo: `Tu pedido «${titulo}» está resuelto`,
     parrafos: ["Ya terminamos con tu pedido. Si algo no quedó como esperabas, respondé desde el portal y lo reabrimos."],
     cita: d.comentario

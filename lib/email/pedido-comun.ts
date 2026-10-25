@@ -42,7 +42,7 @@ export function armarEmail(b: Bloque): { html: string; text: string } {
     )
     .join("\n");
   const cita = b.cita?.texto
-    ? `<tr><td style="padding:16px 32px 0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="border-left:3px solid #3758f9;padding:4px 0 4px 14px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:22px;color:#d4d4d4;"><span style="font-size:12px;color:#a3a3a3;">${escaparHtml(b.cita.rotulo)}</span><br>${escaparHtml(b.cita.texto)}</td></tr></table></td></tr>`
+    ? `<tr><td style="padding:16px 32px 0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="border-left:3px solid #0000ff;padding:4px 0 4px 14px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:22px;color:#d4d4d4;"><span style="font-size:12px;color:#a3a3a3;">${escaparHtml(b.cita.rotulo)}</span><br>${escaparHtml(b.cita.texto)}</td></tr></table></td></tr>`
     : "";
 
   const html = `<!doctype html>
@@ -57,7 +57,7 @@ export function armarEmail(b: Bloque): { html: string; text: string } {
 ${parrafos}
 ${cita}
 <tr><td style="padding:28px 32px 0;">
-<table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="background:#3758f9;border-radius:999px;"><a href="${u}" style="display:inline-block;padding:14px 28px;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;">${escaparHtml(b.boton.texto)}</a></td></tr></table>
+<table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="background:#0000ff;border-radius:999px;"><a href="${u}" style="display:inline-block;padding:14px 28px;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;">${escaparHtml(b.boton.texto)}</a></td></tr></table>
 </td></tr>
 <tr><td style="padding:24px 32px 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:20px;color:#a3a3a3;">Si el bot&oacute;n no funciona, copi&aacute; y peg&aacute; esta direcci&oacute;n en tu navegador:<br><a href="${u}" style="color:#7b94ff;word-break:break-all;">${u}</a></td></tr>
 <tr><td style="padding:24px 32px 32px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:18px;color:#737373;">${escaparHtml(b.pie)}</td></tr>

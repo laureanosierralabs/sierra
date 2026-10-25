@@ -177,7 +177,7 @@ export async function invitarAlPortal(fd: FormData): Promise<Resultado | { aviso
         emailAddress: email,
         publicMetadata: { role: "client", portalOrgId: orgId },
         ignoreExisting: true,
-        // Con Resend configurado el mail sale de Sierra Labs, no de Clerk.
+        // Con Resend configurado el mail sale de synx build, no de Clerk.
         ...(propio ? { notify: false } : {}),
         ...(host ? { redirectUrl: `https://${host}/sign-up?para=cliente` } : {}),
       });
@@ -208,7 +208,7 @@ export async function invitarAlPortal(fd: FormData): Promise<Resultado | { aviso
         }
         revalidarCliente(clientId);
         return {
-          aviso: `Invitación enviada a ${email}. Le llegó un mail de Sierra Labs (puede caer en spam).`,
+          aviso: `Invitación enviada a ${email}. Le llegó un mail de synx build (puede caer en spam).`,
         };
       }
     }

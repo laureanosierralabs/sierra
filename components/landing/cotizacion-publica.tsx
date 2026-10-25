@@ -145,10 +145,10 @@ export function DocumentoCotizacionPublica({ cotizacion }: { cotizacion: Cotizac
     <article className="mx-auto flex w-full max-w-[1000px] flex-col px-6 pt-12 pb-10 sm:px-14 print:max-w-none print:px-12 print:pt-10">
       <header className="flex items-center justify-between gap-6 border-b-4 border-doc-box pb-6">
         <Image
-          src="/logotipo-azul.png"
-          alt="sierra labs · web design"
-          width={320}
-          height={85}
+          src="/synxbuild/synxbuild-blue.png"
+          alt="synx build"
+          width={444}
+          height={91}
           priority
           className="h-auto w-44 sm:w-52"
         />
@@ -332,16 +332,7 @@ export function DocumentoCotizacionPublica({ cotizacion }: { cotizacion: Cotizac
 
       <footer className="mt-12 flex items-end justify-between gap-6 text-xs">
         <span className="flex items-center gap-3">
-          {/* Solo el isotipo: se recorta del logotipo para no sumar otro archivo. */}
-          <span className="block h-8 w-[30px] overflow-hidden">
-            <Image
-              src="/logotipo-azul.png"
-              alt=""
-              width={320}
-              height={85}
-              className="h-8 w-auto max-w-none"
-            />
-          </span>
+          <Image src="/synxbuild/icono-blue.png" alt="" width={91} height={91} className="size-8" />
           <span className="font-medium leading-tight">
             Todos los derechos
             <br />
