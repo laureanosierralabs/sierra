@@ -341,3 +341,17 @@ h1, h2, h3 {
     display: none;
   }
 }
+
+/* Opciones de los <select> nativos. El desplegable (sobre todo en Windows)
+   toma el fondo del select: con uno semitransparente sale blanco y con texto
+   blanco no se lee. Se fija un fondo opaco según el tema; el portal es
+   siempre oscuro. */
+option {
+  background-color: #ffffff;
+  color: #111111;
+}
+[data-theme="dark"] option,
+.portal-raiz option {
+  background-color: #171717;
+  color: #f5f5f5;
+}
