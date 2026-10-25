@@ -9,7 +9,7 @@ import { numero, porcentaje } from "@/components/portal/resultados/formato";
 import { AvisoVistaInterna } from "@/components/portal/vista-interna";
 import { listarVideosSoporte } from "@/lib/landing/datos";
 import { fechaCorta } from "@/lib/landing/tipos";
-import { LABEL_ESTADO_LANZAMIENTO } from "@/lib/lanzamientos/tipos";
+import { conversion, LABEL_ESTADO_LANZAMIENTO } from "@/lib/lanzamientos/tipos";
 import { contextoPortal } from "@/lib/portal/contexto";
 import { accesosPortal, lanzamientoPortal } from "@/lib/portal/datos";
 import { GruposWhatsapp } from "@/components/lanzamientos/grupos-whatsapp";
@@ -91,14 +91,19 @@ export default async function PortalLanzamiento({
       .map((p) => (p.site_id ? sitios.find((s) => s.id === p.site_id)?.domain : null))
       .find((d): d is string => !!d) ?? null;
 
-  // Estadísticas del grupo en la pestaña Enlaces: quiénes de los registrados hicieron clic al grupo.
+  // Estadísticas del grupo en la pestaña Enlaces: quiénes de los registrados entraron al grupo.
+  // Igual que el embudo de Resultados: si el total de los grupos (que incluye
+  // los llenos antes de medir) es mayor que el cruce de clics, manda ese.
   const clics = detalle.despues && detalle.registros.length > 0
     ? (() => {
         const cruce = cruzarRegistrados(
           detalle.registros,
           detalle.despues.eventos.filter((e) => e.kind === "whatsapp_click").map((e) => e.email),
         );
-        return { registrados: cruce.total, entraron: cruce.cruzan, porcentaje: cruce.porcentaje };
+        const enGrupos = detalle.enGrupos ?? 0;
+        return enGrupos > cruce.cruzan
+          ? { registrados: cruce.total, entraron: enGrupos, porcentaje: conversion(enGrupos, cruce.total), segunGrupos: true }
+          : { registrados: cruce.total, entraron: cruce.cruzan, porcentaje: cruce.porcentaje, segunGrupos: false };
       })()
     : null;
   const modoPortal = { tipo: "portal", slug: ctx.slug } as const;
@@ -175,7 +180,7 @@ export default async function PortalLanzamiento({
                 hrefResultados={base}
                 lineaClave={
                   clics
-                    ? `${numero(clics.entraron)} de ${numero(clics.registrados)} registrados entraron (${porcentaje(clics.porcentaje)})`
+                    ? `${numero(clics.entraron)} de ${numero(clics.registrados)} registrados entraron (${porcentaje(clics.porcentaje)})${clics.segunGrupos ? " · según los grupos" : ""}`
                     : undefined
                 }
               >
