@@ -29,7 +29,7 @@ test("pedido nuevo: escapa todo lo que escribe el cliente y el botón lleva al p
     url: "https://app.x.com/landing-pages/pedidos/1?a=1&b=2",
   });
   assert.ok(!html.includes("<script>"));
-  assert.ok(!html.includes("<img"));
+  assert.ok(!html.includes("<img src=x"));
   assert.ok(!html.includes("<i>Pilar"));
   assert.ok(html.includes("&lt;i&gt;Pilar&lt;/i&gt; &amp; &quot;Co&quot;"));
   assert.ok(html.includes('href="https://app.x.com/landing-pages/pedidos/1?a=1&amp;b=2"'));

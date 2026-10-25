@@ -1,4 +1,4 @@
-import { escaparHtml } from "@/lib/email/invitacion-portal";
+import { boton, cita, enlaceAlternativo, parrafo, PIE_TEXTO, plantilla } from "@/lib/email/marca";
 
 /** Piezas compartidas por los mails de pedidos. Lógica pura: sin Supabase ni Clerk. */
 
@@ -32,40 +32,20 @@ interface Bloque {
   pie: string;
 }
 
-/** HTML apto para clientes de correo, con el mismo estilo que la invitación al portal. */
+/** HTML apto para clientes de correo, con el diseño común de la marca. */
 export function armarEmail(b: Bloque): { html: string; text: string } {
-  const u = escaparHtml(b.boton.url);
-  const parrafos = b.parrafos
-    .map(
-      (p) =>
-        `<tr><td style="padding:12px 32px 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:24px;color:#d4d4d4;">${escaparHtml(p)}</td></tr>`,
-    )
-    .join("\n");
-  const cita = b.cita?.texto
-    ? `<tr><td style="padding:16px 32px 0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="border-left:3px solid #0000ff;padding:4px 0 4px 14px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:22px;color:#d4d4d4;"><span style="font-size:12px;color:#a3a3a3;">${escaparHtml(b.cita.rotulo)}</span><br>${escaparHtml(b.cita.texto)}</td></tr></table></td></tr>`
-    : "";
-
-  const html = `<!doctype html>
-<html lang="es">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escaparHtml(b.titulo)}</title></head>
-<body style="margin:0;padding:0;background:#0a0a0a;">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0a0a0a;">
-<tr><td align="center" style="padding:32px 16px;">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#171717;border-radius:16px;border:1px solid #262626;">
-<tr><td style="padding:32px 32px 8px;font-family:Arial,Helvetica,sans-serif;font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:#a3a3a3;">${escaparHtml(b.etiqueta)}</td></tr>
-<tr><td style="padding:8px 32px 0;font-family:Arial,Helvetica,sans-serif;font-size:22px;line-height:30px;font-weight:700;color:#ffffff;">${escaparHtml(b.titulo)}</td></tr>
-${parrafos}
-${cita}
-<tr><td style="padding:28px 32px 0;">
-<table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="background:#0000ff;border-radius:999px;"><a href="${u}" style="display:inline-block;padding:14px 28px;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;">${escaparHtml(b.boton.texto)}</a></td></tr></table>
-</td></tr>
-<tr><td style="padding:24px 32px 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:20px;color:#a3a3a3;">Si el bot&oacute;n no funciona, copi&aacute; y peg&aacute; esta direcci&oacute;n en tu navegador:<br><a href="${u}" style="color:#7b94ff;word-break:break-all;">${u}</a></td></tr>
-<tr><td style="padding:24px 32px 32px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:18px;color:#737373;">${escaparHtml(b.pie)}</td></tr>
-</table>
-</td></tr>
-</table>
-</body>
-</html>`;
+  const html = plantilla({
+    titulo: b.titulo,
+    etiqueta: b.etiqueta,
+    encabezado: b.titulo,
+    cuerpo: [
+      ...b.parrafos.map(parrafo),
+      b.cita?.texto ? cita(b.cita.rotulo, b.cita.texto) : "",
+      boton(b.boton.texto, b.boton.url),
+      enlaceAlternativo(b.boton.url),
+    ].join("\n"),
+    pie: b.pie,
+  });
 
   const text = [
     b.etiqueta,
@@ -78,6 +58,8 @@ ${cita}
     b.boton.url,
     "",
     b.pie,
+    "",
+    PIE_TEXTO,
   ].join("\n");
 
   return { html, text };

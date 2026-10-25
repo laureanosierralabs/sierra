@@ -151,7 +151,7 @@ test("el aviso del borrador va al panel del lanzamiento", () => {
   assert.equal(a.subject, "El reporte final de Lanzamiento Octubre está listo para revisar");
   assert.ok(a.html.includes('href="https://app.ejemplo.com/landing-pages/launches/abc"'));
   assert.match(a.text, /https:\/\/app\.ejemplo\.com\/landing-pages\/launches\/abc/);
-  assert.ok(!avisoBorradorEmail({ nombre: "X", url: null }).html.includes("href="));
+  assert.ok(!avisoBorradorEmail({ nombre: "X", url: null }).html.includes("Revisar el borrador"));
 });
 
 test("el aviso de meta lleva los totales y el link al portal", () => {

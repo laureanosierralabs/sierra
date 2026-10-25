@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { Geist } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
+import { esES } from "@clerk/localizations";
 import { AppShell } from "@/components/common/app-shell";
 import { accesoActual } from "@/lib/landing/auth";
 import { DEFINICIONES, esRutaPortal } from "@/lib/unidades";
@@ -44,7 +45,9 @@ export default async function RootLayout({
         <Providers>
           {/* Sin esto Clerk redirige a su pantalla alojada en accounts.<dominio>
               en vez de usar /sign-in, que es la nuestra. */}
+          {/* esES: la traducción más completa, y trata de "tú" (neutro para clientes). */}
           <ClerkProvider
+            localization={esES}
             signInUrl="/sign-in"
             signUpUrl="/sign-up"
             signInFallbackRedirectUrl="/"

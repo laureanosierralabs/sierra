@@ -13,14 +13,14 @@ export function pedidoResueltoEmail(d: DatosPedidoResuelto) {
   const titulo = lineaUnica(d.titulo);
   const subject = `Tu pedido «${titulo}» está resuelto`;
   const { html, text } = armarEmail({
-    etiqueta: "synx build · Portal de clientes",
+    etiqueta: "synx control · Pedidos",
     titulo: `Tu pedido «${titulo}» está resuelto`,
-    parrafos: ["Ya terminamos con tu pedido. Si algo no quedó como esperabas, respondé desde el portal y lo reabrimos."],
+    parrafos: ["Ya terminamos con tu pedido. Si algo no quedó como esperabas, respóndenos desde synx control y lo reabrimos."],
     cita: d.comentario
       ? { rotulo: d.autorComentario ? `Último mensaje de ${lineaUnica(d.autorComentario)}` : "Último mensaje del equipo", texto: extracto(d.comentario) }
       : null,
     boton: { texto: "Ver mi pedido", url: d.url },
-    pie: "Recibís este mail porque creaste este pedido, o sos parte del portal de tu marca.",
+    pie: "Recibes este mail porque creaste este pedido o formas parte de synx control de tu marca.",
   });
   return { subject, html, text };
 }

@@ -3,47 +3,38 @@
  * el owner y meta de registros alcanzada. Lógica pura: devuelve asunto, HTML
  * apto para clientes de correo y texto.
  */
-import { escaparHtml } from "@/lib/email/invitacion-portal";
+import { boton, parrafo, PIE_TEXTO, plantilla, type Remitente } from "@/lib/email/marca";
 
 export interface CorreoAviso {
   subject: string;
   html: string;
   text: string;
+  remitente: Remitente;
 }
 
-const FUENTE = "font-family:Arial,Helvetica,sans-serif;";
 const limpiar = (t: string) => t.replace(/[\r\n]+/g, " ").trim();
 const entero = (n: number) => n.toLocaleString("es-AR");
 
-function marco(nombre: string, titulo: string, parrafos: string[], boton: { texto: string; url: string } | null): string {
-  const cuerpo = parrafos
-    .map(
-      (p) =>
-        `<tr><td style="padding:12px 32px 0;${FUENTE}font-size:15px;line-height:24px;color:#d4d4d4;">${escaparHtml(p)}</td></tr>`,
-    )
-    .join("\n");
-  const accion = boton
-    ? `<tr><td style="padding:28px 32px 0;">
-<table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="background:#0000ff;border-radius:999px;"><a href="${escaparHtml(boton.url)}" style="display:inline-block;padding:14px 28px;${FUENTE}font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;">${escaparHtml(boton.texto)}</a></td></tr></table>
-</td></tr>`
-    : "";
-  return `<!doctype html>
-<html lang="es">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escaparHtml(titulo)}</title></head>
-<body style="margin:0;padding:0;background:#0a0a0a;">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0a0a0a;">
-<tr><td align="center" style="padding:32px 16px;">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#171717;border-radius:16px;border:1px solid #262626;">
-<tr><td style="padding:32px 32px 8px;${FUENTE}font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:#a3a3a3;">synx build &middot; ${escaparHtml(nombre)}</td></tr>
-<tr><td style="padding:8px 32px 0;${FUENTE}font-size:24px;line-height:30px;font-weight:700;color:#ffffff;">${escaparHtml(titulo)}</td></tr>
-${cuerpo}
-${accion}
-<tr><td style="padding:28px 32px 32px;">&nbsp;</td></tr>
-</table>
-</td></tr>
-</table>
-</body>
-</html>`;
+function marco(
+  etiqueta: string,
+  titulo: string,
+  parrafos: string[],
+  accion: { texto: string; url: string } | null,
+  pie?: string,
+): string {
+  return plantilla({
+    titulo,
+    preheader: parrafos[0],
+    etiqueta,
+    encabezado: titulo,
+    cuerpo: [...parrafos.map(parrafo), accion ? boton(accion.texto, accion.url) : ""].join("\n"),
+    pie,
+  });
+}
+
+/** Texto plano del aviso: asunto, párrafos, link y el pie de la marca. */
+function textoAviso(subject: string, parrafos: string[], accion: { texto: string; url: string | null }): string {
+  return [subject, "", ...parrafos, ...(accion.url ? ["", `${accion.texto}:`, accion.url] : []), "", PIE_TEXTO].join("\n");
 }
 
 /** Al owner: el borrador del reporte final ya está para revisar. */
@@ -54,11 +45,11 @@ export function avisoBorradorEmail(e: { nombre: string; url: string | null }): C
     "El lanzamiento terminó y la IA preparó un borrador del análisis final.",
     "Revisalo, editalo si hace falta y aprobalo: recién entonces se le manda al cliente.",
   ];
-  const text = [subject, "", ...parrafos, ...(e.url ? ["", "Abrir el lanzamiento:", e.url] : [])].join("\n");
   return {
     subject,
-    html: marco(nombre, "Reporte final para revisar", parrafos, e.url ? { texto: "Revisar el borrador", url: e.url } : null),
-    text,
+    html: marco(`synx studio · ${nombre}`, "Reporte final para revisar", parrafos, e.url ? { texto: "Revisar el borrador", url: e.url } : null),
+    text: textoAviso(subject, parrafos, { texto: "Abrir el lanzamiento", url: e.url }),
+    remitente: "equipo",
   };
 }
 
@@ -95,11 +86,11 @@ export function avisoMetaEmail(e: {
       : []),
     "El lanzamiento sigue abierto: los registros nuevos se siguen sumando.",
   ];
-  const text = [subject, "", ...parrafos, ...(e.urlPortal ? ["", "Ver el panel:", e.urlPortal] : [])].join("\n");
   return {
     subject,
-    html: marco(nombre, "Llegaron a la meta", parrafos, e.urlPortal ? { texto: "Ver el panel", url: e.urlPortal } : null),
-    text,
+    html: marco(`synx control · ${nombre}`, "Llegaron a la meta", parrafos, e.urlPortal ? { texto: "Ver el panel", url: e.urlPortal } : null),
+    text: textoAviso(subject, parrafos, { texto: "Ver el panel", url: e.urlPortal }),
+    remitente: "personal",
   };
 }
 
@@ -114,12 +105,17 @@ export function avisoPocosGruposEmail(e: { nombre: string; libres: number; url: 
     e.libres === 0
       ? "Se llenó el último grupo de WhatsApp cargado. Hasta que cargues uno nuevo, la gente que se registra va a ese último grupo."
       : "Se llenó un grupo de WhatsApp y el link ya manda al siguiente.",
-    "Creá los grupos nuevos y pegá sus links en el lanzamiento: el link de la landing y de los mails no cambia, empieza a mandar a los nuevos solo.",
+    "Crea los grupos nuevos y pega sus links en el lanzamiento: el link de la landing y de los mails no cambia, empieza a mandar a los nuevos solo.",
   ];
-  const text = [subject, "", ...parrafos, ...(e.url ? ["", "Cargar grupos:", e.url] : [])].join("\n");
   return {
     subject,
-    html: marco(nombre, e.libres === 0 ? "No quedan grupos libres" : "Quedan pocos grupos libres", parrafos, e.url ? { texto: "Cargar grupos", url: e.url } : null),
-    text,
+    html: marco(
+      `synx control · ${nombre}`,
+      e.libres === 0 ? "No quedan grupos libres" : "Quedan pocos grupos libres",
+      parrafos,
+      e.url ? { texto: "Cargar grupos", url: e.url } : null,
+    ),
+    text: textoAviso(subject, parrafos, { texto: "Cargar grupos", url: e.url }),
+    remitente: "equipo",
   };
 }
