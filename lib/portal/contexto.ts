@@ -63,6 +63,7 @@ const organizacionesDelUsuario = cache(async (): Promise<string[]> => {
   // la próxima visita lo volvería a sumar.
   const pendiente = (usuario.publicMetadata as { portalOrgId?: unknown }).portalOrgId;
   if (typeof pendiente === "string") {
+    let consumir = true;
     if (!ids.includes(pendiente)) {
       try {
         await clerk.organizations.createOrganizationMembership({
@@ -70,17 +71,29 @@ const organizacionesDelUsuario = cache(async (): Promise<string[]> => {
           userId: usuario.id,
           role: "org:member",
         });
-        ids = await listar();
+        // No se vuelve a listar: justo después de crearla, Clerk todavía puede
+        // devolver la lista sin la membresía nueva y la primera visita quedaba
+        // en "Tu acceso todavía no está listo".
+        ids = [...ids, pendiente];
       } catch (e) {
-        // Organización borrada o membresía creada en paralelo: se sigue con
-        // lo que haya, sin bloquear el resto de sus organizaciones.
+        const codigo = (e as { errors?: { code?: string }[] } | null)?.errors?.[0]?.code;
+        if (codigo === "already_a_member_in_organization") {
+          // Creada en paralelo (otra pestaña o request): ya es miembro.
+          ids = [...ids, pendiente];
+        } else if (codigo !== "resource_not_found") {
+          // Falla transitoria: se conserva para reintentar en la próxima
+          // visita. Solo se descarta si la organización ya no existe.
+          consumir = false;
+        }
         console.error("[portal] no se pudo crear la membresía pendiente:", e);
       }
     }
-    // null borra la clave; el resto de la metadata (role) queda igual.
-    await clerk.users
-      .updateUserMetadata(usuario.id, { publicMetadata: { portalOrgId: null } })
-      .catch((e) => console.error("[portal] no se pudo consumir portalOrgId:", e));
+    if (consumir) {
+      // null borra la clave; el resto de la metadata (role) queda igual.
+      await clerk.users
+        .updateUserMetadata(usuario.id, { publicMetadata: { portalOrgId: null } })
+        .catch((e) => console.error("[portal] no se pudo consumir portalOrgId:", e));
+    }
   }
 
   return ids;
