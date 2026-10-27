@@ -45,8 +45,8 @@ const ICONOS = {
 
 /** Unidades con logo propio en vez de ícono. */
 const LOGOS: Record<string, string> = {
-  "synous-ai": "/logo-synous.png",
-  "aura-studio": "/aura-isotipo.png",
+  "synous-ai": "/assets/logo-synous.png",
+  "aura-studio": "/assets/aura-isotipo.png",
 };
 
 export function NavIcon({ name }: { name: string }) {

@@ -22,7 +22,7 @@ export const AZUL = "#0000ff";
 const AZUL_TEXTO = "#5073ff";
 export const EMAIL_EQUIPO = "team@synxbuild.com";
 
-const LOGO = "https://app.synxbuild.com/synxbuild/synxbuild-white.png";
+const LOGO = "https://app.synxbuild.com/brand/synxbuild-white.png";
 const SITIO = "https://laureanosierra.com";
 
 /** Fila de texto: un párrafo escapado. */

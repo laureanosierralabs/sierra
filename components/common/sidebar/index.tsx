@@ -52,12 +52,12 @@ export function Sidebar({
         <Link href="/" className="flex min-w-0 items-center gap-2.5" aria-label={`synx build · ${titulo}`}>
           {isSidebarOpen ? (
             <span className="flex min-w-0 flex-col items-start gap-2">
-              <Image src="/synxbuild/synxbuild-blue.png" alt="synx build" width={444} height={91} priority className="logo-en-claro h-auto w-[118px]" />
-              <Image src="/synxbuild/synxbuild-white.png" alt="synx build" width={446} height={91} priority className="logo-en-oscuro h-auto w-[118px]" />
+              <Image src="/brand/synxbuild-blue.png" alt="synx build" width={444} height={91} priority className="logo-en-claro h-auto w-[118px]" />
+              <Image src="/brand/synxbuild-white.png" alt="synx build" width={446} height={91} priority className="logo-en-oscuro h-auto w-[118px]" />
               <BadgeRol rol={rolLabel} />
             </span>
           ) : (
-            <Image src="/synxbuild/icono-blue.png" alt="synx build" width={91} height={91} className="size-7 shrink-0" />
+            <Image src="/brand/icono-blue.png" alt="synx build" width={91} height={91} className="size-7 shrink-0" />
           )}
         </Link>
 

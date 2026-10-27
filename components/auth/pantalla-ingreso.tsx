@@ -91,13 +91,13 @@ export function PantallaIngreso({
       {/* Panel de marca */}
       <aside className="login-brand">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img className="login-light" src="/light4.webp" alt="" aria-hidden="true" />
+        <img className="login-light" src="/assets/light4.webp" alt="" aria-hidden="true" />
         <div className="login-grain" aria-hidden="true" />
         <div className="login-halo" aria-hidden="true" />
 
         <div className="login-brand-head">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="login-logo" src="/synxbuild/synxbuild-white.png" alt={t.alt} />
+          <img className="login-logo" src="/brand/synxbuild-white.png" alt={t.alt} />
         </div>
 
         <div className="login-brand-body">
@@ -125,7 +125,7 @@ export function PantallaIngreso({
       <main className="login-form-side">
         <div className="login-form-inner">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="login-logo login-logo-mobile" src="/synxbuild/synxbuild-white.png" alt={t.alt} />
+          <img className="login-logo login-logo-mobile" src="/brand/synxbuild-white.png" alt={t.alt} />
 
           <h2 className="login-heading">{encabezado}</h2>
           <p className="login-sub">{subtitulo}</p>

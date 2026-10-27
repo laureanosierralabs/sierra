@@ -46,7 +46,7 @@ export function FooterMarca() {
 
       <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 pt-14 pb-10 sm:px-6 md:grid-cols-[1.4fr_1fr_1fr_1.2fr]">
         <div className="flex flex-col gap-4">
-          <Image src="/synxbuild/synxbuild-white.png" alt="synx build" width={446} height={91} className="h-auto w-33" />
+          <Image src="/brand/synxbuild-white.png" alt="synx build" width={446} height={91} className="h-auto w-33" />
           <p className="max-w-xs text-sm leading-relaxed text-white/50">
             Diseñamos experiencias de alto impacto y construimos la tecnología detrás de grandes lanzamientos digitales.
           </p>

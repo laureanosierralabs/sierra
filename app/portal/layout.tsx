@@ -40,7 +40,7 @@ export default async function PortalLayout({ children }: { children: React.React
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 py-6 sm:px-6">
           <Link href="/portal" aria-label="Inicio del portal" className="group flex items-center gap-3">
             <Image
-              src="/synxbuild/synxbuild-white.png"
+              src="/brand/synxbuild-white.png"
               alt="synx build"
               width={446}
               height={91}

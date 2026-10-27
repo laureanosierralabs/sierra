@@ -131,7 +131,7 @@
   width: 22px;
   height: 22px;
   border-radius: 100px;
-  background: url('/MeshGradient.webp') center center / 200% 200%;
+  background: url('/assets/MeshGradient.webp') center center / 200% 200%;
   animation: login-orb-drift 2s ease-in-out infinite;
   will-change: background-position;
 }
