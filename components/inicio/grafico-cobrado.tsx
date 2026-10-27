@@ -1,24 +1,22 @@
 "use client";
 
-import { BarChartCard } from "@/components/common/charts/bar-chart-card";
-import { CHART_COLORS } from "@/components/common/charts/chart-theme";
+import dynamic from "next/dynamic";
+import { ChartCard } from "@/components/common/charts/chart-card";
 import type { PuntoCobrado } from "@/lib/inicio";
-import { formatearMonto } from "@/lib/landing/tipos";
 
-const formatoUsd = (valor: number) => formatearMonto(valor, "USD");
+/** Recharts se baja aparte: la tarjeta con su altura fija ocupa el lugar mientras tanto. */
+const Contenido = dynamic(
+  () =>
+    import("@/components/inicio/grafico-cobrado-contenido").then((m) => m.GraficoCobradoContenido),
+  {
+    loading: () => (
+      <ChartCard title="Cobrado por mes" height={220}>
+        <div className="h-full w-full animate-pulse rounded-md bg-card-border/30" />
+      </ChartCard>
+    ),
+  },
+);
 
 export function GraficoCobrado({ puntos }: { puntos: PuntoCobrado[] }) {
-  return (
-    <BarChartCard
-      title="Cobrado por mes"
-      description={`Últimos ${puntos.length} meses · USD, solo pagos registrados`}
-      data={puntos}
-      xKey="etiqueta"
-      series={[{ key: "cobrado", name: "Cobrado", color: CHART_COLORS.income }]}
-      formatValue={formatoUsd}
-      height={220}
-      isEmpty={puntos.every((p) => p.cobrado === 0)}
-      emptyMessage="Todavía no hay cobros en USD en este período."
-    />
-  );
+  return <Contenido puntos={puntos} />;
 }
