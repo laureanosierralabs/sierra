@@ -1,4 +1,3 @@
-import { currentUser } from "@clerk/nextjs/server";
 import { unstable_rethrow } from "next/navigation";
 import { PageHeader } from "@/components/common/page-header";
 import { GraficoCobrado } from "@/components/inicio/grafico-cobrado";
@@ -15,7 +14,7 @@ import {
   saludo,
   serieCobrado,
 } from "@/lib/inicio";
-import { listarMiembros } from "@/lib/landing/auth";
+import { listarMiembros, usuarioActual } from "@/lib/landing/auth";
 import { cargarFinanzas } from "@/lib/landing/balance";
 import { listarClientes, listarProyectos, listarTareas } from "@/lib/landing/datos";
 import { formatearMonto } from "@/lib/landing/tipos";
@@ -38,7 +37,7 @@ export async function InicioContenido() {
   const mesActual = hoy.slice(0, 7);
 
   const [usuario, proyectos, tareas, clientes, miembros, finanzas, personal] = await Promise.all([
-    currentUser(),
+    usuarioActual(),
     listarProyectos(),
     listarTareas(),
     listarClientes(),

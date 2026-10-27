@@ -5,7 +5,9 @@ import {
   RUTA_PORTAL,
   esRutaPortal,
   esUsuarioCliente,
+  metadataDelToken,
   parsearUnidades,
+  type MetadataAcceso,
   puedeVerRuta,
   rutaInicial,
 } from "@/lib/unidades";
@@ -66,7 +68,7 @@ export default clerkMiddleware(async (auth, req) => {
 
   if (esPublica(req)) return seguir(req);
 
-  const { userId } = await auth();
+  const { userId, sessionClaims } = await auth();
   // redirectToSignIn() manda a la pantalla alojada de Clerk. Acá se redirige
   // a /sign-in, que es la nuestra, conservando adónde queria ir.
   if (!userId) {
@@ -75,23 +77,26 @@ export default clerkMiddleware(async (auth, req) => {
     return NextResponse.redirect(destino);
   }
 
-  // El token de sesión de Core 3 no incluye publicMetadata, así que el rol se
-  // lee del usuario. Verificado: los claims solo traen azp/exp/iss/sid/sub/v.
+  // El rol viaja en el token de sesión (claim `metadata`, configurado en
+  // Clerk) y se lee sin ir a la red. Si el token no lo trae, se lee del
+  // usuario: una llamada a la API de Clerk por request.
   //
   // Sin el rol no se sabe si es del equipo o un cliente, así que ante un
   // fallo de Clerk se corta (antes se dejaba pasar: con usuarios de clientes
   // eso abriría el panel interno). Se responde y no se lanza: una excepción
   // acá tumba la request y el host contesta 404 sin pista de qué pasó.
-  let metadata: { role?: unknown; units?: unknown; portals?: unknown } | undefined;
-  try {
-    const cliente = await clerkClient();
-    const usuario = await cliente.users.getUser(userId);
-    metadata = usuario.publicMetadata as typeof metadata;
-  } catch (e) {
-    console.error("[proxy] no se pudo leer el usuario de Clerk:", e);
-    return new NextResponse("No se pudo verificar tu acceso. Probá de nuevo en un momento.", {
-      status: 503,
-    });
+  let metadata = metadataDelToken(sessionClaims);
+  if (!metadata) {
+    try {
+      const cliente = await clerkClient();
+      const usuario = await cliente.users.getUser(userId);
+      metadata = usuario.publicMetadata as MetadataAcceso;
+    } catch (e) {
+      console.error("[proxy] no se pudo leer el usuario de Clerk:", e);
+      return new NextResponse("No se pudo verificar tu acceso. Probá de nuevo en un momento.", {
+        status: 503,
+      });
+    }
   }
 
   // Un usuario de cliente vive en el portal y en ningún otro lado.

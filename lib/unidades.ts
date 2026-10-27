@@ -165,3 +165,15 @@ export function esRutaPortal(pathname: string): boolean {
 export function esUsuarioCliente(metadata: unknown): boolean {
   return (metadata as { role?: unknown } | undefined)?.role === "client";
 }
+
+export type MetadataAcceso = { role?: unknown; units?: unknown; portals?: unknown };
+
+/**
+ * publicMetadata del usuario tal como viaja en el token de sesión (claim
+ * `metadata` = `{{user.public_metadata}}`, configurado en Clerk). Undefined
+ * si el token no lo trae: quien llama la lee de la API de Clerk.
+ */
+export function metadataDelToken(claims: unknown): MetadataAcceso | undefined {
+  const m = (claims as { metadata?: unknown } | null | undefined)?.metadata;
+  return m && typeof m === "object" ? (m as MetadataAcceso) : undefined;
+}

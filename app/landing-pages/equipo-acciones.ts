@@ -1,8 +1,8 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { auth, clerkClient } from "@clerk/nextjs/server";
-import { accesoActual } from "@/lib/landing/auth";
+import { TAG_EQUIPO_CLERK, accesoActual } from "@/lib/landing/auth";
 import { esUsuarioCliente, parsearUnidades } from "@/lib/unidades";
 
 /**
@@ -72,6 +72,7 @@ export async function invitarMiembro(fd: FormData) {
     throw new Error(msg);
   }
 
+  updateTag(TAG_EQUIPO_CLERK);
   revalidatePath("/landing-pages/team");
 }
 
@@ -100,6 +101,7 @@ export async function cambiarAcceso(fd: FormData) {
       rol === "owner" ? { role: "owner" } : { role: "member", units: unidades },
   });
 
+  updateTag(TAG_EQUIPO_CLERK);
   revalidatePath("/landing-pages/team");
   revalidatePath("/", "layout");
 }
@@ -110,6 +112,7 @@ export async function revocarInvitacion(id: string) {
   const client = await clerkClient();
   await client.invitations.revokeInvitation(id);
 
+  updateTag(TAG_EQUIPO_CLERK);
   revalidatePath("/landing-pages/team");
 }
 
@@ -124,5 +127,6 @@ export async function quitarMiembro(userId: string) {
   await exigirDelEquipo(userId);
   await client.users.deleteUser(userId);
 
+  updateTag(TAG_EQUIPO_CLERK);
   revalidatePath("/landing-pages/team");
 }

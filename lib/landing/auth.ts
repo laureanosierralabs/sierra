@@ -1,9 +1,10 @@
 import "server-only";
 
 import { cache } from "react";
-import { auth, clerkClient } from "@clerk/nextjs/server";
+import { unstable_cache } from "next/cache";
+import { auth, clerkClient, createClerkClient } from "@clerk/nextjs/server";
 import type { Miembro } from "@/lib/landing/tipos";
-import { esUsuarioCliente, parsearUnidades, type Unidad } from "@/lib/unidades";
+import { esUsuarioCliente, metadataDelToken, parsearUnidades, type Unidad } from "@/lib/unidades";
 
 /** Roles del equipo interno (los que se eligen en la pantalla Equipo). */
 export type Rol = "owner" | "member";
@@ -51,10 +52,13 @@ export function leerAcceso(metadata: unknown): Acceso {
 }
 
 /**
- * Acceso del usuario actual. Se lee del usuario y no de sessionClaims: el
- * token de Core 3 no incluye publicMetadata.
+ * Acceso del usuario actual. Sale del token de sesión (claim `metadata`) sin
+ * ir a la red; si el token no lo trae, se lee el usuario de la API de Clerk.
  */
 export const accesoActual = cache(async (): Promise<Acceso> => {
+  const { sessionClaims } = await auth();
+  const delToken = metadataDelToken(sessionClaims);
+  if (delToken) return leerAcceso(delToken);
   const usuario = await usuarioActual();
   return leerAcceso(usuario?.publicMetadata);
 });
@@ -79,16 +83,36 @@ export function nombreDe(u: {
   return nombre || u.emailAddresses[0]?.emailAddress || "Sin nombre";
 }
 
+/**
+ * La lista de miembros se cachea entre requests (5 min) con este tag; las
+ * acciones de equipo lo invalidan (ver equipo-acciones.ts). Más `cache()` de
+ * React para no repetir la lectura dentro del mismo request.
+ */
+export const TAG_EQUIPO_CLERK = "equipo-clerk";
+const REVALIDAR_EQUIPO_S = 300;
+
+/**
+ * Cliente de Clerk que no toca el request. `clerkClient()` lee headers() y
+ * dentro de `unstable_cache` eso tira error (Clerk lo relanza): las funciones
+ * cacheadas usan este, que solo necesita la clave secreta.
+ */
+const clerkSinRequest = () => createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
+
 /** Miembros del workspace para poblar los selects de responsable. */
-export async function listarMiembros(): Promise<Miembro[]> {
-  const client = await clerkClient();
-  const { data } = await client.users.getUserList({ limit: 100 });
-  // Los usuarios de clientes no son del equipo: nunca son responsables.
-  return data
-    .filter((u) => !esUsuarioCliente(u.publicMetadata))
-    .map((u) => ({ id: u.id, nombre: nombreDe(u) }))
-    .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
-}
+export const listarMiembros = cache(
+  unstable_cache(
+    async (): Promise<Miembro[]> => {
+      const { data } = await clerkSinRequest().users.getUserList({ limit: 100 });
+      // Los usuarios de clientes no son del equipo: nunca son responsables.
+      return data
+        .filter((u) => !esUsuarioCliente(u.publicMetadata))
+        .map((u) => ({ id: u.id, nombre: nombreDe(u) }))
+        .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+    },
+    ["clerk-miembros"],
+    { revalidate: REVALIDAR_EQUIPO_S, tags: [TAG_EQUIPO_CLERK] },
+  ),
+);
 
 export interface Invitacion {
   id: string;
@@ -98,8 +122,12 @@ export interface Invitacion {
   creada: string;
 }
 
-/** Invitaciones enviadas que todavía no se aceptaron. */
-export async function listarInvitaciones(): Promise<Invitacion[]> {
+/**
+ * Invitaciones enviadas que todavía no se aceptaron. Solo la usa la pantalla
+ * Equipo: sin caché entre requests, para que una invitación aceptada no siga
+ * figurando como pendiente.
+ */
+export const listarInvitaciones = cache(async (): Promise<Invitacion[]> => {
   const client = await clerkClient();
   const { data } = await client.invitations.getInvitationList({
     status: "pending",
@@ -117,7 +145,7 @@ export async function listarInvitaciones(): Promise<Invitacion[]> {
       creada: new Date(i.createdAt).toISOString().slice(0, 10),
     };
   });
-}
+});
 
 export interface MiembroDetalle extends Miembro {
   email: string | null;
@@ -125,8 +153,12 @@ export interface MiembroDetalle extends Miembro {
   unidades: Unidad[];
 }
 
-/** Igual que listarMiembros pero con email y acceso, para la pantalla Equipo. */
-export async function listarMiembrosDetalle(): Promise<MiembroDetalle[]> {
+/**
+ * Igual que listarMiembros pero con email y acceso, para la pantalla Equipo.
+ * Sin caché entre requests: ahí se gestionan los accesos y tiene que verse
+ * el estado real.
+ */
+export const listarMiembrosDetalle = cache(async (): Promise<MiembroDetalle[]> => {
   const client = await clerkClient();
   const { data } = await client.users.getUserList({ limit: 100 });
 
@@ -143,4 +175,4 @@ export async function listarMiembrosDetalle(): Promise<MiembroDetalle[]> {
       };
     })
     .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
-}
+});
