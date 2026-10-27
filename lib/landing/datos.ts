@@ -64,6 +64,25 @@ function porUrgencia<T extends { due_date: string | null }>(filas: T[]): T[] {
   return [...filas].sort((a, b) => distancia(a) - distancia(b));
 }
 
+const TAMANO_PAGINA = 1000;
+
+/** PostgREST corta en 1000 filas: las consultas masivas leen por páginas. */
+async function leerPaginado<T>(
+  pagina: (
+    desde: number,
+    hasta: number,
+  ) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>,
+): Promise<T[]> {
+  const todo: T[] = [];
+  for (let desde = 0; ; desde += TAMANO_PAGINA) {
+    const { data, error } = await pagina(desde, desde + TAMANO_PAGINA - 1);
+    if (error) throw new Error(`No se pudieron leer los datos: ${error.message}`);
+    const filas = data ?? [];
+    todo.push(...filas);
+    if (filas.length < TAMANO_PAGINA) return todo;
+  }
+}
+
 export async function listarProyectos(): Promise<Proyecto[]> {
   const { data, error } = await supabaseAdmin()
     .from("projects")
@@ -167,6 +186,28 @@ export async function listarTareasDeProceso(
 
   if (error) throw new Error(`No se pudieron leer las tareas: ${error.message}`);
   return data ?? [];
+}
+
+/** Tareas de todos los procesos en una sola consulta, agrupadas por proceso. */
+export async function listarTareasDeProcesos(
+  ids: string[],
+): Promise<Record<string, TareaProceso[]>> {
+  const porProceso: Record<string, TareaProceso[]> = Object.fromEntries(
+    ids.map((id) => [id, [] as TareaProceso[]]),
+  );
+  if (ids.length === 0) return porProceso;
+
+  const filas = await leerPaginado<TareaProceso>((desde, hasta) =>
+    supabaseAdmin()
+      .from("process_tasks")
+      .select("*")
+      .in("process_id", ids)
+      .order("position", { ascending: true })
+      .order("id")
+      .range(desde, hasta),
+  );
+  for (const t of filas) porProceso[t.process_id]?.push(t);
+  return porProceso;
 }
 
 export async function obtenerTarea(id: string): Promise<Tarea | null> {
@@ -409,6 +450,18 @@ export async function listarPagosEquipo(
   return data ?? [];
 }
 
+/** Pagos de equipo de todos los acuerdos (misma orden que listarPagosEquipo). */
+export async function listarTodosLosPagosEquipo(): Promise<PagoEquipo[]> {
+  return leerPaginado<PagoEquipo>((desde, hasta) =>
+    supabaseAdmin()
+      .from("team_payments")
+      .select("*")
+      .order("paid_on", { ascending: false })
+      .order("id")
+      .range(desde, hasta),
+  );
+}
+
 export async function listarGastosFijos(): Promise<GastoFijo[]> {
   const { data, error } = await supabaseAdmin()
     .from("fixed_expenses")
@@ -464,6 +517,18 @@ export async function listarPagos(quoteId: string): Promise<PagoCotizacion[]> {
 
   if (error) throw new Error(`No se pudieron leer los cobros: ${error.message}`);
   return data ?? [];
+}
+
+/** Cobros de todas las cotizaciones (misma orden que listarPagos). */
+export async function listarTodosLosPagos(): Promise<PagoCotizacion[]> {
+  return leerPaginado<PagoCotizacion>((desde, hasta) =>
+    supabaseAdmin()
+      .from("quote_payments")
+      .select("*")
+      .order("paid_on", { ascending: false })
+      .order("id")
+      .range(desde, hasta),
+  );
 }
 
 /** Lo cotizado por proyecto, para el indicador de la lista. Un proyecto

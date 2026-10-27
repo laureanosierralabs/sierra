@@ -5,8 +5,8 @@ import {
   listarClientes,
   listarCotizaciones,
   listarGastosFijos,
-  listarPagos,
-  listarPagosEquipo,
+  listarTodosLosPagos,
+  listarTodosLosPagosEquipo,
   listarProyectos,
 } from "@/lib/landing/datos";
 import {
@@ -108,20 +108,33 @@ export interface DatosFinanzas {
  * que la pantalla.
  */
 export async function cargarFinanzas(mesFiltro?: string): Promise<DatosFinanzas> {
-  const [cotizaciones, acuerdos, gastos, proyectos, clientes] = await Promise.all([
-    listarCotizaciones(),
-    listarAcuerdos(),
-    listarGastosFijos(),
-    listarProyectos(),
-    listarClientes(),
-  ]);
+  const [cotizaciones, acuerdos, gastos, proyectos, clientes, todosPagos, todosPagosEquipo] =
+    await Promise.all([
+      listarCotizaciones(),
+      listarAcuerdos(),
+      listarGastosFijos(),
+      listarProyectos(),
+      listarClientes(),
+      listarTodosLosPagos(),
+      listarTodosLosPagosEquipo(),
+    ]);
 
-  const cobros = await Promise.all(
-    cotizaciones.map(async (q) => ({ q, pagos: await listarPagos(q.id) })),
-  );
-  const pagosEquipo = await Promise.all(
-    acuerdos.map(async (a) => ({ a, pagos: await listarPagosEquipo(a.id) })),
-  );
+  // Una consulta por tabla y se agrupa acá; conserva el orden de cada pago.
+  const pagosPorCotizacion = new Map<string, PagoCotizacion[]>();
+  for (const p of todosPagos) {
+    const lista = pagosPorCotizacion.get(p.quote_id);
+    if (lista) lista.push(p);
+    else pagosPorCotizacion.set(p.quote_id, [p]);
+  }
+  const pagosPorAcuerdo = new Map<string, PagoEquipo[]>();
+  for (const p of todosPagosEquipo) {
+    const lista = pagosPorAcuerdo.get(p.agreement_id);
+    if (lista) lista.push(p);
+    else pagosPorAcuerdo.set(p.agreement_id, [p]);
+  }
+
+  const cobros = cotizaciones.map((q) => ({ q, pagos: pagosPorCotizacion.get(q.id) ?? [] }));
+  const pagosEquipo = acuerdos.map((a) => ({ a, pagos: pagosPorAcuerdo.get(a.id) ?? [] }));
 
   const porMes = new Map<string, Mes>();
   const mes = (m: string): Mes => {

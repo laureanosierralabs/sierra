@@ -2,7 +2,7 @@ import {
   listarProcesos,
   listarProyectos,
   listarTareas,
-  listarTareasDeProceso,
+  listarTareasDeProcesos,
 } from "@/lib/landing/datos";
 import { listarMiembros } from "@/lib/landing/auth";
 import { PageHeader } from "@/components/landing/ui";
@@ -14,20 +14,15 @@ import { Procesos } from "@/components/landing/procesos";
 export const dynamic = "force-dynamic";
 
 export default async function TareasPage() {
-  const [tareas, proyectos, miembros, procesos] = await Promise.all([
+  // Procesos primero (hacen falta sus ids); las tareas de todos van en una sola consulta.
+  const procesosP = listarProcesos();
+  const [tareas, proyectos, miembros, procesos, tareasPorProceso] = await Promise.all([
     listarTareas(),
     listarProyectos(),
     listarMiembros(),
-    listarProcesos(),
+    procesosP,
+    procesosP.then((ps) => listarTareasDeProcesos(ps.map((p) => p.id))),
   ]);
-
-  const tareasPorProceso = Object.fromEntries(
-    await Promise.all(
-      procesos.map(
-        async (p) => [p.id, await listarTareasDeProceso(p.id)] as const,
-      ),
-    ),
-  );
 
   return (
     <>
