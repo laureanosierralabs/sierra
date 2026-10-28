@@ -11,6 +11,8 @@ import type { DetalleLanzamiento } from "@/lib/lanzamientos/datos";
 import { cruzarRegistrados, resumirCheckout, type ResumenCheckout } from "@/lib/lanzamientos/despues";
 import {
   rankingUtm,
+  rankingVentasUtm,
+  type RankingVentas,
   resumirOrigenes,
   type OrigenSinUtm,
   type RankingUtm,
@@ -140,6 +142,8 @@ export interface FilaLanding {
   kind: TipoLanding;
   visitantes: number;
   conversiones: number;
+  /** Ingresos por moneda (solo landings de venta). */
+  ingresos: [string, number][];
   cvr: number | null;
 }
 
@@ -175,6 +179,9 @@ export interface ResultadosVista {
   baseFuentes: "visitantes" | "registros";
   campanas: RankingUtm;
   anuncios: RankingUtm;
+  /** Ventas por campaña / anuncio (utm de la compra), top 5. */
+  ventasCampanas: RankingVentas;
+  ventasAnuncios: RankingVentas;
   origenesSinUtm: OrigenSinUtm[];
   porLanding: FilaLanding[];
   comparaciones: ComparacionLanding[];
@@ -416,13 +423,17 @@ export function calcularResultados(
   const traficoPeriodo = resumirVisitas(enPeriodo.visitas);
   const registrosPeriodo = resumirRegistros(enPeriodo.registros);
   const comprasPorPagina = new Map<string, number>();
+  const comprasDePagina = new Map<string, Compra[]>();
   for (const c of enPeriodo.compras) {
-    if (c.page_id) comprasPorPagina.set(c.page_id, (comprasPorPagina.get(c.page_id) ?? 0) + 1);
+    if (!c.page_id) continue;
+    comprasPorPagina.set(c.page_id, (comprasPorPagina.get(c.page_id) ?? 0) + 1);
+    comprasDePagina.set(c.page_id, [...(comprasDePagina.get(c.page_id) ?? []), c]);
   }
   const porLanding: FilaLanding[] = detalle.paginas.map((p) => {
     const visitantes = traficoPeriodo.porPagina[p.id] ?? 0;
     const conversiones = p.kind === "venta" ? (comprasPorPagina.get(p.id) ?? 0) : (registrosPeriodo.porPagina[p.id] ?? 0);
-    return { id: p.id, name: p.name, kind: p.kind, visitantes, conversiones, cvr: conversion(conversiones, visitantes) };
+    const ingresos = p.kind === "venta" ? ingresosPorMoneda(comprasDePagina.get(p.id) ?? []) : [];
+    return { id: p.id, name: p.name, kind: p.kind, visitantes, conversiones, ingresos, cvr: conversion(conversiones, visitantes) };
   });
   const comparaciones: ComparacionLanding[] = [];
   for (const tipo of ["registro", "venta"] as const) {
@@ -457,6 +468,8 @@ export function calcularResultados(
     baseFuentes,
     campanas: rankingUtm(vista.registros, "utm_campaign", 5),
     anuncios: rankingUtm(vista.registros, "utm_content", 5),
+    ventasCampanas: rankingVentasUtm(vista.compras, "utm_campaign", 5),
+    ventasAnuncios: rankingVentasUtm(vista.compras, "utm_content", 5),
     origenesSinUtm: resumirOrigenes(vista.referrers ?? []),
     porLanding,
     comparaciones,

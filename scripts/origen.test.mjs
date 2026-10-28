@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-const { normalizarOrigen, resumirOrigenes, rankingUtm, ORIGEN_DIRECTO } = await import(
+const { normalizarOrigen, resumirOrigenes, rankingUtm, rankingVentasUtm, partirAnuncio, sumarPorMoneda, ORIGEN_DIRECTO } = await import(
   "../lib/lanzamientos/origen.ts"
 );
 const { filtrarPorLanding, filtrarPorPeriodo } = await import("../lib/lanzamientos/vista.ts");
@@ -102,4 +102,61 @@ test("los referrers se filtran por landing y por período como las visitas", () 
   assert.deepEqual(filtrarPorPeriodo(datos, rango).referrers.map((r) => r.visitors), [2]);
   // Sin referrers no se inventan.
   assert.equal(filtrarPorLanding({ ...datos, referrers: undefined }, "a").referrers, undefined);
+});
+
+const venta = (utm_content, utm_campaign, amount, currency = "USD") => ({
+  amount,
+  currency,
+  utm_content,
+  utm_campaign,
+});
+
+test("rankingVentasUtm agrupa ventas por anuncio con ingresos por moneda", () => {
+  const compras = [
+    venta("Ad_A|120258081468600777", "Camp1", 10),
+    venta("Ad_A|120258081468600777", "Camp1", 10),
+    venta("Ad_B|120258081468600888", "Camp2", 30),
+    venta("Ad_B|120258081468600888", "Camp2", 5000, "ARS"),
+    venta("Ad_C|1", "Camp2", 7),
+    venta(null, null, 7),
+    venta("  ", null, null),
+  ];
+  const r = rankingVentasUtm(compras, "utm_content");
+  assert.equal(r.hayValor, true);
+  assert.deepEqual(
+    r.filas.map((f) => [f.valor, f.ventas]),
+    [
+      ["Ad_B|120258081468600888", 2],
+      ["Ad_A|120258081468600777", 2],
+      ["Ad_C|1", 1],
+      [null, 2],
+    ].sort((a, b) => b[1] - a[1] || (a[0] === null) - (b[0] === null)),
+  );
+  const b = r.filas.find((f) => f.valor === "Ad_B|120258081468600888");
+  assert.deepEqual(b.ingresos, [
+    ["ARS", 5000],
+    ["USD", 30],
+  ]);
+  assert.equal(b.porcentaje, 28.6);
+  const porCampana = rankingVentasUtm(compras, "utm_campaign", 1);
+  assert.equal(porCampana.filas.length, 1);
+});
+
+test("rankingVentasUtm sin UTM no dice nada y respeta el tope", () => {
+  const r = rankingVentasUtm([venta(null, null, 5), venta("", "", 5)], "utm_content");
+  assert.equal(r.hayValor, false);
+  assert.equal(rankingVentasUtm([], "utm_content").filas.length, 0);
+});
+
+test("partirAnuncio separa el nombre del id de Meta", () => {
+  assert.deepEqual(partirAnuncio("Ad_Activacion7Nov_5|120258081468600777"), {
+    nombre: "Ad_Activacion7Nov_5",
+    id: "120258081468600777",
+  });
+  assert.deepEqual(partirAnuncio("120258081468600777"), { nombre: "120258081468600777", id: null });
+  assert.deepEqual(partirAnuncio("a|b"), { nombre: "a|b", id: null });
+});
+
+test("sumarPorMoneda ignora montos nulos", () => {
+  assert.deepEqual(sumarPorMoneda([{ amount: null, currency: "USD" }, { amount: 2, currency: null }]), [["—", 2]]);
 });

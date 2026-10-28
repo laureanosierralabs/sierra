@@ -317,7 +317,16 @@ export async function lanzamientoDeCliente(
       for (const c of conv) {
         const pageId = c.path ? (paginaPorRuta.get(c.path) ?? null) : null;
         if (c.kind === "purchase") {
-          compras.push({ id: c.id, page_id: pageId, amount: c.amount, currency: c.currency, occurred_at: c.occurred_at });
+          compras.push({
+            id: c.id,
+            page_id: pageId,
+            amount: c.amount,
+            currency: c.currency,
+            occurred_at: c.occurred_at,
+            utm_source: c.utm_source,
+            utm_campaign: c.utm_campaign,
+            utm_content: c.utm_content,
+          });
         } else if (c.email) {
           registros.push({
             id: c.id,

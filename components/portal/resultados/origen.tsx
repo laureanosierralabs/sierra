@@ -1,5 +1,6 @@
 import { GraficoDona } from "@/components/portal/resultados/graficos";
-import { COLORES_FUENTES, numero, porcentaje, TARJETA } from "@/components/portal/resultados/formato";
+import { COLORES_FUENTES, monto, numero, porcentaje, TARJETA } from "@/components/portal/resultados/formato";
+import { partirAnuncio } from "@/lib/lanzamientos/origen";
 import type { ResultadosVista } from "@/lib/lanzamientos/resultados";
 import { cn } from "@/utils/cn";
 
@@ -8,6 +9,8 @@ interface FilaBarra {
   etiqueta: string;
   /** El valor llegó tal cual desde Meta (un id): se muestra en monoespaciada. */
   crudo?: boolean;
+  /** Dato secundario bajo la etiqueta (p. ej. el id del anuncio). */
+  sub?: string | null;
   valor: number;
   detalle?: string;
 }
@@ -20,11 +23,9 @@ function Ranking({ filas, unidad }: { filas: FilaBarra[]; unidad: string }) {
       {filas.map((f) => (
         <li key={f.clave}>
           <div className="flex items-baseline justify-between gap-4 text-sm">
-            <span
-              title={f.etiqueta}
-              className={cn("min-w-0 truncate text-white/85", f.crudo && "font-mono text-xs")}
-            >
-              {f.etiqueta}
+            <span className="min-w-0" title={f.sub ? `${f.etiqueta} | ${f.sub}` : f.etiqueta}>
+              <span className={cn("block truncate text-white/85", f.crudo && "font-mono text-xs")}>{f.etiqueta}</span>
+              {f.sub && <span className="block truncate font-mono text-[11px] text-white/45">{f.sub}</span>}
             </span>
             <span className="shrink-0 tabular-nums">
               <strong className="font-semibold">{numero(f.valor)}</strong>{" "}
@@ -56,6 +57,11 @@ export function BloqueOrigen({ r }: { r: ResultadosVista }) {
   const campanas = r.campanas.filas.filter((f) => f.valor !== null);
   const anuncios = r.anuncios.filas.filter((f) => f.valor !== null);
   const mejorAnuncio = anuncios[0];
+  const ventasAnuncios = r.ventasAnuncios.filas.filter((f) => f.valor !== null);
+  const ventasCampanas = r.ventasCampanas.filas.filter((f) => f.valor !== null);
+  const hayVentas = ventasAnuncios.length > 0 || ventasCampanas.length > 0;
+  const textoIngresos = (f: { ingresos: [string, number][] }) =>
+    f.ingresos.map(([moneda, total]) => `${moneda} ${monto(total)}`).join(" + ");
   const sinUtm = r.origenesSinUtm.slice(0, 6);
 
   return (
@@ -109,11 +115,11 @@ export function BloqueOrigen({ r }: { r: ResultadosVista }) {
         </div>
 
         <div className={cn(TARJETA, "flex flex-col gap-7 p-5 sm:p-6")}>
-          {campanas.length === 0 && anuncios.length === 0 ? (
+          {campanas.length === 0 && anuncios.length === 0 && !hayVentas ? (
             <>
               <Subtitulo>Campañas y anuncios</Subtitulo>
               <p className="-mt-2 text-sm leading-relaxed text-white/60">
-                Cuando los registros lleguen desde anuncios con UTM, verás aquí qué campañas y qué anuncios traen más gente.
+                Cuando los registros o las ventas lleguen desde anuncios con UTM, verás aquí qué campañas y qué anuncios traen más gente.
               </p>
             </>
           ) : (
@@ -158,7 +164,40 @@ export function BloqueOrigen({ r }: { r: ResultadosVista }) {
                   />
                 </div>
               )}
-              <p className="text-xs text-white/45">Los nombres son los que entrega Meta (suelen ser números de identificación).</p>
+              {ventasAnuncios.length > 0 && (
+                <div>
+                  <Subtitulo>Ventas por anuncio</Subtitulo>
+                  <Ranking
+                    unidad="ventas"
+                    filas={ventasAnuncios.map((f) => {
+                      const a = partirAnuncio(f.valor ?? "");
+                      return {
+                        clave: f.valor ?? "",
+                        etiqueta: a.nombre,
+                        sub: a.id,
+                        valor: f.ventas,
+                        detalle: textoIngresos(f) || porcentaje(f.porcentaje),
+                      };
+                    })}
+                  />
+                </div>
+              )}
+              {ventasCampanas.length > 0 && (
+                <div>
+                  <Subtitulo>Ventas por campaña</Subtitulo>
+                  <Ranking
+                    unidad="ventas"
+                    filas={ventasCampanas.map((f) => ({
+                      clave: f.valor ?? "",
+                      etiqueta: f.valor ?? "",
+                      crudo: true,
+                      valor: f.ventas,
+                      detalle: textoIngresos(f) || porcentaje(f.porcentaje),
+                    }))}
+                  />
+                </div>
+              )}
+              <p className="text-xs text-white/45">Los nombres son los que entrega Meta; cuando traen un número de identificación, se muestra debajo.</p>
             </>
           )}
         </div>

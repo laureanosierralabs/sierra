@@ -74,6 +74,10 @@ export interface Compra {
   occurred_at: string | null;
   /** El monto es el precio de lista (venta importada), no lo realmente cobrado. */
   list_price?: boolean;
+  /** UTM de la venta (solo las medidas por un proyecto conectado). */
+  utm_source?: string | null;
+  utm_campaign?: string | null;
+  utm_content?: string | null;
 }
 
 export interface Registro {

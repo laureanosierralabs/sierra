@@ -20,7 +20,15 @@ import { IngresosWebinar } from "@/components/lanzamientos/ingresos-webinar";
 import { RegistrosTabla } from "@/components/lanzamientos/registros-tabla";
 import { Card } from "@/components/tailgrids/core/card";
 import type { DetalleLanzamiento } from "@/lib/lanzamientos/datos";
-import { rankingUtm, resumirOrigenes, type RankingUtm } from "@/lib/lanzamientos/origen";
+import {
+  partirAnuncio,
+  rankingUtm,
+  rankingVentasUtm,
+  resumirOrigenes,
+  sumarPorMoneda,
+  type FilaVentas,
+  type RankingUtm,
+} from "@/lib/lanzamientos/origen";
 import {
   compararVariantes,
   conversion,
@@ -228,6 +236,8 @@ export function PanelLanzamiento({ detalle }: { detalle: DetalleLanzamiento }) {
       {hayVisitas && <PorFuente trafico={trafico} registros={vista.registros} />}
 
       <PorCampana registros={vista.registros} />
+
+      <VentasPorCampana compras={vista.compras} />
 
       <SinUtmPorOrigen referrers={vista.referrers ?? []} />
 
@@ -443,14 +453,18 @@ function PorLanding({
   const resumen = resumirRegistros(registros);
   const trafico = resumirVisitas(visitas);
   const comprasPorPagina = new Map<string, number>();
+  const comprasDePagina = new Map<string, Compra[]>();
   for (const c of compras) {
-    if (c.page_id) comprasPorPagina.set(c.page_id, (comprasPorPagina.get(c.page_id) ?? 0) + 1);
+    if (!c.page_id) continue;
+    comprasPorPagina.set(c.page_id, (comprasPorPagina.get(c.page_id) ?? 0) + 1);
+    comprasDePagina.set(c.page_id, [...(comprasDePagina.get(c.page_id) ?? []), c]);
   }
 
   const filas = paginas.map((p) => {
     const vis = trafico.porPagina[p.id] ?? 0;
     const conv = p.kind === "venta" ? (comprasPorPagina.get(p.id) ?? 0) : (resumen.porPagina[p.id] ?? 0);
-    return { ...p, visitantes: vis, conversiones: conv, cvr: conversion(conv, vis) };
+    const ingresos = p.kind === "venta" ? sumarPorMoneda(comprasDePagina.get(p.id) ?? []) : [];
+    return { ...p, visitantes: vis, conversiones: conv, ingresos, cvr: conversion(conv, vis) };
   });
   const nombre = new Map(paginas.map((p) => [p.id, p.name]));
 
@@ -484,6 +498,7 @@ function PorLanding({
                   <span className="text-xs text-text-tertiary tabular-nums">
                     {p.visitantes > 0 ? `${numero(p.visitantes)} visitantes` : "Sin visitas"} ·{" "}
                     {numero(p.conversiones)} {p.kind === "venta" ? "ventas" : "registros"}
+                    {p.ingresos.length > 0 && ` · ${p.ingresos.map(([m, t]) => `${m} ${monto(t)}`).join(" + ")}`}
                   </span>
                 </span>
                 <span className="shrink-0 text-right">
@@ -691,6 +706,70 @@ function ListaRanking({ ranking, sinValor }: { ranking: RankingUtm; sinValor: st
         </li>
       ))}
     </ul>
+  );
+}
+
+/** Ventas de cada fila: cantidad, ingreso por moneda y parte del total. */
+function ListaVentas({ filas, sinValor, anuncio }: { filas: FilaVentas[]; sinValor: string; anuncio?: boolean }) {
+  return (
+    <ul className="divide-y divide-card-border">
+      {filas.map((f) => {
+        const partes = f.valor !== null && anuncio ? partirAnuncio(f.valor) : null;
+        return (
+          <li key={f.valor ?? "sin-valor"} className="flex items-center justify-between gap-4 px-5 py-3">
+            <span className="min-w-0" title={f.valor ?? undefined}>
+              <span
+                className={
+                  f.valor === null
+                    ? "block truncate text-sm text-text-tertiary"
+                    : "block truncate text-sm font-medium text-text-primary"
+                }
+              >
+                {partes ? partes.nombre : (f.valor ?? sinValor)}
+              </span>
+              {partes?.id && <span className="block truncate font-mono text-xs text-text-tertiary">{partes.id}</span>}
+            </span>
+            <span className="flex shrink-0 items-center gap-5 text-sm tabular-nums">
+              <span className="text-text-secondary">
+                {numero(f.ventas)} {f.ventas === 1 ? "venta" : "ventas"}
+                {f.ingresos.length > 0 && ` · ${f.ingresos.map(([m, t]) => `${m} ${monto(t)}`).join(" + ")}`}
+              </span>
+              <span className="w-14 text-right font-semibold text-text-primary">{porcentaje(f.porcentaje)}</span>
+            </span>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+/** Ventas por campaña y por anuncio: de qué anuncio salió cada compra. Solo si alguna trae UTM. */
+function VentasPorCampana({ compras }: { compras: DetalleLanzamiento["compras"] }) {
+  const campanas = rankingVentasUtm(compras, "utm_campaign");
+  const anuncios = rankingVentasUtm(compras, "utm_content");
+  if (!campanas.hayValor && !anuncios.hayValor) return null;
+
+  return (
+    <Card className="overflow-hidden p-0">
+      <CabeceraCard
+        titulo="Ventas por campaña y anuncio"
+        detalle="Ventas según el utm_campaign y el utm_content de la compra. Del anuncio se muestra el nombre y, debajo, el id de Meta."
+      />
+      <div className="grid grid-cols-1 divide-y divide-card-border lg:grid-cols-2 lg:divide-x lg:divide-y-0">
+        <div className="min-w-0">
+          <p className="border-b border-card-border px-5 py-2 text-xs font-medium uppercase tracking-wide text-text-tertiary">
+            Ventas por campaña
+          </p>
+          <ListaVentas filas={campanas.filas} sinValor="Sin campaña" />
+        </div>
+        <div className="min-w-0">
+          <p className="border-b border-card-border px-5 py-2 text-xs font-medium uppercase tracking-wide text-text-tertiary">
+            Ventas por anuncio
+          </p>
+          <ListaVentas filas={anuncios.filas} sinValor="Sin anuncio" anuncio />
+        </div>
+      </div>
+    </Card>
   );
 }
 

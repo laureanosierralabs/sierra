@@ -51,6 +51,11 @@ export function BloquePorLanding({
                     <span className="text-xs text-white/55">{p.kind === "venta" ? "ventas" : "registros"}</span>
                   </span>
                 </span>
+                {p.ingresos.length > 0 && (
+                  <span className="text-xs text-white/65 tabular-nums">
+                    Ingresos: {p.ingresos.map(([moneda, total]) => `${moneda} ${monto(total)}`).join(" · ")}
+                  </span>
+                )}
                 <span>
                   <span className="flex items-baseline justify-between text-xs">
                     <span className="text-white/55">{p.kind === "venta" ? "Conversión a venta" : "Conversión a registro"}</span>

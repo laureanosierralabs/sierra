@@ -3,7 +3,7 @@
  * tráfico sin UTM por origen (referrer normalizado a un canal legible) y el
  * ranking de registros por campaña / anuncio. Puras: se prueban en node.
  */
-import type { Registro, VisitaReferrer } from "@/lib/lanzamientos/tipos";
+import type { Compra, Registro, VisitaReferrer } from "@/lib/lanzamientos/tipos";
 
 export const ORIGEN_DIRECTO = "Directo (sin referrer)";
 
@@ -119,4 +119,80 @@ export function rankingUtm(
     )
     .slice(0, tope);
   return { filas, hayValor: [...grupos.keys()].some((k) => k !== null) };
+}
+
+/* ───────────── Ventas por campaña y anuncio ───────────── */
+
+export type IngresosPorMoneda = [string, number][];
+
+/** Suma por moneda (USD con ARS no se mezclan); ignora ventas sin monto. */
+export function sumarPorMoneda(compras: Pick<Compra, "amount" | "currency">[]): IngresosPorMoneda {
+  const total = new Map<string, number>();
+  for (const c of compras) {
+    if (c.amount === null) continue;
+    const moneda = c.currency ?? "—";
+    total.set(moneda, (total.get(moneda) ?? 0) + c.amount);
+  }
+  return [...total.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+}
+
+export interface FilaVentas {
+  /** Valor tal cual llegó; null = la venta no trae UTM. */
+  valor: string | null;
+  ventas: number;
+  ingresos: IngresosPorMoneda;
+  /** Del total de ventas, con un decimal. */
+  porcentaje: number;
+}
+
+export interface RankingVentas {
+  filas: FilaVentas[];
+  /** Alguna venta trae valor: si ninguna, el ranking no dice nada. */
+  hayValor: boolean;
+}
+
+/** Ventas agrupadas por `utm_campaign` o `utm_content`, top N (por cantidad y, a igual cantidad, por ingreso). */
+export function rankingVentasUtm(
+  compras: Pick<Compra, "amount" | "currency" | "utm_campaign" | "utm_content">[],
+  campo: "utm_campaign" | "utm_content",
+  tope: number = TOPE_RANKING,
+): RankingVentas {
+  const grupos = new Map<string | null, typeof compras>();
+  for (const c of compras) {
+    const v = c[campo]?.trim() || null;
+    grupos.set(v, [...(grupos.get(v) ?? []), c]);
+  }
+  const total = compras.length;
+  const suma = (f: { ingresos: IngresosPorMoneda }) => f.ingresos.reduce((t, [, n]) => t + n, 0);
+  const filas = [...grupos.entries()]
+    .map(([valor, lista]) => ({
+      valor,
+      ventas: lista.length,
+      ingresos: sumarPorMoneda(lista),
+      porcentaje: total > 0 ? Math.round((lista.length / total) * 1000) / 10 : 0,
+    }))
+    .sort(
+      (a, b) =>
+        b.ventas - a.ventas ||
+        Number(a.valor === null) - Number(b.valor === null) ||
+        suma(b) - suma(a) ||
+        (a.valor ?? "").localeCompare(b.valor ?? ""),
+    )
+    .slice(0, tope);
+  return { filas, hayValor: [...grupos.keys()].some((k) => k !== null) };
+}
+
+/**
+ * Un `utm_content` de Meta suele ser `Nombre del anuncio|123456789012`: el
+ * nombre es lo que se lee y el id (solo dígitos) queda como dato secundario.
+ * Sin ese formato, todo el valor es el nombre.
+ */
+export function partirAnuncio(valor: string): { nombre: string; id: string | null } {
+  const i = valor.lastIndexOf("|");
+  if (i > 0) {
+    const id = valor.slice(i + 1).trim();
+    const nombre = valor.slice(0, i).trim();
+    if (nombre && /^\d{6,}$/.test(id)) return { nombre, id };
+  }
+  return { nombre: valor.trim(), id: null };
 }
